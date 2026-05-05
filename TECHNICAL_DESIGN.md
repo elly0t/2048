@@ -15,7 +15,7 @@ The spec leaves several values unspecified. All assumptions are externalised to 
 | 3 | Score = sum of all merged tile values | Standard 2048 scoring convention — same as the original game |
 | 4 | Win state allows player to continue | Spec detects win but does not say game ends — continue or restart offered |
 | 5 | Expectimax depth = 4 | See section 5.2 for full rationale |
-| 6 | AI uses local Expectimax search | Deterministic, zero setup, fully testable. Remote AI provider path is documented as a pluggable alternative in `config.js` and `.env.example` |
+| 6 | AI uses local Expectimax search | Deterministic, zero setup, fully testable. Remote AI provider path is documented as a pluggable alternative via `CONFIG.AI_MODE` in `config.js` |
 
 ---
 
@@ -245,6 +245,17 @@ Good heuristic:
 
 A shallow search with a good heuristic outperforms a deep search with a bad one.
 
+**Weights:**
+
+```
+α (Monotonicity) = 1.0
+β (Smoothness)   = 0.1
+γ (Empty cells)  = 2.7
+δ (Corner)       = 1.0
+```
+
+These values are taken from nneonneo's published 2048 AI analysis (the same StackOverflow answer that documents the algorithm). Tuning weights from scratch requires hundreds of trial games and is well outside the scope of this submission. Using community-validated values lets the AI work as intended without inventing the wheel poorly. Cited in `heuristics.js` source.
+
 ### 5.4 AI Suggestion & Human-Readable Reasoning
 
 Expectimax is the AI suggestion engine. When the player asks for a suggestion, it searches all possible moves to depth 4 and returns the best direction. Plain-English reasoning is derived from the heuristic score deltas — the same values that drove the decision. Both the move and the reasoning are deterministic and fully testable.
@@ -267,7 +278,6 @@ export async function getSuggestion(board) {
   if (CONFIG.AI_MODE === 'remote') {
     // POST board to local Docker container running nneonneo
     // Translation between 2D array and bitboard happens server-side
-    // Credentials (if any) stay server-side via .env
     return await fetch('/api/suggest', {
       method: 'POST',
       body: JSON.stringify({ board })
@@ -277,7 +287,7 @@ export async function getSuggestion(board) {
 }
 ```
 
-We start with `AI_MODE=local`. Switching to remote requires changing one config value and starting the Docker container — the React code does not change.
+We start with `AI_MODE='local'` set in `config.js`. Switching to remote requires changing that constant and starting the Docker container — the React code does not change.
 
 **Benchmark (to be filled during build):**
 ```
@@ -289,30 +299,42 @@ Avg move time:    __ms
 **How the suggestion works:**
 
 ```
-Step 1 — score all 4 directions:
-  Left:  847  ← highest
-  Up:    651
-  Right: 203
-  Down:  189
+Step 1 — score all 4 directions, capturing each component:
+  Left:  847  components: { mono: 200, smooth: 47, empty: 350, corner: 250 }
+  Right: 651  components: { mono: 150, smooth: 51, empty: 200, corner: 250 }
+  Up:    203  components: { mono: 50,  smooth: 53, empty: 50,  corner: 50 }
+  Down:  189  components: { mono: 49,  smooth: 50, empty: 40,  corner: 50 }
 
-Step 2 — select: Left
+Step 2 — select highest: Left
+         second highest: Right
 
-Step 3 — heuristic component deltas for Left:
-  monotonicity:  +34  ← dominant
-  corner bonus:  +0   ← maintained
-  smoothness:    +12
-  empty cells:   -1
+Step 3 — compute deltas (Left vs Right) — what made Left win:
+  empty:  +150  ← largest absolute delta = dominant
+  mono:    +50
+  corner:    0
+  smooth:   -4
 
 Step 4 — dominant delta → template:
-  "Move Left — tiles are better ordered, largest tile stays in corner"
+  "Move Left — frees up board space"
 ```
+
+**Dominant delta** = largest absolute delta between the chosen direction's components and the second-best direction's components. If all deltas are small (< 5% of total score), use a generic template *"Move {dir} — best overall position"*.
+
+Template map:
+
+| Dominant component | Reasoning template |
+|---|---|
+| Monotonicity | *"Move {dir} — keeps tiles ordered along rows"* |
+| Smoothness | *"Move {dir} — keeps similar tiles close, more merges available"* |
+| Empty cells | *"Move {dir} — frees up board space"* |
+| Corner | *"Move {dir} — keeps largest tile anchored in corner"* |
 
 Deterministic — given the same board, output is always identical. Fully testable:
 
 ```js
 expect(getAdvice(knownBoard)).toEqual({
   direction: 'left',
-  reasoning: 'Move Left — tiles are better ordered, largest tile stays in corner'
+  reasoning: 'Move Left — frees up board space'
 })
 ```
 
@@ -375,7 +397,20 @@ class GameStore {
 }
 ```
 
-### 6.4 Actions
+### 6.4 Status Lifecycle
+
+```
+new GameStore()      → status = IDLE       (constructed but not started)
+useGame.js mounts    → if saved state in localStorage: restore it
+                     → else: store.reset() → status = PLAYING
+applyMove() reaches 2048  → status = WON    (player can continue or restart)
+applyMove() leaves no moves → status = LOST
+reset()              → status = PLAYING
+```
+
+`IDLE` is the brief moment between construction and first init. The user never sees it — `useGame.js` always transitions to `PLAYING` (via restore or reset) before render.
+
+### 6.5 Actions
 
 ```
 Action                  | State changes
@@ -389,7 +424,7 @@ reset()                 | board = initBoard(), score = 0,
                         | (bestScore preserved)
 ```
 
-### 6.5 VM Test Injection
+### 6.6 VM Test Injection
 
 ```js
 // gameStore.test.js — zero framework imports
@@ -648,7 +683,7 @@ export const CONFIG = {
   INIT_TILE_COUNT: { min: 2, max: 6 },  // spec unspecified — see assumptions
   SPAWN_WEIGHTS: { 2: 0.9, 4: 0.1 },    // spec unspecified — see assumptions
   EXPECTIMAX_DEPTH: 4,
-  AI_MODE: 'local'                        // 'local' | 'remote' — see .env.example
+  AI_MODE: 'local'                        // 'local' | 'remote' — see TD section 5.4
 }
 ```
 
@@ -697,7 +732,6 @@ Inspect config:
 │   ├── App.jsx
 │   └── main.jsx
 │
-├── .env.example
 ├── README.md
 ├── vite.config.js
 └── package.json
