@@ -6,7 +6,7 @@ This document explains the design decisions behind the implementation. Architect
 
 ## 1. Assumptions
 
-The spec leaves several values unspecified. All assumptions are externalised to `config.js` — logged to console on start, and configurable by editing the file directly.
+The spec leaves several values unspecified. All assumptions are externalised to `config.ts` — logged to console on start, and configurable by editing the file directly.
 
 | # | Assumption | Reason |
 |---|---|---|
@@ -15,7 +15,7 @@ The spec leaves several values unspecified. All assumptions are externalised to 
 | 3 | Score = sum of all merged tile values | Standard 2048 scoring convention — same as the original game |
 | 4 | Win state allows player to continue | Spec detects win but does not say game ends — continue or restart offered |
 | 5 | Expectimax depth = 4 | See section 5.2 for full rationale |
-| 6 | AI uses local Expectimax search | Deterministic, zero setup, fully testable. Remote AI provider path is documented as a pluggable alternative via `CONFIG.AI_MODE` in `config.js` |
+| 6 | AI uses local Expectimax search | Deterministic, zero setup, fully testable. Remote AI provider path is documented as a pluggable alternative via `CONFIG.AI_MODE` in `config.ts` |
 
 ---
 
@@ -26,6 +26,7 @@ ESM (ECMAScript Modules) is the native JS module system browsers support directl
 | Tool | Why |
 |---|---|
 | **React** | Component model fits tile-based grid UI naturally |
+| **TypeScript** | Static types — catches indexing and merge bugs early |
 | **Vite** | Native ESM dev server — instant startup, no webpack bundling overhead |
 | **Vitest** | Shares Vite's config, aliases, and transforms — no duplicate pipeline. Jest on a Vite project needs `babel-jest`, `ts-jest`, and manual `moduleNameMapper` to replicate what Vitest gets for free. `npm test` works out of the box. |
 | **Plain class store** | Framework-agnostic, injectable, testable without React |
@@ -48,8 +49,8 @@ ESM (ECMAScript Modules) is the native JS module system browsers support directl
 │   Tested independently of React      │
 ├──────────────────────────────────────┤
 │           Domain Layer               │
-│   board.js · moves.js                │
-│   heuristics.js · expectimax.js      │
+│   board.ts · moves.ts                │
+│   heuristics.ts · expectimax.ts      │
 │   Pure functions, zero side effects  │
 └──────────────────────────────────────┘
 ```
@@ -62,11 +63,11 @@ Core types are modelled explicitly so function signatures reflect the domain rat
 
 | Concept | Module | Shape |
 |---|---|---|
-| `Board` | `board.js` | `(number \| null)[][]` — `null` = empty cell, `number` = tile value |
-| `Direction` | `moves.js` | `'left' \| 'right' \| 'up' \| 'down'` |
-| `MoveResult` | `moves.js` | `{ board, changed, scoreDelta }` |
-| `GameStatus` | `gameStore.js` | `'idle' \| 'playing' \| 'won' \| 'lost'` |
-| `AIAdvice` | `expectimax.js` | `{ direction, reasoning, debug }` |
+| `Board` | `board.ts` | `(number \| null)[][]` — `null` = empty cell, `number` = tile value |
+| `Direction` | `moves.ts` | `'left' \| 'right' \| 'up' \| 'down'` |
+| `MoveResult` | `moves.ts` | `{ board, changed, scoreDelta }` |
+| `GameStatus` | `gameStore.ts` | `'idle' \| 'playing' \| 'won' \| 'lost'` |
+| `AIAdvice` | `expectimax.ts` | `{ direction, reasoning, debug }` |
 
 ---
 
@@ -74,7 +75,7 @@ Core types are modelled explicitly so function signatures reflect the domain rat
 
 ### 4.1 Game Rules
 
-Six rules from the spec govern all gameplay. Configurable values live in `config.js`:
+Six rules from the spec govern all gameplay. Configurable values live in `config.ts`:
 
 | # | Rule | Detail |
 |---|---|---|
@@ -99,7 +100,7 @@ The board is fixed size. Every move is constant time regardless of representatio
 
 Bitboard + LUT precomputation yields ~5–10× speedup. At depth 4 that takes our ~8ms baseline to ~0.8ms — both are imperceptible to a user. A 10× multiplier only becomes meaningful when the baseline is large enough to cross a perceptible threshold. At depth 5 (~400ms baseline), the same 10× improvement would bring latency to ~40ms — a real UX difference worth the complexity. At depth 4, it is not.
 
-If search depth is increased beyond 4 or board size grows, switching to Bitboard + LUT is a natural phase 2 — replacing the board representation throughout `board.js`, `moves.js`, and `expectimax.js`. The store and components are unaffected as they interface through `MoveResult` and `GameStore`, not the raw board format. Estimated effort: ~1–2 days for an experienced developer — the board representation, move logic, and LUT precomputation all need rewriting, but the surface area is small (three files) and the algorithm itself doesn't change.
+If search depth is increased beyond 4 or board size grows, switching to Bitboard + LUT is a natural phase 2 — replacing the board representation throughout `board.ts`, `moves.ts`, and `expectimax.ts`. The store and components are unaffected as they interface through `MoveResult` and `GameStore`, not the raw board format. Estimated effort: ~1–2 days for an experienced developer — the board representation, move logic, and LUT precomputation all need rewriting, but the surface area is small (three files) and the algorithm itself doesn't change.
 
 ### 4.3 Move Pipeline
 
@@ -150,7 +151,7 @@ Rule 4: no merge if no adjacent equals after compressing
 For Move Right, Up, Down — the same rules apply but in the corresponding direction. The transform pipeline (reflect, transpose) ensures `mergeRow` only ever sees a left-to-right problem. The transforms themselves are tested independently — `reflect(reflect(board)) === board`, `transpose(transpose(board)) === board`.
 
 `MoveResult` returned by `applyMove`:
-```js
+```ts
 {
   board: Board,        // new board state
   changed: boolean,    // did any cell move or merge?
@@ -213,7 +214,7 @@ Depth | Approx nodes  | Est. ms | Assessment
 
 Node counts derived from `48^d`. The 48 factor reflects empirical mid-game branching: ~6 empty cells × 2 tile outcomes (`2` or `4` spawning) × 4 player directions. Empty cell count varies through the game — early game has ~14, late game ~2 — 6 is a representative midgame snapshot. Real branching and timing will be measured and recorded in section 5.4 during build.
 
-`EXPECTIMAX_DEPTH = 4` is a named constant in `config.js`.
+`EXPECTIMAX_DEPTH = 4` is a named constant in `config.ts`.
 
 ### 5.3 Heuristic Function
 
@@ -254,7 +255,7 @@ A shallow search with a good heuristic outperforms a deep search with a bad one.
 δ (Corner)       = 1.0
 ```
 
-These values are taken from nneonneo's published 2048 AI analysis (the same StackOverflow answer that documents the algorithm). Tuning weights from scratch requires hundreds of trial games and is well outside the scope of this submission. Using community-validated values lets the AI work as intended without inventing the wheel poorly. Cited in `heuristics.js` source.
+These values are taken from nneonneo's published 2048 AI analysis (the same StackOverflow answer that documents the algorithm). Tuning weights from scratch requires hundreds of trial games and is well outside the scope of this submission. Using community-validated values lets the AI work as intended without inventing the wheel poorly. Cited in `heuristics.ts` source.
 
 ### 5.4 AI Suggestion & Human-Readable Reasoning
 
@@ -272,8 +273,8 @@ If we switch, we host nneonneo in Docker. Docker locks the build environment —
 
 The full switch involves: Docker container hosting nneonneo's compiled C++ binary, a thin Python Flask wrapper exposing `POST /suggest`, and board format translation (2D array ↔ 64-bit bitboard) inside the wrapper. The single integration point in our code is one line:
 
-```js
-// src/ai/getSuggestion.js
+```ts
+// src/ai/getSuggestion.ts
 export async function getSuggestion(board) {
   if (CONFIG.AI_MODE === 'remote') {
     // POST board to local Docker container running nneonneo
@@ -287,7 +288,7 @@ export async function getSuggestion(board) {
 }
 ```
 
-We start with `AI_MODE='local'` set in `config.js`. Switching to remote requires changing that constant and starting the Docker container — the React code does not change.
+We start with `AI_MODE='local'` set in `config.ts`. Switching to remote requires changing that constant and starting the Docker container — the React code does not change.
 
 **Benchmark (to be filled during build):**
 ```
@@ -331,7 +332,7 @@ Template map:
 
 Deterministic — given the same board, output is always identical. Fully testable:
 
-```js
+```ts
 expect(getAdvice(knownBoard)).toEqual({
   direction: 'left',
   reasoning: 'Move Left — frees up board space'
@@ -372,14 +373,14 @@ Test injection — the core reason for a class store — works identically eithe
 
 ### 6.3 Store Shape
 
-`GameStatus` and `Direction` are constant enums imported from `domain/types.js`:
+`GameStatus` and `Direction` are constant enums imported from `domain/types.ts`:
 
-```js
+```ts
 export const STATUS = { IDLE: 'idle', PLAYING: 'playing', WON: 'won', LOST: 'lost' }
 export const DIRECTION = { LEFT: 'left', RIGHT: 'right', UP: 'up', DOWN: 'down' }
 ```
 
-```js
+```ts
 class GameStore {
   board          // Board
   status         // STATUS value
@@ -401,14 +402,14 @@ class GameStore {
 
 ```
 new GameStore()      → status = IDLE       (constructed but not started)
-useGame.js mounts    → if saved state in localStorage: restore it
+useGame.ts mounts    → if saved state in localStorage: restore it
                      → else: store.reset() → status = PLAYING
 applyMove() reaches 2048  → status = WON    (player can continue or restart)
 applyMove() leaves no moves → status = LOST
 reset()              → status = PLAYING
 ```
 
-`IDLE` is the brief moment between construction and first init. The user never sees it — `useGame.js` always transitions to `PLAYING` (via restore or reset) before render.
+`IDLE` is the brief moment between construction and first init. The user never sees it — `useGame.ts` always transitions to `PLAYING` (via restore or reset) before render.
 
 ### 6.5 Actions
 
@@ -426,8 +427,8 @@ reset()                 | board = initBoard(), score = 0,
 
 ### 6.6 VM Test Injection
 
-```js
-// gameStore.test.js — zero framework imports
+```ts
+// gameStore.test.ts — zero framework imports
 import { GameStore } from '../store/gameStore'
 
 it('transitions to won when 2048 is reached', () => {
@@ -455,7 +456,7 @@ it('does not mutate state on no-change move', () => {
 })
 ```
 
-These exact test cases appear in `gameStore.test.js`.
+These exact test cases appear in `gameStore.test.ts`.
 
 ---
 
@@ -479,20 +480,20 @@ TDD is the development methodology. Tests are written before implementation — 
 
 | Layer | File | What is tested |
 |---|---|---|
-| Board primitives | `board.test.js` | `initBoard` (correct tile count, all `2`s, random positions), `boardsEqual`, `spawnTile` (probability distribution over many runs) |
-| Move operations | `moves.test.js` | `slideRow`, `mergeRow`, transforms (`reflect`, `transpose` involutions), all four directions — full board snapshots |
-| Win/lose detection | `gameStore.test.js` | `checkWin`, `checkLose` |
-| Move sequencing | `gameStore.test.js` | All 6 stages in section 4.4 |
-| AI heuristics | `heuristics.test.js` | Each heuristic component independently |
-| Expectimax | `expectimax.test.js` | Known board → expected best direction |
-| Advice generation | `expectimax.test.js` | Known board → expected reasoning template (deterministic) |
-| ViewModel | `gameStore.test.js` | State transitions, zero React imports |
+| Board primitives | `board.test.ts` | `initBoard` (correct tile count, all `2`s, random positions), `boardsEqual`, `spawnTile` (probability distribution over many runs) |
+| Move operations | `moves.test.ts` | `slideRow`, `mergeRow`, transforms (`reflect`, `transpose` involutions), all four directions — full board snapshots |
+| Win/lose detection | `gameStore.test.ts` | `checkWin`, `checkLose` |
+| Move sequencing | `gameStore.test.ts` | All 6 stages in section 4.4 |
+| AI heuristics | `heuristics.test.ts` | Each heuristic component independently |
+| Expectimax | `expectimax.test.ts` | Known board → expected best direction |
+| Advice generation | `expectimax.test.ts` | Known board → expected reasoning template (deterministic) |
+| ViewModel | `gameStore.test.ts` | State transitions, zero React imports |
 
 ### 7.2 Critical Test Cases
 
 **From spec — first tests written. Every spec input/output pair becomes a test case verbatim.**
 
-```js
+```ts
 // Spec requirement 1: init board
 it('initBoard places tiles within configured range, all value 2', () => {
   const board = initBoard()
@@ -607,7 +608,7 @@ it('AI returns a valid direction and reasoning for a known board', () => {
 ```
 
 **Merge edge cases:**
-```js
+```ts
 // Two independent merges in one row — commonly misunderstood
 it('[2,2,2,2] → [4,4,null,null]', () => {
   expect(mergeRow([2, 2, 2, 2])).toEqual({
@@ -626,7 +627,7 @@ it('[2,null,2,null] → [4,null,null,null]', () => {
 ```
 
 **Sequencing — common bugs:**
-```js
+```ts
 // No spawn on no-change move
 it('does not spawn when move changes nothing', () => {
   const board = [
@@ -659,15 +660,15 @@ it('does not spawn after reaching 2048', () => {
 
 ## 8. Persistence
 
-```js
-// src/constants/storageKeys.js
+```ts
+// src/constants/storageKeys.ts
 export const STORAGE_KEYS = {
   GAME_STATE: '2048_game_state',
   BEST_SCORE: '2048_best_score'
 }
 ```
 
-Loaded at app init in `useGame.js`. On mount: restore from localStorage if valid state exists, otherwise start fresh. Saves on every valid move. `bestScore` stored separately — survives resets.
+Loaded at app init in `useGame.ts`. On mount: restore from localStorage if valid state exists, otherwise start fresh. Saves on every valid move. `bestScore` stored separately — survives resets.
 
 A `ⓘ` tooltip on the score display shows: *"Score = cumulative sum of merged tile values. Merging two 4s adds 8."*
 
@@ -675,8 +676,8 @@ A `ⓘ` tooltip on the score display shows: *"Score = cumulative sum of merged t
 
 ## 9. Configuration
 
-```js
-// src/config.js
+```ts
+// src/config.ts
 export const CONFIG = {
   BOARD_SIZE: 4,
   WIN_TILE: 2048,
@@ -689,7 +690,7 @@ export const CONFIG = {
 
 Inspect config:
 1. **Console on start** — `[Config] { ... }` logged at app init
-2. **Edit `config.js` directly** — no magic, no env vars, no runtime mutation
+2. **Edit `config.ts` directly** — no magic, no env vars, no runtime mutation
 
 ---
 
@@ -699,41 +700,42 @@ Inspect config:
 /
 ├── src/
 │   ├── domain/                   # Pure functions — zero framework imports
-│   │   ├── board.js              # initBoard, boardsEqual, spawnTile
-│   │   ├── board.test.js
-│   │   ├── moves.js              # slideRow, mergeRow, applyMove
-│   │   ├── moves.test.js
-│   │   ├── heuristics.js         # monotonicity, smoothness, corner, empty
-│   │   ├── heuristics.test.js
-│   │   ├── expectimax.js         # search + reasoning
-│   │   └── expectimax.test.js
+│   │   ├── board.ts              # initBoard, boardsEqual, spawnTile
+│   │   ├── board.test.ts
+│   │   ├── moves.ts              # slideRow, mergeRow, applyMove
+│   │   ├── moves.test.ts
+│   │   ├── heuristics.ts         # monotonicity, smoothness, corner, empty
+│   │   ├── heuristics.test.ts
+│   │   ├── expectimax.ts         # search + reasoning
+│   │   └── expectimax.test.ts
 │   │
 │   ├── store/
-│   │   ├── gameStore.js          # Plain class ViewModel
-│   │   └── gameStore.test.js     # VM tests — zero React imports
+│   │   ├── gameStore.ts          # Plain class ViewModel
+│   │   └── gameStore.test.ts     # VM tests — zero React imports
 │   │
 │   ├── ai/
-│   │   └── getSuggestion.js      # Adapter — local or remote
+│   │   └── getSuggestion.ts      # Adapter — local or remote
 │   │
 │   ├── hooks/
-│   │   └── useGame.js            # React bridge to GameStore + localStorage
+│   │   └── useGame.ts            # React bridge to GameStore + localStorage
 │   │
 │   ├── components/
-│   │   ├── GameBoard.jsx         # Grid renderer
-│   │   ├── TileCell.jsx          # Single tile — React.memo applied
-│   │   ├── AIPanel.jsx           # Advice button, result display
-│   │   ├── ScoreBar.jsx          # Score + bestScore + ⓘ
-│   │   └── StatusOverlay.jsx     # Win/lose modal — Continue or Restart
+│   │   ├── GameBoard.tsx         # Grid renderer
+│   │   ├── TileCell.tsx          # Single tile — React.memo applied
+│   │   ├── AIPanel.tsx           # Advice button, result display
+│   │   ├── ScoreBar.tsx          # Score + bestScore + ⓘ
+│   │   └── StatusOverlay.tsx     # Win/lose modal — Continue or Restart
 │   │
 │   ├── constants/
-│   │   └── storageKeys.js
+│   │   └── storageKeys.ts
 │   │
-│   ├── config.js
-│   ├── App.jsx
-│   └── main.jsx
+│   ├── config.ts
+│   ├── App.tsx
+│   └── main.tsx
 │
 ├── README.md
-├── vite.config.js
+├── tsconfig.json
+├── vite.config.ts
 └── package.json
 ```
 
@@ -743,7 +745,7 @@ Inspect config:
 
 `getSuggestion()` returns the direction, reasoning, and a `debug` object capturing the search internals. After each suggestion, the result is logged to console and exposed on `window` for inspection — visible to anyone with DevTools, invisible to the player.
 
-```js
+```ts
 console.log('[AI]', advice)
 window.__lastAdvice = advice
 window.__adviceHistory ??= []
@@ -756,7 +758,7 @@ window.__adviceHistory.push(advice)
 ```
 
 The full advice object:
-```js
+```ts
 {
   direction: 'left',
   reasoning: 'Move Left — tiles are better ordered, largest tile stays in corner',
