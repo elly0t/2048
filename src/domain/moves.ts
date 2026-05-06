@@ -35,3 +35,11 @@ export function moveLeft(board: Board): MoveResult {
   });
   return { board: newBoard, changed, scoreDelta };
 }
+
+export function reflect(board: Board): Board {
+  return board
+}
+
+export function transpose(board: Board): Board {
+  return board;
+}
