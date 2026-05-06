@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compressRow } from './moves';
+import { compressRow, mergeRow } from './moves';
 
 describe('compressRow', () => {
   it('packs values toward index 0', () => {
@@ -20,5 +20,14 @@ describe('compressRow', () => {
 
   it('moves a single trailing value to index 0', () => {
     expect(compressRow([null, null, null, 2])).toEqual([2, null, null, null]);
+  });
+});
+
+describe('mergeRow', () => {
+  it('merges independent adjacent pairs without re-merging', () => {
+    expect(mergeRow([2, 2, 2, 2])).toEqual({
+      row: [4, 4, null, null],
+      scoreDelta: 8,
+    });
   });
 });
