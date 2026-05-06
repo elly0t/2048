@@ -10,11 +10,11 @@ The spec leaves several values unspecified. All assumptions are externalised to 
 
 | #   | Assumption                                  | Reason                                                                                                                                          |
 | --- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Initial board places 2–6 tiles of value `2` | Spec says "random number of 2s" — range chosen for playability                                                                                  |
+| 1   | Initial board places 2–8 tiles of value `2` | Spec says "random number of 2s" — range matches density of the spec example                                                                                  |
 | 2   | Spawn probability: 90% for `2`, 10% for `4` | Spec says "a 2 or 4" — standard 2048 convention                                                                                                 |
 | 3   | Score = sum of all merged tile values       | Standard 2048 scoring convention — same as the original game                                                                                    |
 | 4   | Win state allows player to continue         | Spec detects win but does not say game ends — continue or restart offered                                                                       |
-| 5   | Expectimax depth = 4                        | See section 5.2 for full rationale                                                                                                              |
+| 5   | Expectimax depth = 3                        | See section 5.2 for full rationale                                                                                                              |
 | 6   | AI uses local Expectimax search             | Deterministic, zero setup, fully testable. Remote AI provider path is documented as a pluggable alternative via `CONFIG.AI_MODE` in `config.ts` |
 
 ---
@@ -69,6 +69,35 @@ Core types are modelled explicitly so function signatures reflect the domain rat
 | `GameStatus` | `gameStore.ts`  | `'idle' \| 'playing' \| 'won' \| 'lost'`                            |
 | `AIAdvice`   | `expectimax.ts` | `{ direction, reasoning, debug }`                                   |
 
+### 3.3 UI Layout
+
+Single screen. Score bar, centred 4×4 grid, AI panel beside the grid.
+
+```
+┌──────────────────────────────────────────────┐
+│  2048                Score: 1024             │
+│                      Best:  2048             │
+├──────────────────────────────────────────────┤
+│   ┌────┬────┬────┬────┐                      │
+│   │  2 │    │  4 │    │     [ Suggest move ] │
+│   ├────┼────┼────┼────┤                      │
+│   │    │  8 │    │  2 │     Last advice: ←   │
+│   ├────┼────┼────┼────┤     "Move Left —     │
+│   │    │    │  4 │    │      frees board     │
+│   ├────┼────┼────┼────┤      space"          │
+│   │  2 │  4 │    │ 16 │                      │
+│   └────┴────┴────┴────┘                      │
+│                                              │
+│              ← ↑ → ↓  to move                │
+└──────────────────────────────────────────────┘
+```
+
+- Score bar shows current score and best score with a `ⓘ` tooltip (section 8).
+- Grid renders 4×4 tiles coloured by value; empty cells stay visible.
+- AI panel button requests a suggestion; result shows direction + reasoning template (section 5.4).
+- Status overlay (not shown): centred modal on win or lose, Continue/Restart actions.
+- Input: arrow keys only. No on-screen direction buttons.
+
 ---
 
 ## 4. Core Domain Logic
@@ -79,8 +108,8 @@ Six rules from the spec govern all gameplay. Configurable values live in `config
 
 | #   | Rule           | Detail                                                                                                                            |
 | --- | -------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Init           | Start with a random number of `2` tiles at random cells. Range `INIT_TILE_COUNT` (default 2–6)                                    |
-| 2   | Move           | Slide all tiles in the chosen direction, merging adjacent equals (see 4.3)                                                        |
+| 1   | Init           | Start with a random number of `2` tiles at random cells. Range `INIT_TILE_COUNT` (default 2–8)                                    |
+| 2   | Move           | Slide all tiles in the chosen direction, merging adjacent equals (see 4.3). Triggered by arrow keys.                                                        |
 | 3   | Spawn          | After a valid move, one new tile spawns at a random empty cell — `2` with 90% probability, `4` with 10%. Weights: `SPAWN_WEIGHTS` |
 | 4   | No-change move | If the move does not change the board, no spawn happens                                                                           |
 | 5   | Win            | The `WIN_TILE` (default 2048) appears on the board                                                                                |
@@ -90,9 +119,9 @@ Six rules from the spec govern all gameplay. Configurable values live in `config
 
 Board is a plain `(number | null)[][]`. Bitboard representation (packing the board into a 64-bit integer, 4 bits per cell storing the tile exponent) was considered and rejected.
 
-**Complexity analysis:**
+### Complexity analysis
 
-Each move processes 4 rows of 4 cells — a single linear pass per row:
+Each move processes 4 rows of 4 cells, a single linear pass per row:
 
 ```
 moveLeft = O(4 rows × 4 cells) = O(16) = O(1)
@@ -100,9 +129,9 @@ moveLeft = O(4 rows × 4 cells) = O(16) = O(1)
 
 The board is fixed size. Every move is constant time regardless of representation.
 
-Bitboard + LUT precomputation yields ~5–10× speedup. At depth 4 that takes our ~8ms baseline to ~0.8ms — both are imperceptible to a user. A 10× multiplier only becomes meaningful when the baseline is large enough to cross a perceptible threshold. At depth 5 (~400ms baseline), the same 10× improvement would bring latency to ~40ms — a real UX difference worth the complexity. At depth 4, it is not.
+Bitboard + LUT precomputation yields ~5–10× speedup. At our depth-3 target (~110ms baseline in pure JS), 10× brings latency to ~11ms; both are well under any UX threshold. The speedup only earns its complexity when the baseline crosses into perceptible territory: at depth 5 (~400ms+ in pure JS), 10× to ~40ms is a real UX difference worth pursuing.
 
-If search depth is increased beyond 4 or board size grows, switching to Bitboard + LUT is a natural phase 2 — replacing the board representation throughout `board.ts`, `moves.ts`, and `expectimax.ts`. The store and components are unaffected as they interface through `MoveResult` and `GameStore`, not the raw board format. Estimated effort: ~1–2 days for an experienced developer — the board representation, move logic, and LUT precomputation all need rewriting, but the surface area is small (three files) and the algorithm itself doesn't change.
+If search depth is raised or board size grows, switching to Bitboard + LUT is a natural phase 2: replacing the board representation in `board.ts`, `moves.ts`, and `expectimax.ts`. The store and components interface through `MoveResult` and `GameStore`, so they're unaffected. The algorithm doesn't change; only the data layout does.
 
 ### 4.3 Move Pipeline
 
@@ -114,18 +143,20 @@ moveUp    → transpose             → moveLeft → transpose back
 moveDown  → transpose + reflect   → moveLeft → reflect + transpose back
 ```
 
-Merge logic exists in exactly one place — `mergeRow`. When a merge bug is found or behaviour changes, there is one function to fix and one set of tests to update. No risk of fixing `mergeLeft` and forgetting `mergeRight`. Direction handling is pure geometry (reflect, transpose), completely separate from merge logic — neither knows about the other.
+Merge logic exists in exactly one place: `mergeRow`. When a merge bug is found or behaviour changes, there is one function to fix and one set of tests to update. No risk of fixing `mergeLeft` and forgetting `mergeRight`. Direction handling is pure geometry (reflect, transpose), completely separate from merge logic; neither knows about the other.
 
-Each row passes through three single-responsibility functions:
+Each row passes through three single-responsibility functions: `compressRow`, `mergeRow`, `compressRow`. All three are direction-agnostic — `compressRow` packs values toward index 0; `mergeRow` scans index 0 upward. The "leftward" packing is positional (toward array start), not directional. Player-facing direction (Move Left/Right/Up/Down) is handled exclusively by the reflect/transpose pipeline above.
 
 ```
-Input:   [2, 2, null, 2]
-slide:   [2, 2, 2, null]     compress nulls out — null removed ✓
-merge:   [4, null, 2, null]  merge adjacent equals — gap created
-slide:   [4, 2, null, null]  compress after merge — gap removed ✓
+Input:    [2, 2, null, 2]
+compress: [2, 2, 2, null]     pack values toward index 0 — null removed ✓
+merge:    [4, null, 2, null]  merge adjacent equals — gap created
+compress: [4, 2, null, null]  pack after merge — gap removed ✓
 ```
 
-**Merge rules — purpose-built examples isolating each rule. All shown as Move Left:**
+### Merge rules
+
+Purpose-built examples isolating each rule. All shown as Move Left:
 
 ```
 Rule 1: nulls compressed out toward the move direction before merging
@@ -150,7 +181,7 @@ Rule 4: no merge if no adjacent equals after compressing
     [2, 4, 8, 16]       →  [2, 4, 8, 16]         unchanged
 ```
 
-For Move Right, Up, Down — the same rules apply but in the corresponding direction. The transform pipeline (reflect, transpose) ensures `mergeRow` only ever sees a left-to-right problem. The transforms themselves are tested independently — `reflect(reflect(board)) === board`, `transpose(transpose(board)) === board`.
+For Move Right, Up, Down, the same rules apply but in the corresponding direction. The transform pipeline (reflect, transpose) ensures `mergeRow` only ever sees a left-to-right problem. The transforms themselves are tested independently: `reflect(reflect(board)) === board`, `transpose(transpose(board)) === board`.
 
 `MoveResult` returned by `applyMove`:
 
@@ -165,7 +196,7 @@ For Move Right, Up, Down — the same rules apply but in the corresponding direc
 
 ### 4.4 Move Sequencing
 
-The order of operations in `GameStore.applyMove()` matters — incorrect sequencing is a common source of win/lose bugs.
+The order of operations in `GameStore.applyMove()` matters; incorrect sequencing is a common source of win/lose bugs.
 
 ```
 1. newBoard = applyMove(board, direction)
@@ -176,7 +207,7 @@ The order of operations in `GameStore.applyMove()` matters — incorrect sequenc
 6. update state
 ```
 
-Each stage has a dedicated test. Stage 2 guards against spawning on a no-change move. Stage 3 guards against spawning after a win.
+Each stage has a dedicated test. Stage 2 guards against spawning on a no-change move. Stage 3 guards against spawning after a win. Stage 5 runs `checkLose` on `boardWithTile` (post-spawn), not `newBoard`, because a spawn that fills the last empty cell with no available merges can itself trigger the lose state.
 
 ---
 
@@ -184,7 +215,7 @@ Each stage has a dedicated test. Stage 2 guards against spawning on a no-change 
 
 ### 5.1 Why Expectimax, Not Minimax
 
-Minimax assumes two players: one maximising, one minimising. This is the right model for adversarial games like chess, but tile spawns in 2048 are random — not adversarial. Minimax would pessimistically assume the worst tile always appears in the worst position, leading to overcautious play.
+Minimax assumes two players: one maximising, one minimising. This is the right model for adversarial games like chess, but tile spawns in 2048 are random, not adversarial. Minimax would pessimistically assume the worst tile always appears in the worst position, leading to overcautious play.
 
 Expectimax handles randomness correctly by computing expected value at chance nodes, weighted by actual spawn probabilities:
 
@@ -193,36 +224,40 @@ P(tile = 2) = 0.9,  P(tile = 4) = 0.1
 Chance node = 0.9 × value(board with 2) + 0.1 × value(board with 4)
 ```
 
-### 5.2 Search Depth: Why Depth 4
+### 5.2 Search Depth: Why Depth 3
 
-Depth 4 covers exactly 2 full turns:
-
-```
-Turn 1:  your 1st move     (Max node — 4 choices)
-         → tile spawns     (Chance node — ~12 outcomes)
-Turn 2:  your 2nd move     (Max node — 4 choices)
-         → tile spawns     (Chance node — ~12 outcomes)
-         → evaluate with heuristic
-```
-
-Depth 1 is purely greedy — sees only immediate merges. Depth 4 evaluates **setup moves**: a 1st move that scores nothing but creates a clean large merge on the 2nd move.
-
-Depth table (estimated — actual values will be measured during build):
+Depth 3 looks 3 player moves ahead, alternating with chance nodes:
 
 ```
-Depth | Approx nodes  | Est. ms | Assessment
-  3   |   ~110,000    |  <1ms   | Misses 2nd-move setups
-  4   |  ~5,300,000   |  ~8ms   | ✓ Sweet spot
-  5   | ~254,000,000  | ~400ms  | User-perceptible lag, marginal quality gain
+Move 1: your 1st move     (Max node — 4 choices)
+        → tile spawns     (Chance node — ~12 outcomes per empty)
+Move 2: your 2nd move     (Max node — 4 choices)
+        → tile spawns     (Chance node)
+Move 3: your 3rd move     (Max node — 4 choices)
+        → tile spawns     (Chance node)
+        → evaluate with heuristic
 ```
 
-Node counts derived from `48^d`. The 48 factor reflects empirical mid-game branching: ~6 empty cells × 2 tile outcomes (`2` or `4` spawning) × 4 player directions. Empty cell count varies through the game — early game has ~14, late game ~2 — 6 is a representative midgame snapshot. Real branching and timing will be measured and recorded in section 5.4 during build.
+Depth 1 is purely greedy: sees only immediate merges. Depth 3 evaluates **setup moves**: an early move that creates a clean large merge later.
 
-`EXPECTIMAX_DEPTH = 4` is a named constant in `config.ts`.
+Depth table (estimated; actual values will be measured during build):
+
+```
+Depth | Approx nodes | Time (pure JS) | Assessment
+  2   |    ~2,300    |  ~2ms          | Misses setup chains
+  3   |  ~110,000    |  ~100ms        | Tractable in pure JS, captures setups
+  4   | ~5,300,000   |  ~1–5s         | Requires sampling/pruning; out of scope
+```
+
+Node counts derive from `48^d`: 4 player directions × ~12 chance outcomes (~6 empty × 2 tile values) per turn. Empty-cell count varies (early game ~14, late game ~2); 6 is a midgame snapshot.
+
+Pure JS without bitboard or chance-node sampling tops out around ~1M heuristic evals/sec. Depth 4 (5.3M nodes) needs sampling or the bitboard + LUT approach, both deferred to phase 2. Section 5.4 documents the swap path to nneonneo (depth 8 in C++) if stronger play is needed.
+
+`EXPECTIMAX_DEPTH = 3` is a named constant in `config.ts`.
 
 ### 5.3 Heuristic Function
 
-When Expectimax hits maximum depth it estimates board quality via a scoring formula — the **leaf node heuristic**. Without it all leaf nodes score equally and the algorithm cannot compare them.
+When Expectimax hits maximum depth it estimates board quality via a scoring formula: the **leaf node heuristic**. Without it all leaf nodes score equally and the algorithm cannot compare them.
 
 ```
 H(board) = α·Monotonicity + β·Smoothness + γ·log₂(EmptyCells) + δ·CornerBonus
@@ -235,7 +270,7 @@ H(board) = α·Monotonicity + β·Smoothness + γ·log₂(EmptyCells) + δ·Corn
 | **log₂(EmptyCells)** | Available space                                           | More space = more options. `log₂` because each extra cell is worth less than the previous: 0→1 empty is huge, 9→10 barely matters |
 | **CornerBonus**      | Largest tile anchored to a corner                         | Frees the rest of the board for merging                                                                                           |
 
-**Why heuristic quality matters more than search depth:**
+Why heuristic quality matters more than search depth:
 
 ```
 Bad heuristic (score only):
@@ -250,7 +285,7 @@ Good heuristic:
 
 A shallow search with a good heuristic outperforms a deep search with a bad one.
 
-**Weights:**
+Weights:
 
 ```
 α (Monotonicity) = 1.0
@@ -263,17 +298,17 @@ These values are taken from nneonneo's published 2048 AI analysis (the same Stac
 
 ### 5.4 AI Suggestion & Human-Readable Reasoning
 
-Expectimax is the AI suggestion engine. When the player asks for a suggestion, it searches all possible moves to depth 4 and returns the best direction. Plain-English reasoning is derived from the heuristic score deltas — the same values that drove the decision. Both the move and the reasoning are deterministic and fully testable.
+Expectimax is the AI suggestion engine. When the player asks for a suggestion, it searches all possible moves to depth 4 and returns the best direction. Plain-English reasoning is derived from the heuristic score deltas, the same values that drove the decision. Both the move and the reasoning are deterministic and fully testable.
 
-**nneonneo/2048-ai vs our own implementation**
+### nneonneo/2048-ai vs our own implementation
 
-nneonneo/2048-ai (1.2k stars) was the primary alternative considered. It uses Expectimax with a bitboard representation — a 64-bit integer encoding the board as 16 cells × 4 bits (tile exponent). Combined with a precomputed LUT for all possible row transformations, it searches ~10M positions/second. At its default depth 8, it reaches the 2048 tile in 100% of games and the 16384 tile in 94% of games (source: nneonneo's own 100-game benchmark).
+nneonneo/2048-ai (1.2k stars) was the primary alternative considered. It uses Expectimax with a bitboard representation: a 64-bit integer encoding the board as 16 cells × 4 bits (tile exponent). Combined with a precomputed LUT for all possible row transformations, it searches ~10M positions/second. At its default depth 8, it reaches the 2048 tile in 100% of games and the 16384 tile in 94% of games (source: nneonneo's own 100-game benchmark).
 
-We start with our own Expectimax at depth 4 — same heuristics, pure JS, zero setup, directly unit testable. Win rate will be benchmarked during build and documented in the table below. If results are not acceptable, the AI module is isolated behind a single interface and can be swapped without touching the game engine.
+We start with our own Expectimax at depth 3: same heuristics, pure JS, zero setup, directly unit testable. Win rate will be benchmarked during build and documented in the table below. If depth 3 isn't strong enough, the AI module is isolated behind a single interface and can be swapped to nneonneo (depth 8) without touching the game engine.
 
-**Switching to nneonneo — our preferred path**
+### Switching to nneonneo: our preferred path
 
-If we switch, we host nneonneo in Docker. Docker locks the build environment — pinned C++ toolchain, Python version, and library versions inside an isolated container. The reviewer runs `docker-compose up` and gets a working AI server regardless of their host OS. No Xcode setup, no platform-specific compilation issues, no "works on my machine" failures. This is a strength of the Docker approach, not a workaround.
+If we switch, we host nneonneo in Docker. Docker locks the build environment with a pinned C++ toolchain, Python version, and library versions inside an isolated container. The reviewer runs `docker-compose up` and gets a working AI server regardless of their host OS. No Xcode setup, no platform-specific compilation issues, no "works on my machine" failures. This is a strength of the Docker approach, not a workaround.
 
 The full switch involves: Docker container hosting nneonneo's compiled C++ binary, a thin Python Flask wrapper exposing `POST /suggest`, and board format translation (2D array ↔ 64-bit bitboard) inside the wrapper. The single integration point in our code is one line:
 
@@ -292,17 +327,17 @@ export async function getSuggestion(board) {
 }
 ```
 
-We start with `AI_MODE='local'` set in `config.ts`. Switching to remote requires changing that constant and starting the Docker container — the React code does not change.
+We start with `AI_MODE='local'` set in `config.ts`. Switching to remote requires changing that constant and starting the Docker container; the React code does not change.
 
-**Benchmark (to be filled during build):**
+Benchmark (to be filled during build):
 
 ```
-Implementation:   Own Expectimax, depth 4
+Implementation:   Own Expectimax, depth 3
 2048 reach rate:  __% (n=100 games)
 Avg move time:    __ms
 ```
 
-**How the suggestion works:**
+### How the suggestion works
 
 ```
 Step 1 — score all 4 directions, capturing each component:
@@ -335,7 +370,7 @@ Template map:
 | Empty cells        | _"Move {dir} — frees up board space"_                             |
 | Corner             | _"Move {dir} — keeps largest tile anchored in corner"_            |
 
-Deterministic — given the same board, output is always identical. Fully testable:
+Deterministic: given the same board, output is always identical. Fully testable:
 
 ```ts
 expect(getAdvice(knownBoard)).toEqual({
@@ -381,8 +416,11 @@ Test injection — the core reason for a class store — works identically eithe
 `GameStatus` and `Direction` are constant enums imported from `domain/types.ts`:
 
 ```ts
-export const STATUS = { IDLE: 'idle', PLAYING: 'playing', WON: 'won', LOST: 'lost' };
-export const DIRECTION = { LEFT: 'left', RIGHT: 'right', UP: 'up', DOWN: 'down' };
+export const STATUS = { IDLE: 'idle', PLAYING: 'playing', WON: 'won', LOST: 'lost' } as const;
+export const DIRECTION = { LEFT: 'left', RIGHT: 'right', UP: 'up', DOWN: 'down' } as const;
+
+export type GameStatus = (typeof STATUS)[keyof typeof STATUS]; // 'idle' | 'playing' | 'won' | 'lost'
+export type Direction = (typeof DIRECTION)[keyof typeof DIRECTION]; // 'left' | 'right' | 'up' | 'down'
 ```
 
 ```ts
@@ -471,13 +509,13 @@ These exact test cases appear in `gameStore.test.ts`.
 
 ## 7. Test Strategy
 
-TDD is the development methodology. Tests are written before implementation — Red → Green → Refactor.
+TDD is the development methodology. Tests are written before implementation: Red → Green → Refactor.
 
-**First tests written are spec examples** — the spec provides concrete input/output pairs that map directly to test cases.
+Spec examples are committed verbatim as test cases. Build order (above) is bottom-up (compressRow comes first), but every spec input/output pair below must appear in the test suite.
 
-**Build order:**
+Build order:
 
-1. `slideRow`
+1. `compressRow`
 2. `mergeRow`
 3. `moveLeft` (composes slide + merge + slide)
 4. All four directions via transforms
@@ -490,8 +528,8 @@ TDD is the development methodology. Tests are written before implementation — 
 
 | Layer              | File                 | What is tested                                                                                                                     |
 | ------------------ | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Board primitives   | `board.test.ts`      | `initBoard` (correct tile count, all `2`s, random positions), `boardsEqual`, `spawnTile` (probability distribution over many runs) |
-| Move operations    | `moves.test.ts`      | `slideRow`, `mergeRow`, transforms (`reflect`, `transpose` involutions), all four directions — full board snapshots                |
+| Board primitives   | `board.test.ts`      | `initBoard` (correct tile count, all `2`s, random positions), `boardsEqual`, `spawnTile` (cell selection + value is 2 or 4; branching tested via injected RNG) |
+| Move operations    | `moves.test.ts`      | `compressRow`, `mergeRow`, transforms (`reflect`, `transpose` involutions), all four directions — full board snapshots                |
 | Win/lose detection | `gameStore.test.ts`  | `checkWin`, `checkLose`                                                                                                            |
 | Move sequencing    | `gameStore.test.ts`  | All 6 stages in section 4.4                                                                                                        |
 | AI heuristics      | `heuristics.test.ts` | Each heuristic component independently                                                                                             |
@@ -501,7 +539,7 @@ TDD is the development methodology. Tests are written before implementation — 
 
 ### 7.2 Critical Test Cases
 
-**From spec — first tests written. Every spec input/output pair becomes a test case verbatim.**
+From spec, every input/output pair below is committed as a test case verbatim.
 
 ```ts
 // Spec requirement 1: init board
@@ -617,7 +655,7 @@ it('AI returns a valid direction and reasoning for a known board', () => {
 });
 ```
 
-**Merge edge cases:**
+Merge edge cases:
 
 ```ts
 // Two independent merges in one row — commonly misunderstood
@@ -630,14 +668,14 @@ it('[2,2,2,2] → [4,4,null,null]', () => {
 
 // Null between tiles — compress brings them adjacent first
 it('[2,null,2,null] → [4,null,null,null]', () => {
-  expect(mergeRow(slideRow([2, null, 2, null]))).toEqual({
+  expect(mergeRow(compressRow([2, null, 2, null]))).toEqual({
     row: [4, null, null, null],
     scoreDelta: 4,
   });
 });
 ```
 
-**Sequencing — common bugs:**
+Sequencing, common bugs:
 
 ```ts
 // No spawn on no-change move
@@ -693,9 +731,9 @@ A `ⓘ` tooltip on the score display shows: _"Score = cumulative sum of merged t
 export const CONFIG = {
   BOARD_SIZE: 4,
   WIN_TILE: 2048,
-  INIT_TILE_COUNT: { min: 2, max: 6 }, // spec unspecified — see assumptions
+  INIT_TILE_COUNT: { min: 2, max: 8 }, // spec unspecified — see assumptions
   SPAWN_WEIGHTS: { 2: 0.9, 4: 0.1 }, // spec unspecified — see assumptions
-  EXPECTIMAX_DEPTH: 4,
+  EXPECTIMAX_DEPTH: 3,
   AI_MODE: 'local', // 'local' | 'remote' — see TD section 5.4
 };
 ```
@@ -715,7 +753,7 @@ Inspect config:
 │   ├── domain/                   # Pure functions — zero framework imports
 │   │   ├── board.ts              # initBoard, boardsEqual, spawnTile
 │   │   ├── board.test.ts
-│   │   ├── moves.ts              # slideRow, mergeRow, applyMove
+│   │   ├── moves.ts              # compressRow, mergeRow, applyMove
 │   │   ├── moves.test.ts
 │   │   ├── heuristics.ts         # monotonicity, smoothness, corner, empty
 │   │   ├── heuristics.test.ts
@@ -730,7 +768,7 @@ Inspect config:
 │   │   └── getSuggestion.ts      # Adapter — local or remote
 │   │
 │   ├── hooks/
-│   │   └── useGame.ts            # React bridge to GameStore + localStorage
+│   │   └── useGame.ts            # React bridge to GameStore + localStorage + arrow keys
 │   │
 │   ├── components/
 │   │   ├── GameBoard.tsx         # Grid renderer
@@ -780,7 +818,7 @@ The full advice object:
     scores: { left: 847, up: 651, right: 203, down: 189 },
     computedInMs: 7.3,
     nodesEvaluated: 5240,
-    depthSearched: 4
+    depthSearched: 3
   }
 }
 ```
