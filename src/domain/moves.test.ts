@@ -205,4 +205,91 @@ describe('applyMove', () => {
     expect(applyMove(board, DIRECTION.UP)).toEqual(moveUp(board));
     expect(applyMove(board, DIRECTION.DOWN)).toEqual(moveDown(board));
   });
+
+  it('returns unchanged result for empty board across all directions', () => {
+    const empty: Board = [
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    ([DIRECTION.LEFT, DIRECTION.RIGHT, DIRECTION.UP, DIRECTION.DOWN] as const).forEach((d) => {
+      const result = applyMove(empty, d);
+      expect(result.changed, `direction=${d}`).toBe(false);
+      expect(result.scoreDelta, `direction=${d}`).toBe(0);
+      expect(result.board, `direction=${d}`).toEqual(empty);
+    });
+  });
+
+  it('returns unchanged result for full immovable checkerboard across all directions', () => {
+    const checkerboard: Board = [
+      [2, 4, 2, 4],
+      [4, 2, 4, 2],
+      [2, 4, 2, 4],
+      [4, 2, 4, 2],
+    ];
+    ([DIRECTION.LEFT, DIRECTION.RIGHT, DIRECTION.UP, DIRECTION.DOWN] as const).forEach((d) => {
+      const result = applyMove(checkerboard, d);
+      expect(result.changed, `direction=${d}`).toBe(false);
+      expect(result.scoreDelta, `direction=${d}`).toBe(0);
+      expect(result.board, `direction=${d}`).toEqual(checkerboard);
+    });
+  });
+
+  it('reports changed: true with scoreDelta 0 on slide-only moves (no merges)', () => {
+    const before: Board = [
+      [2, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    const after: Board = [
+      [null, null, null, 2],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    const result = applyMove(before, DIRECTION.RIGHT);
+    expect(result.board).toEqual(after);
+    expect(result.changed).toBe(true);
+    expect(result.scoreDelta).toBe(0);
+  });
+
+  it('aggregates scoreDelta across multiple rows', () => {
+    const before: Board = [
+      [2, 2, null, null],
+      [4, 4, null, null],
+      [2, 2, null, null],
+      [null, null, null, null],
+    ];
+    const result = applyMove(before, DIRECTION.LEFT);
+    expect(result.scoreDelta).toBe(4 + 8 + 4);
+    expect(result.changed).toBe(true);
+  });
+
+  it('produces scoreDelta 2048 when a move creates the 2048 tile', () => {
+    const before: Board = [
+      [1024, 1024, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    const result = applyMove(before, DIRECTION.LEFT);
+    expect(result.scoreDelta).toBe(2048);
+    expect(result.changed).toBe(true);
+    expect(result.board[0]?.[0]).toBe(2048);
+  });
+
+  it('produces mirror-image boards for Left and Right on a vertically-symmetric input', () => {
+    const symmetric: Board = [
+      [2, 4, 4, 2],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    const left = applyMove(symmetric, DIRECTION.LEFT);
+    const right = applyMove(symmetric, DIRECTION.RIGHT);
+    expect(left.board).toEqual(reflect(right.board));
+    expect(left.scoreDelta).toBe(right.scoreDelta);
+  });
 });
