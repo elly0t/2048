@@ -1,4 +1,4 @@
-import type { Row, Board, MoveResult, Direction } from './types';
+import { type Row, type Board, type MoveResult, type Direction, DIRECTION } from './types';
 
 export function compressRow(row: Row): Row {
   return [...row.filter((cell) => cell !== null), ...row.filter((cell) => cell === null)];
@@ -50,25 +50,34 @@ export function transpose(board: Board): Board {
 
 export function moveRight(board: Board): MoveResult {
   const reflectedBoard = reflect(board)
-  const {board: movedBoard, changed, scoreDelta} = moveLeft(reflectedBoard)
+  const { board: movedBoard, changed, scoreDelta } = moveLeft(reflectedBoard)
   const transformedBackBoard = reflect(movedBoard)
   return { board: transformedBackBoard, changed, scoreDelta };
 }
 
 export function moveUp(board: Board): MoveResult {
   const transposedBoard = transpose(board)
-  const {board: movedBoard, changed, scoreDelta} = moveLeft(transposedBoard)
+  const { board: movedBoard, changed, scoreDelta } = moveLeft(transposedBoard)
   const transformedBackBoard = transpose(movedBoard)
   return { board: transformedBackBoard, changed, scoreDelta };
 }
 
 export function moveDown(board: Board): MoveResult {
   const reflectedTransposedBoard = reflect(transpose(board))
-  const {board: movedBoard, changed, scoreDelta} = moveLeft(reflectedTransposedBoard)
+  const { board: movedBoard, changed, scoreDelta } = moveLeft(reflectedTransposedBoard)
   const transformedBackBoard = transpose(reflect(movedBoard))
   return { board: transformedBackBoard, changed, scoreDelta };
 }
 
-export function applyMove(board: Board, _direction: Direction): MoveResult {
-  return { board, changed: false, scoreDelta: 0 };
+export function applyMove(board: Board, direction: Direction): MoveResult {
+  switch (direction) {
+    case DIRECTION.LEFT:
+      return moveLeft(board);
+    case DIRECTION.RIGHT:
+      return moveRight(board);
+    case DIRECTION.UP:
+      return moveUp(board);
+    case DIRECTION.DOWN:
+      return moveDown(board);
+  }
 }
