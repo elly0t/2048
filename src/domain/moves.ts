@@ -37,9 +37,13 @@ export function moveLeft(board: Board): MoveResult {
 }
 
 export function reflect(board: Board): Board {
-  return board
+  return board.map((originalRow) => {
+    return [...originalRow].reverse();
+  })
 }
 
 export function transpose(board: Board): Board {
-  return board;
+  return board.map((originalRow, rowIndex) =>
+    originalRow.map((_, colIndex) => board[colIndex]![rowIndex]!),
+  );
 }
