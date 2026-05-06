@@ -21,5 +21,17 @@ export function mergeRow(row: Row): { row: Row; scoreDelta: number } {
 }
 
 export function moveLeft(board: Board): MoveResult {
-  return { board, changed: false, scoreDelta: 0 };
+  let changed = false;
+  let scoreDelta = 0;
+  const newBoard: Board = board.map((originalRow) => {
+    const compressed = compressRow(originalRow);
+    const merged = mergeRow(compressed);
+    scoreDelta += merged.scoreDelta;
+    const final = compressRow(merged.row);
+    if (!changed && !final.every((val, i) => val === originalRow[i])) {
+      changed = true;
+    }
+    return final;
+  });
+  return { board: newBoard, changed, scoreDelta };
 }
