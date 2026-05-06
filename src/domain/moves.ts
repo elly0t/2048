@@ -49,13 +49,22 @@ export function transpose(board: Board): Board {
 }
 
 export function moveRight(board: Board): MoveResult {
-  return { board, changed: false, scoreDelta: 0 };
+  const reflectedBoard = reflect(board)
+  const {board: movedBoard, changed, scoreDelta} = moveLeft(reflectedBoard)
+  const transformedBackBoard = reflect(movedBoard)
+  return { board: transformedBackBoard, changed, scoreDelta };
 }
 
 export function moveUp(board: Board): MoveResult {
-  return { board, changed: false, scoreDelta: 0 };
+  const transposedBoard = transpose(board)
+  const {board: movedBoard, changed, scoreDelta} = moveLeft(transposedBoard)
+  const transformedBackBoard = transpose(movedBoard)
+  return { board: transformedBackBoard, changed, scoreDelta };
 }
 
 export function moveDown(board: Board): MoveResult {
-  return { board, changed: false, scoreDelta: 0 };
+  const reflectedTransposedBoard = reflect(transpose(board))
+  const {board: movedBoard, changed, scoreDelta} = moveLeft(reflectedTransposedBoard)
+  const transformedBackBoard = transpose(reflect(movedBoard))
+  return { board: transformedBackBoard, changed, scoreDelta };
 }
