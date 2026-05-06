@@ -24,9 +24,9 @@ describe('compressRow', () => {
 });
 
 describe('mergeRow', () => {
-  it('merges independent adjacent pairs without re-merging', () => {
+  it('merges independent adjacent pairs without re-merging, leaving gaps', () => {
     expect(mergeRow([2, 2, 2, 2])).toEqual({
-      row: [4, 4, null, null],
+      row: [4, null, 4, null],
       scoreDelta: 8,
     });
   });

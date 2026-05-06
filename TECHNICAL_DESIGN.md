@@ -511,6 +511,8 @@ These exact test cases appear in `gameStore.test.ts`.
 
 ## 7. Test Strategy
 
+Detailed function-by-function case enumeration in [`TEST_PLAN.md`](./TEST_PLAN.md).
+
 TDD is the development methodology. Tests are written before implementation: Red → Green → Refactor.
 
 Spec examples are committed verbatim as test cases. Build order (above) is bottom-up (compressRow comes first), but every spec input/output pair below must appear in the test suite.
@@ -660,10 +662,12 @@ it('AI returns a valid direction and reasoning for a known board', () => {
 Merge edge cases:
 
 ```ts
-// Two independent merges in one row — commonly misunderstood
-it('[2,2,2,2] → [4,4,null,null]', () => {
+// Two independent merges in one row — commonly misunderstood.
+// mergeRow is pure-merge: leaves gaps where pairs collapsed; the
+// second compressRow in moveLeft fills them.
+it('[2,2,2,2] → [4,null,4,null]', () => {
   expect(mergeRow([2, 2, 2, 2])).toEqual({
-    row: [4, 4, null, null],
+    row: [4, null, 4, null],
     scoreDelta: 8,
   });
 });
