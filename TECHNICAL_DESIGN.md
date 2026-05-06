@@ -8,14 +8,14 @@ This document explains the design decisions behind the implementation. Architect
 
 The spec leaves several values unspecified. All assumptions are externalised to `config.ts` — logged to console on start, and configurable by editing the file directly.
 
-| # | Assumption | Reason |
-|---|---|---|
-| 1 | Initial board places 2–6 tiles of value `2` | Spec says "random number of 2s" — range chosen for playability |
-| 2 | Spawn probability: 90% for `2`, 10% for `4` | Spec says "a 2 or 4" — standard 2048 convention |
-| 3 | Score = sum of all merged tile values | Standard 2048 scoring convention — same as the original game |
-| 4 | Win state allows player to continue | Spec detects win but does not say game ends — continue or restart offered |
-| 5 | Expectimax depth = 4 | See section 5.2 for full rationale |
-| 6 | AI uses local Expectimax search | Deterministic, zero setup, fully testable. Remote AI provider path is documented as a pluggable alternative via `CONFIG.AI_MODE` in `config.ts` |
+| #   | Assumption                                  | Reason                                                                                                                                          |
+| --- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Initial board places 2–6 tiles of value `2` | Spec says "random number of 2s" — range chosen for playability                                                                                  |
+| 2   | Spawn probability: 90% for `2`, 10% for `4` | Spec says "a 2 or 4" — standard 2048 convention                                                                                                 |
+| 3   | Score = sum of all merged tile values       | Standard 2048 scoring convention — same as the original game                                                                                    |
+| 4   | Win state allows player to continue         | Spec detects win but does not say game ends — continue or restart offered                                                                       |
+| 5   | Expectimax depth = 4                        | See section 5.2 for full rationale                                                                                                              |
+| 6   | AI uses local Expectimax search             | Deterministic, zero setup, fully testable. Remote AI provider path is documented as a pluggable alternative via `CONFIG.AI_MODE` in `config.ts` |
 
 ---
 
@@ -23,13 +23,13 @@ The spec leaves several values unspecified. All assumptions are externalised to 
 
 ESM (ECMAScript Modules) is the native JS module system browsers support directly — `import/export` syntax. Vite serves ESM files to the browser in dev without bundling, making startup near-instant. Webpack bundles everything first; changes trigger a full or partial rebundle. Vite replaced Webpack-based CRA as the React community standard.
 
-| Tool | Why |
-|---|---|
-| **React** | Component model fits tile-based grid UI naturally |
-| **TypeScript** | Static types — catches indexing and merge bugs early |
-| **Vite** | Native ESM dev server — instant startup, no webpack bundling overhead |
-| **Vitest** | Shares Vite's config, aliases, and transforms — no duplicate pipeline. Jest on a Vite project needs `babel-jest`, `ts-jest`, and manual `moduleNameMapper` to replicate what Vitest gets for free. `npm test` works out of the box. |
-| **Plain class store** | Framework-agnostic, injectable, testable without React |
+| Tool                  | Why                                                                                                                                                                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **React**             | Component model fits tile-based grid UI naturally                                                                                                                                                                                   |
+| **TypeScript**        | Static types — catches indexing and merge bugs early                                                                                                                                                                                |
+| **Vite**              | Native ESM dev server — instant startup, no webpack bundling overhead                                                                                                                                                               |
+| **Vitest**            | Shares Vite's config, aliases, and transforms — no duplicate pipeline. Jest on a Vite project needs `babel-jest`, `ts-jest`, and manual `moduleNameMapper` to replicate what Vitest gets for free. `npm test` works out of the box. |
+| **Plain class store** | Framework-agnostic, injectable, testable without React                                                                                                                                                                              |
 
 ---
 
@@ -61,13 +61,13 @@ The architecture follows MVVM. `GameStore` has no React imports — game logic i
 
 Core types are modelled explicitly so function signatures reflect the domain rather than raw primitives.
 
-| Concept | Module | Shape |
-|---|---|---|
-| `Board` | `board.ts` | `(number \| null)[][]` — `null` = empty cell, `number` = tile value |
-| `Direction` | `moves.ts` | `'left' \| 'right' \| 'up' \| 'down'` |
-| `MoveResult` | `moves.ts` | `{ board, changed, scoreDelta }` |
-| `GameStatus` | `gameStore.ts` | `'idle' \| 'playing' \| 'won' \| 'lost'` |
-| `AIAdvice` | `expectimax.ts` | `{ direction, reasoning, debug }` |
+| Concept      | Module          | Shape                                                               |
+| ------------ | --------------- | ------------------------------------------------------------------- |
+| `Board`      | `board.ts`      | `(number \| null)[][]` — `null` = empty cell, `number` = tile value |
+| `Direction`  | `moves.ts`      | `'left' \| 'right' \| 'up' \| 'down'`                               |
+| `MoveResult` | `moves.ts`      | `{ board, changed, scoreDelta }`                                    |
+| `GameStatus` | `gameStore.ts`  | `'idle' \| 'playing' \| 'won' \| 'lost'`                            |
+| `AIAdvice`   | `expectimax.ts` | `{ direction, reasoning, debug }`                                   |
 
 ---
 
@@ -77,14 +77,14 @@ Core types are modelled explicitly so function signatures reflect the domain rat
 
 Six rules from the spec govern all gameplay. Configurable values live in `config.ts`:
 
-| # | Rule | Detail |
-|---|---|---|
-| 1 | Init | Start with a random number of `2` tiles at random cells. Range `INIT_TILE_COUNT` (default 2–6) |
-| 2 | Move | Slide all tiles in the chosen direction, merging adjacent equals (see 4.3) |
-| 3 | Spawn | After a valid move, one new tile spawns at a random empty cell — `2` with 90% probability, `4` with 10%. Weights: `SPAWN_WEIGHTS` |
-| 4 | No-change move | If the move does not change the board, no spawn happens |
-| 5 | Win | The `WIN_TILE` (default 2048) appears on the board |
-| 6 | Lose | No valid move exists in any direction |
+| #   | Rule           | Detail                                                                                                                            |
+| --- | -------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Init           | Start with a random number of `2` tiles at random cells. Range `INIT_TILE_COUNT` (default 2–6)                                    |
+| 2   | Move           | Slide all tiles in the chosen direction, merging adjacent equals (see 4.3)                                                        |
+| 3   | Spawn          | After a valid move, one new tile spawns at a random empty cell — `2` with 90% probability, `4` with 10%. Weights: `SPAWN_WEIGHTS` |
+| 4   | No-change move | If the move does not change the board, no spawn happens                                                                           |
+| 5   | Win            | The `WIN_TILE` (default 2048) appears on the board                                                                                |
+| 6   | Lose           | No valid move exists in any direction                                                                                             |
 
 ### 4.2 Data Structure: 2D Array over Bitboard
 
@@ -93,9 +93,11 @@ Board is a plain `(number | null)[][]`. Bitboard representation (packing the boa
 **Complexity analysis:**
 
 Each move processes 4 rows of 4 cells — a single linear pass per row:
+
 ```
 moveLeft = O(4 rows × 4 cells) = O(16) = O(1)
 ```
+
 The board is fixed size. Every move is constant time regardless of representation.
 
 Bitboard + LUT precomputation yields ~5–10× speedup. At depth 4 that takes our ~8ms baseline to ~0.8ms — both are imperceptible to a user. A 10× multiplier only becomes meaningful when the baseline is large enough to cross a perceptible threshold. At depth 5 (~400ms baseline), the same 10× improvement would bring latency to ~40ms — a real UX difference worth the complexity. At depth 4, it is not.
@@ -151,6 +153,7 @@ Rule 4: no merge if no adjacent equals after compressing
 For Move Right, Up, Down — the same rules apply but in the corresponding direction. The transform pipeline (reflect, transpose) ensures `mergeRow` only ever sees a left-to-right problem. The transforms themselves are tested independently — `reflect(reflect(board)) === board`, `transpose(transpose(board)) === board`.
 
 `MoveResult` returned by `applyMove`:
+
 ```ts
 {
   board: Board,        // new board state
@@ -184,6 +187,7 @@ Each stage has a dedicated test. Stage 2 guards against spawning on a no-change 
 Minimax assumes two players: one maximising, one minimising. This is the right model for adversarial games like chess, but tile spawns in 2048 are random — not adversarial. Minimax would pessimistically assume the worst tile always appears in the worst position, leading to overcautious play.
 
 Expectimax handles randomness correctly by computing expected value at chance nodes, weighted by actual spawn probabilities:
+
 ```
 P(tile = 2) = 0.9,  P(tile = 4) = 0.1
 Chance node = 0.9 × value(board with 2) + 0.1 × value(board with 4)
@@ -224,12 +228,12 @@ When Expectimax hits maximum depth it estimates board quality via a scoring form
 H(board) = α·Monotonicity + β·Smoothness + γ·log₂(EmptyCells) + δ·CornerBonus
 ```
 
-| Component | What it measures | Why it matters |
-|---|---|---|
-| **Monotonicity** | Values increase or decrease consistently in one direction | Keeps large tiles ordered, prevents fragmentation |
-| **Smoothness** | Adjacent tiles have similar values | Close values merge sooner |
-| **log₂(EmptyCells)** | Available space | More space = more options. `log₂` because each extra cell is worth less than the previous: 0→1 empty is huge, 9→10 barely matters |
-| **CornerBonus** | Largest tile anchored to a corner | Frees the rest of the board for merging |
+| Component            | What it measures                                          | Why it matters                                                                                                                    |
+| -------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Monotonicity**     | Values increase or decrease consistently in one direction | Keeps large tiles ordered, prevents fragmentation                                                                                 |
+| **Smoothness**       | Adjacent tiles have similar values                        | Close values merge sooner                                                                                                         |
+| **log₂(EmptyCells)** | Available space                                           | More space = more options. `log₂` because each extra cell is worth less than the previous: 0→1 empty is huge, 9→10 barely matters |
+| **CornerBonus**      | Largest tile anchored to a corner                         | Frees the rest of the board for merging                                                                                           |
 
 **Why heuristic quality matters more than search depth:**
 
@@ -281,16 +285,17 @@ export async function getSuggestion(board) {
     // Translation between 2D array and bitboard happens server-side
     return await fetch('/api/suggest', {
       method: 'POST',
-      body: JSON.stringify({ board })
-    }).then(r => r.json())
+      body: JSON.stringify({ board }),
+    }).then((r) => r.json());
   }
-  return localExpectimax(board)  // default — pure JS, no infrastructure
+  return localExpectimax(board); // default — pure JS, no infrastructure
 }
 ```
 
 We start with `AI_MODE='local'` set in `config.ts`. Switching to remote requires changing that constant and starting the Docker container — the React code does not change.
 
 **Benchmark (to be filled during build):**
+
 ```
 Implementation:   Own Expectimax, depth 4
 2048 reach rate:  __% (n=100 games)
@@ -319,24 +324,24 @@ Step 4 — dominant delta → template:
   "Move Left — frees up board space"
 ```
 
-**Dominant delta** = largest absolute delta between the chosen direction's components and the second-best direction's components. If all deltas are small (< 5% of total score), use a generic template *"Move {dir} — best overall position"*.
+**Dominant delta** = largest absolute delta between the chosen direction's components and the second-best direction's components. If all deltas are small (< 5% of total score), use a generic template _"Move {dir} — best overall position"_.
 
 Template map:
 
-| Dominant component | Reasoning template |
-|---|---|
-| Monotonicity | *"Move {dir} — keeps tiles ordered along rows"* |
-| Smoothness | *"Move {dir} — keeps similar tiles close, more merges available"* |
-| Empty cells | *"Move {dir} — frees up board space"* |
-| Corner | *"Move {dir} — keeps largest tile anchored in corner"* |
+| Dominant component | Reasoning template                                                |
+| ------------------ | ----------------------------------------------------------------- |
+| Monotonicity       | _"Move {dir} — keeps tiles ordered along rows"_                   |
+| Smoothness         | _"Move {dir} — keeps similar tiles close, more merges available"_ |
+| Empty cells        | _"Move {dir} — frees up board space"_                             |
+| Corner             | _"Move {dir} — keeps largest tile anchored in corner"_            |
 
 Deterministic — given the same board, output is always identical. Fully testable:
 
 ```ts
 expect(getAdvice(knownBoard)).toEqual({
   direction: 'left',
-  reasoning: 'Move Left — frees up board space'
-})
+  reasoning: 'Move Left — frees up board space',
+});
 ```
 
 ---
@@ -361,13 +366,13 @@ MobX tracks property reads via ES6 Proxy and re-renders only the components that
 
 For 2048, most tiles change on every move. Property-level granularity gains us nothing when nearly every property is dirty.
 
-| Factor | MobX | Plain class (our choice) |
-|---|---|---|
-| Re-render granularity | Property-level via Proxy | Component-level |
-| Test injection | Identical | Identical |
-| Extra dependencies | `mobx`, `mobx-react-lite` | None |
-| Boilerplate | `makeObservable` + decorators | None |
-| Value at 4×4 scale | Marginal | Sufficient |
+| Factor                | MobX                          | Plain class (our choice) |
+| --------------------- | ----------------------------- | ------------------------ |
+| Re-render granularity | Property-level via Proxy      | Component-level          |
+| Test injection        | Identical                     | Identical                |
+| Extra dependencies    | `mobx`, `mobx-react-lite`     | None                     |
+| Boilerplate           | `makeObservable` + decorators | None                     |
+| Value at 4×4 scale    | Marginal                      | Sufficient               |
 
 Test injection — the core reason for a class store — works identically either way.
 
@@ -376,25 +381,29 @@ Test injection — the core reason for a class store — works identically eithe
 `GameStatus` and `Direction` are constant enums imported from `domain/types.ts`:
 
 ```ts
-export const STATUS = { IDLE: 'idle', PLAYING: 'playing', WON: 'won', LOST: 'lost' }
-export const DIRECTION = { LEFT: 'left', RIGHT: 'right', UP: 'up', DOWN: 'down' }
+export const STATUS = { IDLE: 'idle', PLAYING: 'playing', WON: 'won', LOST: 'lost' };
+export const DIRECTION = { LEFT: 'left', RIGHT: 'right', UP: 'up', DOWN: 'down' };
 ```
 
 ```ts
 class GameStore {
-  board          // Board
-  status         // STATUS value
-  score          // number — cumulative; += scoreDelta on each move (never reset until game reset)
-  bestScore      // number — persists across resets
-  advice         // AIAdvice | null
-  adviceLoading  // boolean
+  board; // Board
+  status; // STATUS value
+  score; // number — cumulative; += scoreDelta on each move (never reset until game reset)
+  bestScore; // number — persists across resets
+  advice; // AIAdvice | null
+  adviceLoading; // boolean
 
-  get isActive()   { return this.status === STATUS.PLAYING }
-  get largestTile(){ return Math.max(...this.board.flat().filter(Boolean)) }
+  get isActive() {
+    return this.status === STATUS.PLAYING;
+  }
+  get largestTile() {
+    return Math.max(...this.board.flat().filter(Boolean));
+  }
 
-  applyMove(direction)
-  requestAdvice()
-  reset()
+  applyMove(direction);
+  requestAdvice();
+  reset();
 }
 ```
 
@@ -429,31 +438,31 @@ reset()                 | board = initBoard(), score = 0,
 
 ```ts
 // gameStore.test.ts — zero framework imports
-import { GameStore } from '../store/gameStore'
+import { GameStore } from '../store/gameStore';
 
 it('transitions to won when 2048 is reached', () => {
-  const store = new GameStore()
-  store.board = nearWinBoard
-  store.applyMove('left')
-  expect(store.status).toBe('won')
-})
+  const store = new GameStore();
+  store.board = nearWinBoard;
+  store.applyMove('left');
+  expect(store.status).toBe('won');
+});
 
 it('does not spawn a tile after winning', () => {
-  const store = new GameStore()
-  store.board = nearWinBoard
-  const tileBefore = countTiles(store.board)
-  store.applyMove('left')
-  expect(countTiles(store.board)).toBe(tileBefore)
-})
+  const store = new GameStore();
+  store.board = nearWinBoard;
+  const tileBefore = countTiles(store.board);
+  store.applyMove('left');
+  expect(countTiles(store.board)).toBe(tileBefore);
+});
 
 it('does not mutate state on no-change move', () => {
-  const store = new GameStore()
-  store.board = immovableLeftBoard
-  const snapshot = deepCopy(store.board)
-  store.applyMove('left')
-  expect(store.board).toEqual(snapshot)
-  expect(store.score).toBe(0)
-})
+  const store = new GameStore();
+  store.board = immovableLeftBoard;
+  const snapshot = deepCopy(store.board);
+  store.applyMove('left');
+  expect(store.board).toEqual(snapshot);
+  expect(store.score).toBe(0);
+});
 ```
 
 These exact test cases appear in `gameStore.test.ts`.
@@ -467,6 +476,7 @@ TDD is the development methodology. Tests are written before implementation — 
 **First tests written are spec examples** — the spec provides concrete input/output pairs that map directly to test cases.
 
 **Build order:**
+
 1. `slideRow`
 2. `mergeRow`
 3. `moveLeft` (composes slide + merge + slide)
@@ -478,16 +488,16 @@ TDD is the development methodology. Tests are written before implementation — 
 
 ### 7.1 Test Layers
 
-| Layer | File | What is tested |
-|---|---|---|
-| Board primitives | `board.test.ts` | `initBoard` (correct tile count, all `2`s, random positions), `boardsEqual`, `spawnTile` (probability distribution over many runs) |
-| Move operations | `moves.test.ts` | `slideRow`, `mergeRow`, transforms (`reflect`, `transpose` involutions), all four directions — full board snapshots |
-| Win/lose detection | `gameStore.test.ts` | `checkWin`, `checkLose` |
-| Move sequencing | `gameStore.test.ts` | All 6 stages in section 4.4 |
-| AI heuristics | `heuristics.test.ts` | Each heuristic component independently |
-| Expectimax | `expectimax.test.ts` | Known board → expected best direction |
-| Advice generation | `expectimax.test.ts` | Known board → expected reasoning template (deterministic) |
-| ViewModel | `gameStore.test.ts` | State transitions, zero React imports |
+| Layer              | File                 | What is tested                                                                                                                     |
+| ------------------ | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Board primitives   | `board.test.ts`      | `initBoard` (correct tile count, all `2`s, random positions), `boardsEqual`, `spawnTile` (probability distribution over many runs) |
+| Move operations    | `moves.test.ts`      | `slideRow`, `mergeRow`, transforms (`reflect`, `transpose` involutions), all four directions — full board snapshots                |
+| Win/lose detection | `gameStore.test.ts`  | `checkWin`, `checkLose`                                                                                                            |
+| Move sequencing    | `gameStore.test.ts`  | All 6 stages in section 4.4                                                                                                        |
+| AI heuristics      | `heuristics.test.ts` | Each heuristic component independently                                                                                             |
+| Expectimax         | `expectimax.test.ts` | Known board → expected best direction                                                                                              |
+| Advice generation  | `expectimax.test.ts` | Known board → expected reasoning template (deterministic)                                                                          |
+| ViewModel          | `gameStore.test.ts`  | State transitions, zero React imports                                                                                              |
 
 ### 7.2 Critical Test Cases
 
@@ -496,80 +506,80 @@ TDD is the development methodology. Tests are written before implementation — 
 ```ts
 // Spec requirement 1: init board
 it('initBoard places tiles within configured range, all value 2', () => {
-  const board = initBoard()
-  const tiles = board.flat().filter(c => c !== null)
-  expect(tiles.length).toBeGreaterThanOrEqual(CONFIG.INIT_TILE_COUNT.min)
-  expect(tiles.length).toBeLessThanOrEqual(CONFIG.INIT_TILE_COUNT.max)
-  expect(tiles.every(t => t === 2)).toBe(true)
-})
+  const board = initBoard();
+  const tiles = board.flat().filter((c) => c !== null);
+  expect(tiles.length).toBeGreaterThanOrEqual(CONFIG.INIT_TILE_COUNT.min);
+  expect(tiles.length).toBeLessThanOrEqual(CONFIG.INIT_TILE_COUNT.max);
+  expect(tiles.every((t) => t === 2)).toBe(true);
+});
 
 // Spec requirement 2: Move Left
 it('moves left — spec example', () => {
   const before = [
-    [null, 8,    2,    2],
-    [4,    2,    null, 2],
+    [null, 8, 2, 2],
+    [4, 2, null, 2],
     [null, null, null, null],
-    [null, null, null, 2]
-  ]
+    [null, null, null, 2],
+  ];
   const after = [
-    [8,    4,    null, null],
-    [4,    4,    null, null],
+    [8, 4, null, null],
+    [4, 4, null, null],
     [null, null, null, null],
-    [2,    null, null, null]
-  ]
-  expect(applyMove(before, 'left').board).toEqual(after)
-})
+    [2, null, null, null],
+  ];
+  expect(applyMove(before, 'left').board).toEqual(after);
+});
 
 // Spec requirement 3: Move Right
 it('moves right — spec example', () => {
   const before = [
-    [null, 8,    2,    2],
-    [4,    2,    null, 2],
+    [null, 8, 2, 2],
+    [4, 2, null, 2],
     [null, null, null, null],
-    [null, null, null, 2]
-  ]
+    [null, null, null, 2],
+  ];
   const after = [
-    [null, null, 8,    4],
-    [null, null, 4,    4],
+    [null, null, 8, 4],
+    [null, null, 4, 4],
     [null, null, null, null],
-    [null, null, null, 2]
-  ]
-  expect(applyMove(before, 'right').board).toEqual(after)
-})
+    [null, null, null, 2],
+  ];
+  expect(applyMove(before, 'right').board).toEqual(after);
+});
 
 // Spec requirement 4: Move Up
 it('moves up — spec example', () => {
   const before = [
-    [null, 8,    2,    2],
-    [4,    2,    null, 2],
+    [null, 8, 2, 2],
+    [4, 2, null, 2],
     [null, null, null, null],
-    [null, null, null, 2]
-  ]
+    [null, null, null, 2],
+  ];
   const after = [
-    [4,    8,    2,    4],
-    [null, 2,    null, 2],
+    [4, 8, 2, 4],
+    [null, 2, null, 2],
     [null, null, null, null],
-    [null, null, null, null]
-  ]
-  expect(applyMove(before, 'up').board).toEqual(after)
-})
+    [null, null, null, null],
+  ];
+  expect(applyMove(before, 'up').board).toEqual(after);
+});
 
 // Spec requirement 5: spawn after valid move
 it('spawns one tile after valid move', () => {
   const before = [
-    [null, 8,    2,    2],
-    [4,    2,    null, 2],
+    [null, 8, 2, 2],
+    [4, 2, null, 2],
     [null, null, null, null],
-    [null, null, null, 2]
-  ]
-  const store = new GameStore()
-  store.board = before
-  const tilesBefore = countTiles(store.board)
-  const mergesInMove = 2  // [2,2] in row 0, [2,2] in column 3
-  store.applyMove('up')
+    [null, null, null, 2],
+  ];
+  const store = new GameStore();
+  store.board = before;
+  const tilesBefore = countTiles(store.board);
+  const mergesInMove = 2; // [2,2] in row 0, [2,2] in column 3
+  store.applyMove('up');
   // each merge reduces tile count by 1, then one spawn adds 1
-  expect(countTiles(store.board)).toBe(tilesBefore - mergesInMove + 1)
-})
+  expect(countTiles(store.board)).toBe(tilesBefore - mergesInMove + 1);
+});
 
 // Spec requirement 5 (second): lose condition
 it('detects lose — no moves available', () => {
@@ -577,79 +587,81 @@ it('detects lose — no moves available', () => {
     [2, 4, 2, 4],
     [4, 2, 4, 2],
     [2, 4, 2, 4],
-    [4, 2, 4, 2]
-  ]
-  expect(checkLose(loseBoard)).toBe(true)
-})
+    [4, 2, 4, 2],
+  ];
+  expect(checkLose(loseBoard)).toBe(true);
+});
 
 // Spec requirement 5 (second): win condition
 it('detects win — 2048 tile present', () => {
   const winBoard = [
-    [4,    null, null, 2],
+    [4, null, null, 2],
     [2048, null, null, null],
-    [4,    2,    null, null],
-    [4,    null, null, null]
-  ]
-  expect(checkWin(winBoard)).toBe(true)
-})
+    [4, 2, null, null],
+    [4, null, null, null],
+  ];
+  expect(checkWin(winBoard)).toBe(true);
+});
 
 // Spec requirement 6: AI suggestion
 it('AI returns a valid direction and reasoning for a known board', () => {
   const board = [
-    [2,    2,    null, null],
+    [2, 2, null, null],
     [null, null, null, null],
     [null, null, null, null],
-    [null, null, null, null]
-  ]
-  const advice = getSuggestion(board)
-  expect(['left', 'right', 'up', 'down']).toContain(advice.direction)
-  expect(advice.reasoning).toMatch(/^Move /)
-})
+    [null, null, null, null],
+  ];
+  const advice = getSuggestion(board);
+  expect(['left', 'right', 'up', 'down']).toContain(advice.direction);
+  expect(advice.reasoning).toMatch(/^Move /);
+});
 ```
 
 **Merge edge cases:**
+
 ```ts
 // Two independent merges in one row — commonly misunderstood
 it('[2,2,2,2] → [4,4,null,null]', () => {
   expect(mergeRow([2, 2, 2, 2])).toEqual({
     row: [4, 4, null, null],
-    scoreDelta: 8
-  })
-})
+    scoreDelta: 8,
+  });
+});
 
 // Null between tiles — compress brings them adjacent first
 it('[2,null,2,null] → [4,null,null,null]', () => {
   expect(mergeRow(slideRow([2, null, 2, null]))).toEqual({
     row: [4, null, null, null],
-    scoreDelta: 4
-  })
-})
+    scoreDelta: 4,
+  });
+});
 ```
 
 **Sequencing — common bugs:**
+
 ```ts
 // No spawn on no-change move
 it('does not spawn when move changes nothing', () => {
   const board = [
-    [2,    4,    2,    4],
-    [4,    2,    4,    2],
+    [2, 4, 2, 4],
+    [4, 2, 4, 2],
     [null, null, null, null],
-    [null, null, null, null]
-  ]
-  const result = applyMove(board, 'left')
-  expect(result.changed).toBe(false)
-  expect(result.board).toEqual(board)
-})
+    [null, null, null, null],
+  ];
+  const result = applyMove(board, 'left');
+  expect(result.changed).toBe(false);
+  expect(result.board).toEqual(board);
+});
 
 // No spawn after win
 it('does not spawn after reaching 2048', () => {
-  const store = new GameStore()
-  store.board = nearWinBoard
-  const tileCount = countTiles(store.board)
-  store.applyMove('left')
-  expect(store.status).toBe('won')
-  expect(countTiles(store.board)).toBe(tileCount)
-})
+  const store = new GameStore();
+  store.board = nearWinBoard;
+  const tileCount = countTiles(store.board);
+  store.applyMove('left');
+  expect(store.status).toBe('won');
+  expect(countTiles(store.board)).toBe(tileCount);
+});
 ```
 
 ### 7.3 Pre-Push Hooks
@@ -664,13 +676,13 @@ it('does not spawn after reaching 2048', () => {
 // src/constants/storageKeys.ts
 export const STORAGE_KEYS = {
   GAME_STATE: '2048_game_state',
-  BEST_SCORE: '2048_best_score'
-}
+  BEST_SCORE: '2048_best_score',
+};
 ```
 
 Loaded at app init in `useGame.ts`. On mount: restore from localStorage if valid state exists, otherwise start fresh. Saves on every valid move. `bestScore` stored separately — survives resets.
 
-A `ⓘ` tooltip on the score display shows: *"Score = cumulative sum of merged tile values. Merging two 4s adds 8."*
+A `ⓘ` tooltip on the score display shows: _"Score = cumulative sum of merged tile values. Merging two 4s adds 8."_
 
 ---
 
@@ -681,14 +693,15 @@ A `ⓘ` tooltip on the score display shows: *"Score = cumulative sum of merged t
 export const CONFIG = {
   BOARD_SIZE: 4,
   WIN_TILE: 2048,
-  INIT_TILE_COUNT: { min: 2, max: 6 },  // spec unspecified — see assumptions
-  SPAWN_WEIGHTS: { 2: 0.9, 4: 0.1 },    // spec unspecified — see assumptions
+  INIT_TILE_COUNT: { min: 2, max: 6 }, // spec unspecified — see assumptions
+  SPAWN_WEIGHTS: { 2: 0.9, 4: 0.1 }, // spec unspecified — see assumptions
   EXPECTIMAX_DEPTH: 4,
-  AI_MODE: 'local'                        // 'local' | 'remote' — see TD section 5.4
-}
+  AI_MODE: 'local', // 'local' | 'remote' — see TD section 5.4
+};
 ```
 
 Inspect config:
+
 1. **Console on start** — `[Config] { ... }` logged at app init
 2. **Edit `config.ts` directly** — no magic, no env vars, no runtime mutation
 
@@ -746,10 +759,10 @@ Inspect config:
 `getSuggestion()` returns the direction, reasoning, and a `debug` object capturing the search internals. After each suggestion, the result is logged to console and exposed on `window` for inspection — visible to anyone with DevTools, invisible to the player.
 
 ```ts
-console.log('[AI]', advice)
-window.__lastAdvice = advice
-window.__adviceHistory ??= []
-window.__adviceHistory.push(advice)
+console.log('[AI]', advice);
+window.__lastAdvice = advice;
+window.__adviceHistory ??= [];
+window.__adviceHistory.push(advice);
 
 // Reviewer can then:
 //   window.__lastAdvice                              → latest suggestion
@@ -758,6 +771,7 @@ window.__adviceHistory.push(advice)
 ```
 
 The full advice object:
+
 ```ts
 {
   direction: 'left',
