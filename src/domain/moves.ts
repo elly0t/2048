@@ -47,3 +47,15 @@ export function transpose(board: Board): Board {
     originalRow.map((_, colIndex) => board[colIndex]![rowIndex]!),
   );
 }
+
+export function moveRight(board: Board): MoveResult {
+  return { board, changed: false, scoreDelta: 0 };
+}
+
+export function moveUp(board: Board): MoveResult {
+  return { board, changed: false, scoreDelta: 0 };
+}
+
+export function moveDown(board: Board): MoveResult {
+  return { board, changed: false, scoreDelta: 0 };
+}

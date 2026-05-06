@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { compressRow, mergeRow, moveLeft, reflect, transpose } from './moves';
+import {
+  compressRow,
+  mergeRow,
+  moveLeft,
+  moveRight,
+  moveUp,
+  moveDown,
+  reflect,
+  transpose,
+} from './moves';
 import type { Board } from './types';
 
 describe('compressRow', () => {
@@ -115,5 +124,68 @@ describe('transpose', () => {
       [3, 7, 11, 15],
       [4, 8, 12, 16],
     ]);
+  });
+});
+
+describe('moveRight', () => {
+  it('moves right — spec example (TD §7.2)', () => {
+    const before: Board = [
+      [null, 8, 2, 2],
+      [4, 2, null, 2],
+      [null, null, null, null],
+      [null, null, null, 2],
+    ];
+    const after: Board = [
+      [null, null, 8, 4],
+      [null, null, 4, 4],
+      [null, null, null, null],
+      [null, null, null, 2],
+    ];
+    const result = moveRight(before);
+    expect(result.board).toEqual(after);
+    expect(result.changed).toBe(true);
+    expect(result.scoreDelta).toBe(8);
+  });
+});
+
+describe('moveUp', () => {
+  it('moves up — spec example (TD §7.2)', () => {
+    const before: Board = [
+      [null, 8, 2, 2],
+      [4, 2, null, 2],
+      [null, null, null, null],
+      [null, null, null, 2],
+    ];
+    const after: Board = [
+      [4, 8, 2, 4],
+      [null, 2, null, 2],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    const result = moveUp(before);
+    expect(result.board).toEqual(after);
+    expect(result.changed).toBe(true);
+    expect(result.scoreDelta).toBe(4);
+  });
+});
+
+describe('moveDown', () => {
+  it('moves down — spec example (closes 4-direction coverage)', () => {
+    const before: Board = [
+      [null, 8, 2, 2],
+      [4, 2, null, 2],
+      [null, null, null, null],
+      [null, null, null, 2],
+    ];
+    const after: Board = [
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, 8, null, 2],
+      [4, 2, 2, 4],
+    ];
+    const result = moveDown(before);
+    expect(result.board).toEqual(after);
+    expect(result.changed).toBe(true);
+    expect(result.scoreDelta).toBe(4);
   });
 });
