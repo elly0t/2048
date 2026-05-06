@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  applyMove,
   compressRow,
   mergeRow,
   moveLeft,
@@ -9,6 +10,7 @@ import {
   reflect,
   transpose,
 } from './moves';
+import { DIRECTION } from './types';
 import type { Board } from './types';
 
 describe('compressRow', () => {
@@ -187,5 +189,20 @@ describe('moveDown', () => {
     expect(result.board).toEqual(after);
     expect(result.changed).toBe(true);
     expect(result.scoreDelta).toBe(4);
+  });
+});
+
+describe('applyMove', () => {
+  it('routes each direction to its corresponding move function', () => {
+    const board: Board = [
+      [null, 8, 2, 2],
+      [4, 2, null, 2],
+      [null, null, null, null],
+      [null, null, null, 2],
+    ];
+    expect(applyMove(board, DIRECTION.LEFT)).toEqual(moveLeft(board));
+    expect(applyMove(board, DIRECTION.RIGHT)).toEqual(moveRight(board));
+    expect(applyMove(board, DIRECTION.UP)).toEqual(moveUp(board));
+    expect(applyMove(board, DIRECTION.DOWN)).toEqual(moveDown(board));
   });
 });

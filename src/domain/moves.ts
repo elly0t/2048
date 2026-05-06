@@ -1,4 +1,4 @@
-import type { Row, Board, MoveResult } from './types';
+import type { Row, Board, MoveResult, Direction } from './types';
 
 export function compressRow(row: Row): Row {
   return [...row.filter((cell) => cell !== null), ...row.filter((cell) => cell === null)];
@@ -67,4 +67,8 @@ export function moveDown(board: Board): MoveResult {
   const {board: movedBoard, changed, scoreDelta} = moveLeft(reflectedTransposedBoard)
   const transformedBackBoard = transpose(reflect(movedBoard))
   return { board: transformedBackBoard, changed, scoreDelta };
+}
+
+export function applyMove(board: Board, _direction: Direction): MoveResult {
+  return { board, changed: false, scoreDelta: 0 };
 }
