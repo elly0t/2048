@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { compressRow, mergeRow } from './moves';
+import { compressRow, mergeRow, moveLeft } from './moves';
+import type { Board } from './types';
 
 describe('compressRow', () => {
   it('packs values toward index 0', () => {
@@ -57,5 +58,26 @@ describe('mergeRow', () => {
       row: [8, null, 16, null],
       scoreDelta: 24,
     });
+  });
+});
+
+describe('moveLeft', () => {
+  it('moves left — spec example (TD §7.2)', () => {
+    const before: Board = [
+      [null, 8, 2, 2],
+      [4, 2, null, 2],
+      [null, null, null, null],
+      [null, null, null, 2],
+    ];
+    const after: Board = [
+      [8, 4, null, null],
+      [4, 4, null, null],
+      [null, null, null, null],
+      [2, null, null, null],
+    ];
+    const result = moveLeft(before);
+    expect(result.board).toEqual(after);
+    expect(result.changed).toBe(true);
+    expect(result.scoreDelta).toBe(8);
   });
 });

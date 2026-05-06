@@ -1,4 +1,4 @@
-import type { Row } from './types';
+import type { Row, Board, MoveResult } from './types';
 
 export function compressRow(row: Row): Row {
   return [...row.filter((cell) => cell !== null), ...row.filter((cell) => cell === null)];
@@ -18,4 +18,8 @@ export function mergeRow(row: Row): { row: Row; scoreDelta: number } {
     }
   }
   return { row: result, scoreDelta };
+}
+
+export function moveLeft(board: Board): MoveResult {
+  return { board, changed: false, scoreDelta: 0 };
 }
