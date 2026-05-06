@@ -30,4 +30,32 @@ describe('mergeRow', () => {
       scoreDelta: 8,
     });
   });
+
+  it('returns row unchanged when no adjacent equals', () => {
+    expect(mergeRow([2, 4, 8, 16])).toEqual({
+      row: [2, 4, 8, 16],
+      scoreDelta: 0,
+    });
+  });
+
+  it('merges a single adjacent pair leaving gap', () => {
+    expect(mergeRow([2, 2, null, null])).toEqual({
+      row: [4, null, null, null],
+      scoreDelta: 4,
+    });
+  });
+
+  it('merges leftmost pair only when third tile has no partner', () => {
+    expect(mergeRow([2, 2, 2, null])).toEqual({
+      row: [4, null, 2, null],
+      scoreDelta: 4,
+    });
+  });
+
+  it('sums scoreDelta across multiple merges of different values', () => {
+    expect(mergeRow([4, 4, 8, 8])).toEqual({
+      row: [8, null, 16, null],
+      scoreDelta: 24,
+    });
+  });
 });
