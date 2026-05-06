@@ -10,7 +10,7 @@ The spec leaves several values unspecified. All assumptions are externalised to 
 
 | #   | Assumption                                  | Reason                                                                                                                                          |
 | --- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Initial board places 2–8 tiles of value `2` | Spec says "random number of 2s" — range matches density of the spec example                                                                                  |
+| 1   | Initial board places 2–8 tiles of value `2` | Spec says "random number of 2s" — range matches density of the spec example                                                                     |
 | 2   | Spawn probability: 90% for `2`, 10% for `4` | Spec says "a 2 or 4" — standard 2048 convention                                                                                                 |
 | 3   | Score = sum of all merged tile values       | Standard 2048 scoring convention — same as the original game                                                                                    |
 | 4   | Win state allows player to continue         | Spec detects win but does not say game ends — continue or restart offered                                                                       |
@@ -109,7 +109,7 @@ Six rules from the spec govern all gameplay. Configurable values live in `config
 | #   | Rule           | Detail                                                                                                                            |
 | --- | -------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Init           | Start with a random number of `2` tiles at random cells. Range `INIT_TILE_COUNT` (default 2–8)                                    |
-| 2   | Move           | Slide all tiles in the chosen direction, merging adjacent equals (see 4.3). Triggered by arrow keys.                                                        |
+| 2   | Move           | Slide all tiles in the chosen direction, merging adjacent equals (see 4.3). Triggered by arrow keys.                              |
 | 3   | Spawn          | After a valid move, one new tile spawns at a random empty cell — `2` with 90% probability, `4` with 10%. Weights: `SPAWN_WEIGHTS` |
 | 4   | No-change move | If the move does not change the board, no spawn happens                                                                           |
 | 5   | Win            | The `WIN_TILE` (default 2048) appears on the board                                                                                |
@@ -145,14 +145,16 @@ moveDown  → transpose + reflect   → moveLeft → reflect + transpose back
 
 Merge logic exists in exactly one place: `mergeRow`. When a merge bug is found or behaviour changes, there is one function to fix and one set of tests to update. No risk of fixing `mergeLeft` and forgetting `mergeRight`. Direction handling is pure geometry (reflect, transpose), completely separate from merge logic; neither knows about the other.
 
-Each row passes through three single-responsibility functions: `compressRow`, `mergeRow`, `compressRow`. All three are direction-agnostic — `compressRow` packs values toward index 0; `mergeRow` scans index 0 upward. The "leftward" packing is positional (toward array start), not directional. Player-facing direction (Move Left/Right/Up/Down) is handled exclusively by the reflect/transpose pipeline above.
+Within `moveLeft`, each row passes through `compressRow → mergeRow → compressRow`:
 
 ```
 Input:    [2, 2, null, 2]
-compress: [2, 2, 2, null]     pack values toward index 0 — null removed ✓
-merge:    [4, null, 2, null]  merge adjacent equals — gap created
-compress: [4, 2, null, null]  pack after merge — gap removed ✓
+compress: [2, 2, 2, null]     pack values toward index 0
+merge:    [4, null, 2, null]  merge adjacent equals
+compress: [4, 2, null, null]  pack again to fill the gap
 ```
+
+`compressRow` and `mergeRow` always work toward index 0 — the start of the array. They take no direction parameter. Player direction (Move Left/Right/Up/Down) is mapped to a left-pass via the reflect/transpose pipeline above, so these row primitives only ever solve one problem: pack values to the front, merge adjacent equals.
 
 ### Merge rules
 
@@ -526,16 +528,16 @@ Build order:
 
 ### 7.1 Test Layers
 
-| Layer              | File                 | What is tested                                                                                                                     |
-| ------------------ | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Layer              | File                 | What is tested                                                                                                                                                 |
+| ------------------ | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Board primitives   | `board.test.ts`      | `initBoard` (correct tile count, all `2`s, random positions), `boardsEqual`, `spawnTile` (cell selection + value is 2 or 4; branching tested via injected RNG) |
-| Move operations    | `moves.test.ts`      | `compressRow`, `mergeRow`, transforms (`reflect`, `transpose` involutions), all four directions — full board snapshots                |
-| Win/lose detection | `gameStore.test.ts`  | `checkWin`, `checkLose`                                                                                                            |
-| Move sequencing    | `gameStore.test.ts`  | All 6 stages in section 4.4                                                                                                        |
-| AI heuristics      | `heuristics.test.ts` | Each heuristic component independently                                                                                             |
-| Expectimax         | `expectimax.test.ts` | Known board → expected best direction                                                                                              |
-| Advice generation  | `expectimax.test.ts` | Known board → expected reasoning template (deterministic)                                                                          |
-| ViewModel          | `gameStore.test.ts`  | State transitions, zero React imports                                                                                              |
+| Move operations    | `moves.test.ts`      | `compressRow`, `mergeRow`, transforms (`reflect`, `transpose` involutions), all four directions — full board snapshots                                         |
+| Win/lose detection | `gameStore.test.ts`  | `checkWin`, `checkLose`                                                                                                                                        |
+| Move sequencing    | `gameStore.test.ts`  | All 6 stages in section 4.4                                                                                                                                    |
+| AI heuristics      | `heuristics.test.ts` | Each heuristic component independently                                                                                                                         |
+| Expectimax         | `expectimax.test.ts` | Known board → expected best direction                                                                                                                          |
+| Advice generation  | `expectimax.test.ts` | Known board → expected reasoning template (deterministic)                                                                                                      |
+| ViewModel          | `gameStore.test.ts`  | State transitions, zero React imports                                                                                                                          |
 
 ### 7.2 Critical Test Cases
 
