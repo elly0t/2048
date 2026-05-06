@@ -61,13 +61,15 @@ The architecture follows MVVM. `GameStore` has no React imports — game logic i
 
 Core types are modelled explicitly so function signatures reflect the domain rather than raw primitives.
 
-| Concept      | Module          | Shape                                                               |
-| ------------ | --------------- | ------------------------------------------------------------------- |
-| `Board`      | `board.ts`      | `(number \| null)[][]` — `null` = empty cell, `number` = tile value |
-| `Direction`  | `moves.ts`      | `'left' \| 'right' \| 'up' \| 'down'`                               |
-| `MoveResult` | `moves.ts`      | `{ board, changed, scoreDelta }`                                    |
-| `GameStatus` | `gameStore.ts`  | `'idle' \| 'playing' \| 'won' \| 'lost'`                            |
-| `AIAdvice`   | `expectimax.ts` | `{ direction, reasoning, debug }`                                   |
+All concept types are defined in `domain/types.ts`. Const-backed types (`Direction`, `GameStatus`) live alongside their runtime const objects (`DIRECTION`, `STATUS`).
+
+| Concept      | Shape                                                               |
+| ------------ | ------------------------------------------------------------------- |
+| `Board`      | `(number \| null)[][]` — `null` = empty cell, `number` = tile value |
+| `Direction`  | `'left' \| 'right' \| 'up' \| 'down'`                               |
+| `MoveResult` | `{ board, changed, scoreDelta }`                                    |
+| `GameStatus` | `'idle' \| 'playing' \| 'won' \| 'lost'`                            |
+| `AIAdvice`   | `{ direction, reasoning, debug }`                                   |
 
 ### 3.3 UI Layout
 
@@ -101,6 +103,23 @@ Single screen. Score bar, centred 4×4 grid, AI panel beside the grid.
 ---
 
 ## 4. Core Domain Logic
+
+Move processing is layered. `GameStore` handles state transitions and sequencing (§4.4); `moves.ts` handles the row-level transform (§4.3); `compressRow` and `mergeRow` are the per-row primitives. Reading top-down:
+
+```
+GameStore.applyMove(direction)                       ← store method, 6-stage sequencing (§4.4)
+   │ calls
+   ▼
+applyMove(board, direction)                          ← dispatcher (4-way switch — §4.3)
+   │
+   ├── moveLeft                                      ← canonical operation
+   ├── moveRight  = reflect → moveLeft → reflect
+   ├── moveUp     = transpose → moveLeft → transpose
+   └── moveDown   = transpose∘reflect → moveLeft → reflect∘transpose
+                       │
+                       ▼ for each row
+                  compressRow → mergeRow → compressRow
+```
 
 ### 4.1 Game Rules
 

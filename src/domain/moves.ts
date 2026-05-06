@@ -1,12 +1,11 @@
-export function compressRow(row: (number | null)[]): (number | null)[] {
+import type { Row } from './types';
+
+export function compressRow(row: Row): Row {
   return [...row.filter((cell) => cell !== null), ...row.filter((cell) => cell === null)];
 }
 
-export function mergeRow(row: (number | null)[]): {
-  row: (number | null)[];
-  scoreDelta: number;
-} {
-  const result: (number | null)[] = [...row];
+export function mergeRow(row: Row): { row: Row; scoreDelta: number } {
+  const result: Row = [...row];
   let scoreDelta = 0;
   for (let i = 0; i < result.length - 1; i++) {
     const a = result[i];
