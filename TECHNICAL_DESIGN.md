@@ -215,6 +215,8 @@ For Move Right, Up, Down, the same rules apply but in the corresponding directio
 }
 ```
 
+`changed` is detected by snapshot comparison: after the row pipeline runs, each output row is compared cell-by-cell to its input; if any row differs, the move counts as changed. The alternative is to have each pipeline function (`compressRow`, `mergeRow`) report whether it changed something alongside its output — cleaner attribution but more API surface. Snapshot is simpler and sufficient at the 4×4 scale.
+
 ### 4.4 Move Sequencing
 
 The order of operations in `GameStore.applyMove()` matters; incorrect sequencing is a common source of win/lose bugs.
