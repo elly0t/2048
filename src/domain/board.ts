@@ -1,5 +1,6 @@
 import type { Board } from './types';
 
-export function boardsEqual(_a: Board, _b: Board): boolean {
-  return true;
+export function boardsEqual(a: Board, b: Board): boolean {
+  return a.every((row, rowIndex) => row.every((cell, colIndex) => cell === b[rowIndex]![colIndex]));
+}
 }
