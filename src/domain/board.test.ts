@@ -89,14 +89,14 @@ describe('checkWin', () => {
     expect(checkWin(board, 2048)).toBe(true);
   });
 
-  it('returns true when max tile exceeds the win tile (continue-after-win)', () => {
+  it('returns false when only tiles above the win tile exist (post-win merge state)', () => {
     const board: Board = [
       [4096, null, null, null],
       [null, null, null, null],
       [null, null, null, null],
       [null, null, null, null],
     ];
-    expect(checkWin(board, 2048)).toBe(true);
+    expect(checkWin(board, 2048)).toBe(false);
   });
 
   it('returns false when max tile is below the win tile', () => {

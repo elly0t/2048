@@ -121,7 +121,7 @@ Per TD §4.1 rule 3, §9.
 Per TD §4.1 rule 5, §9.
 
 1. Board with `2048` returns true (TD §7.2 verbatim).
-2. Board with `4096` returns true. Continue-after-win path (assumption #4).
+2. Board with only `4096` (no `2048`) returns false. `checkWin` is exact `=== winTile`; once `2048` evolves into `4096`, the function returns false. Won state is retained by `GameStore` (status stays `WON` once flipped), not by `checkWin` re-detection.
 3. Max tile `1024`, no `2048`: false.
 4. Empty board: false.
 5. `2048` in any of the 16 positions: true. Verifies full scan.
@@ -254,12 +254,12 @@ Tested once as shared property tests, not repeated per function:
 
 Patterns extracted from prior reviewer comments and where they are caught:
 
-| Past failure pattern | Where addressed in this plan |
-|---|---|
-| Win/lose timing wrong (post-spawn check) | GameStore.applyMove cases 1, 2, 5, 9 |
-| Spawn on no-op move | applyMove case 1; GameStore.applyMove case 1 |
-| AI module not tested | expectimax (10 cases), getSuggestion (12 cases) |
-| spawnTile errors on full board | spawnTile case 3 |
-| Score always 0 | GameStore.applyMove case 7 |
-| Lose-by-spawn missed | checkLose case 9; GameStore.applyMove case 5 |
-| Win-and-lose simultaneity | GameStore.applyMove case 9 |
+| Past failure pattern                     | Where addressed in this plan                    |
+| ---------------------------------------- | ----------------------------------------------- |
+| Win/lose timing wrong (post-spawn check) | GameStore.applyMove cases 1, 2, 5, 9            |
+| Spawn on no-op move                      | applyMove case 1; GameStore.applyMove case 1    |
+| AI module not tested                     | expectimax (10 cases), getSuggestion (12 cases) |
+| spawnTile errors on full board           | spawnTile case 3                                |
+| Score always 0                           | GameStore.applyMove case 7                      |
+| Lose-by-spawn missed                     | checkLose case 9; GameStore.applyMove case 5    |
+| Win-and-lose simultaneity                | GameStore.applyMove case 9                      |
