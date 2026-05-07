@@ -8,6 +8,28 @@ export function checkWin(board: Board, winTile: number): boolean {
   return board.some((row) => row.some((cell) => cell === winTile));
 }
 
-export function checkLose(_board: Board): boolean {
-  return false;
+export function checkLose(board: Board): boolean {
+  // Empty cell → slide possible
+  if (board.some((row) => row.some((cell) => cell === null))) return false;
+  // Horizontal adjacent pair → merge possible
+  if (
+    board.some((row) =>
+      row.some(
+        (cell, colIndex) => colIndex + 1 < row.length && cell === row[colIndex + 1],
+      ),
+    )
+  ) {
+    return false;
+  }
+  // Vertical adjacent pair → merge possible
+  if (
+    board.some(
+      (row, rowIndex) =>
+        rowIndex + 1 < board.length &&
+        row.some((cell, colIndex) => cell === board[rowIndex + 1]![colIndex]),
+    )
+  ) {
+    return false;
+  }
+  return true;
 }
