@@ -7,3 +7,7 @@ export function boardsEqual(a: Board, b: Board): boolean {
 export function checkWin(board: Board, winTile: number): boolean {
   return board.some((row) => row.some((cell) => cell === winTile));
 }
+
+export function checkLose(_board: Board): boolean {
+  return false;
+}

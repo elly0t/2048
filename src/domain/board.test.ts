@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { boardsEqual, checkWin } from './board';
+import { boardsEqual, checkWin, checkLose } from './board';
 import type { Board } from './types';
 
 describe('boardsEqual', () => {
@@ -143,5 +143,115 @@ describe('checkWin', () => {
     ];
     expect(checkWin(board, 1024)).toBe(true);
     expect(checkWin(board, 2048)).toBe(false);
+  });
+});
+
+describe('checkLose', () => {
+  it('returns true on classic checkerboard lose state', () => {
+    const board: Board = [
+      [2, 4, 2, 4],
+      [4, 2, 4, 2],
+      [2, 4, 2, 4],
+      [4, 2, 4, 2],
+    ];
+    expect(checkLose(board)).toBe(true);
+  });
+
+  it('returns false when a full board has a mergeable adjacent pair', () => {
+    const board: Board = [
+      [2, 2, 4, 8],
+      [4, 8, 16, 32],
+      [8, 16, 32, 64],
+      [16, 32, 64, 128],
+    ];
+    expect(checkLose(board)).toBe(false);
+  });
+
+  it('returns false when at least one cell is empty', () => {
+    const board: Board = [
+      [2, 4, 8, 16],
+      [4, 8, 16, 32],
+      [8, 16, 32, 64],
+      [16, 32, 64, null],
+    ];
+    expect(checkLose(board)).toBe(false);
+  });
+
+  it('returns false on empty board', () => {
+    const board: Board = [
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    expect(checkLose(board)).toBe(false);
+  });
+
+  it('returns false when full board has a horizontal adjacent pair only', () => {
+    const board: Board = [
+      [2, 2, 4, 8],
+      [16, 32, 64, 128],
+      [4, 8, 16, 32],
+      [64, 128, 256, 512],
+    ];
+    expect(checkLose(board)).toBe(false);
+  });
+
+  it('returns false when full board has a vertical adjacent pair only', () => {
+    const board: Board = [
+      [2, 4, 8, 16],
+      [2, 8, 16, 32],
+      [4, 16, 32, 64],
+      [8, 32, 64, 128],
+    ];
+    expect(checkLose(board)).toBe(false);
+  });
+
+  it('returns true when only diagonals are equal (diagonals do not merge)', () => {
+    const board: Board = [
+      [2, 4, 8, 16],
+      [4, 2, 16, 8],
+      [8, 16, 2, 4],
+      [16, 8, 4, 2],
+    ];
+    expect(checkLose(board)).toBe(true);
+  });
+
+  it('returns true when win tile is present but no moves available (independent of checkWin)', () => {
+    const board: Board = [
+      [2, 4, 2, 4],
+      [4, 2, 4, 2],
+      [2, 4, 2, 4],
+      [4, 2, 4, 2048],
+    ];
+    expect(checkLose(board)).toBe(true);
+  });
+
+  it('returns false before spawn fills last cell, true after if no merges remain', () => {
+    const beforeSpawn: Board = [
+      [2, 4, 2, 4],
+      [4, 2, 4, 2],
+      [2, 4, 2, 4],
+      [4, 2, 4, null],
+    ];
+    expect(checkLose(beforeSpawn)).toBe(false);
+
+    const afterSpawn: Board = [
+      [2, 4, 2, 4],
+      [4, 2, 4, 2],
+      [2, 4, 2, 4],
+      [4, 2, 4, 2],
+    ];
+    expect(checkLose(afterSpawn)).toBe(true);
+  });
+
+  it('returns true on full board with all 16 distinct values', () => {
+    const board: Board = [
+      [2, 4, 8, 16],
+      [32, 64, 128, 256],
+      [512, 1024, 2048, 4096],
+      [8192, 16384, 32768, 65536],
+    ];
+    expect(checkLose(board)).toBe(true);
   });
 });
