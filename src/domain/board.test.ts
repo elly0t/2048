@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { boardsEqual, checkWin, checkLose } from './board';
+import { boardsEqual, checkWin, checkLose, initBoard } from './board';
+import { CONFIG } from '../config';
 import type { Board } from './types';
 
 describe('boardsEqual', () => {
@@ -253,5 +254,36 @@ describe('checkLose', () => {
       [8192, 16384, 32768, 65536],
     ];
     expect(checkLose(board)).toBe(true);
+  });
+});
+
+describe('initBoard', () => {
+  it('places between INIT_TILE_COUNT.min and max tiles, all value 2', () => {
+    const board = initBoard();
+    const tiles = board.flat().filter((cell) => cell !== null);
+    expect(tiles.length).toBeGreaterThanOrEqual(CONFIG.INIT_TILE_COUNT.min);
+    expect(tiles.length).toBeLessThanOrEqual(CONFIG.INIT_TILE_COUNT.max);
+    expect(tiles.every((tile) => tile === 2)).toBe(true);
+  });
+
+  it('produces neither a winning nor losing initial board', () => {
+    const board = initBoard();
+    expect(checkWin(board, CONFIG.WIN_TILE)).toBe(false);
+    expect(checkLose(board)).toBe(false);
+  });
+
+  it('returns a new board reference on each call', () => {
+    const first = initBoard();
+    const second = initBoard();
+    expect(first).not.toBe(second);
+  });
+
+  it('varies tile count across many calls', () => {
+    const counts = new Set<number>();
+    for (let i = 0; i < 30; i++) {
+      const board = initBoard();
+      counts.add(board.flat().filter((cell) => cell !== null).length);
+    }
+    expect(counts.size).toBeGreaterThan(1);
   });
 });

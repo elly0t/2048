@@ -8,6 +8,15 @@ export function checkWin(board: Board, winTile: number): boolean {
   return board.some((row) => row.some((cell) => cell === winTile));
 }
 
+export function initBoard(): Board {
+  return [
+    [null, null, null, null],
+    [null, null, null, null],
+    [null, null, null, null],
+    [null, null, null, null],
+  ];
+}
+
 export function checkLose(board: Board): boolean {
   // Empty cell → slide possible
   if (board.some((row) => row.some((cell) => cell === null))) return false;
