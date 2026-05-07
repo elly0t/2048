@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { boardsEqual } from './board';
+import { boardsEqual, checkWin } from './board';
 import type { Board } from './types';
 
 describe('boardsEqual', () => {
@@ -75,5 +75,73 @@ describe('boardsEqual', () => {
       [0, 0, 0, 0],
     ];
     expect(boardsEqual(withNulls, withZeros)).toBe(false);
+  });
+});
+
+describe('checkWin', () => {
+  it('returns true when board contains the win tile', () => {
+    const board: Board = [
+      [4, null, null, 2],
+      [2048, null, null, null],
+      [4, 2, null, null],
+      [4, null, null, null],
+    ];
+    expect(checkWin(board, 2048)).toBe(true);
+  });
+
+  it('returns true when max tile exceeds the win tile (continue-after-win)', () => {
+    const board: Board = [
+      [4096, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    expect(checkWin(board, 2048)).toBe(true);
+  });
+
+  it('returns false when max tile is below the win tile', () => {
+    const board: Board = [
+      [1024, 512, 256, 128],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    expect(checkWin(board, 2048)).toBe(false);
+  });
+
+  it('returns false on empty board', () => {
+    const board: Board = [
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    expect(checkWin(board, 2048)).toBe(false);
+  });
+
+  it('detects the win tile in any of 16 positions', () => {
+    for (let rowIndex = 0; rowIndex < 4; rowIndex++) {
+      for (let colIndex = 0; colIndex < 4; colIndex++) {
+        const board: Board = [
+          [null, null, null, null],
+          [null, null, null, null],
+          [null, null, null, null],
+          [null, null, null, null],
+        ];
+        board[rowIndex]![colIndex] = 2048;
+        expect(checkWin(board, 2048), `position [${rowIndex}][${colIndex}]`).toBe(true);
+      }
+    }
+  });
+
+  it('respects a configurable winTile', () => {
+    const board: Board = [
+      [1024, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    expect(checkWin(board, 1024)).toBe(true);
+    expect(checkWin(board, 2048)).toBe(false);
   });
 });
