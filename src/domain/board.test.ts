@@ -286,6 +286,12 @@ describe('initBoard', () => {
     }
     expect(counts.size).toBeGreaterThan(1);
   });
+
+  it('is deterministic when given the same RNG (case 7)', () => {
+    const first = initBoard(() => 0.5);
+    const second = initBoard(() => 0.5);
+    expect(boardsEqual(first, second)).toBe(true);
+  });
 });
 
 describe('spawnTile', () => {
@@ -331,16 +337,20 @@ describe('spawnTile', () => {
     expect(result).not.toBe(emptyBoard);
   });
 
-  it('with rng returning 0, spawns a 2', () => {
+  it('with rng returning 0, spawns a 2 at [0][0]', () => {
     const result = spawnTile(emptyBoard, () => 0);
     const placed = result.flat().filter((cell) => cell !== null);
     expect(placed).toEqual([2]);
+    // floor(0 * 16) = 0 → first empty position is [0][0]
+    expect(result[0]![0]).toBe(2);
   });
 
-  it('with rng returning 0.95, spawns a 4', () => {
+  it('with rng returning 0.95, spawns a 4 at [3][3]', () => {
     const result = spawnTile(emptyBoard, () => 0.95);
     const placed = result.flat().filter((cell) => cell !== null);
     expect(placed).toEqual([4]);
+    // floor(0.95 * 16) = 15 → last empty position is [3][3]
+    expect(result[3]![3]).toBe(4);
   });
 
   it('uses default RNG when no rng arg is provided', () => {

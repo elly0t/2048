@@ -53,7 +53,7 @@ function pickRandomN<T>(items: T[], n: number): T[] {
   return [...items].sort(() => Math.random() - 0.5).slice(0, n);
 }
 
-export function initBoard(): Board {
+export function initBoard(rng: () => number = Math.random): Board {
   const board: Board = [
     [null, null, null, null],
     [null, null, null, null],
