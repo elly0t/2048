@@ -73,3 +73,16 @@ export function initBoard(): Board {
     ),
   );
 }
+
+
+export function spawnTile(board: Board, rng: () => number = Math.random): Board {
+  const empties = emptyCellPositions(board);
+  if (empties.length === 0) {
+    throw new Error('spawnTile called on a full board');
+  }
+  const tileValue = rng() < CONFIG.SPAWN_WEIGHTS[2] ? 2 : 4;
+  const [rowIndex, colIndex] = pickRandomN(empties, 1)[0]!;
+  return board.map((row, r) =>
+    row.map((cell, c) => (r === rowIndex && c === colIndex ? tileValue : cell)),
+  );
+}
