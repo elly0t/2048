@@ -107,7 +107,7 @@ Per TD §4.1 rule 3, §9.
 
 1. Empty board: places one tile; result has 15 nulls.
 2. Single empty cell: tile lands there; result has 0 nulls.
-3. Full board: defined behaviour. Document contract (throw or no-op).
+3. Full board: **throws**. Caller bug — `GameStore` should detect lose state before spawning, so `spawnTile` being called on a full board is unreachable in correct usage. Surfacing the bug is preferable to silent no-op.
 4. Spawned value is always `2` or `4`.
 5. Spawn weight roughly 90/10 over many calls.
 6. Spawn lands only on null cells; existing tiles preserved.

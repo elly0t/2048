@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { boardsEqual, checkWin, checkLose, initBoard } from './board';
+import { boardsEqual, checkWin, checkLose, initBoard, spawnTile } from './board';
 import { CONFIG } from '../config';
 import type { Board } from './types';
 
@@ -285,5 +285,99 @@ describe('initBoard', () => {
       counts.add(board.flat().filter((cell) => cell !== null).length);
     }
     expect(counts.size).toBeGreaterThan(1);
+  });
+});
+
+describe('spawnTile', () => {
+  const emptyBoard: Board = [
+    [null, null, null, null],
+    [null, null, null, null],
+    [null, null, null, null],
+    [null, null, null, null],
+  ];
+
+  it('places exactly one tile on an empty board', () => {
+    const result = spawnTile(emptyBoard, () => 0);
+    const tiles = result.flat().filter((cell) => cell !== null);
+    expect(tiles.length).toBe(1);
+  });
+
+  it('places a tile in the only empty cell when one remains', () => {
+    const board: Board = [
+      [2, 4, 8, 16],
+      [32, 64, 128, 256],
+      [512, 1024, 2048, 4096],
+      [8192, 16384, 32768, null],
+    ];
+    const result = spawnTile(board, () => 0);
+    expect(result[3]![3]).not.toBe(null);
+  });
+
+  it('preserves existing tiles', () => {
+    const board: Board = [
+      [2, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    const result = spawnTile(board, () => 0.5);
+    expect(result[0]![0]).toBe(2);
+  });
+
+  it('returns a new board reference and does not mutate input', () => {
+    const snapshot = JSON.stringify(emptyBoard);
+    const result = spawnTile(emptyBoard, () => 0);
+    expect(JSON.stringify(emptyBoard)).toBe(snapshot);
+    expect(result).not.toBe(emptyBoard);
+  });
+
+  it('with rng returning 0, spawns a 2', () => {
+    const result = spawnTile(emptyBoard, () => 0);
+    const placed = result.flat().filter((cell) => cell !== null);
+    expect(placed).toEqual([2]);
+  });
+
+  it('with rng returning 0.95, spawns a 4', () => {
+    const result = spawnTile(emptyBoard, () => 0.95);
+    const placed = result.flat().filter((cell) => cell !== null);
+    expect(placed).toEqual([4]);
+  });
+
+  it('uses default RNG when no rng arg is provided', () => {
+    const result = spawnTile(emptyBoard);
+    const tiles = result.flat().filter((cell) => cell !== null);
+    expect(tiles.length).toBe(1);
+    expect([2, 4]).toContain(tiles[0]);
+  });
+
+  it('throws when no empty cells remain (full board)', () => {
+    const fullBoard: Board = [
+      [2, 4, 8, 16],
+      [32, 64, 128, 256],
+      [512, 1024, 2048, 4096],
+      [8192, 16384, 32768, 65536],
+    ];
+    expect(() => spawnTile(fullBoard, () => 0)).toThrow();
+  });
+
+  it('spawned value is always 2 or 4 across many calls', () => {
+    for (let i = 0; i < 50; i++) {
+      const result = spawnTile(emptyBoard);
+      const placed = result.flat().filter((cell) => cell !== null);
+      expect([2, 4]).toContain(placed[0]);
+    }
+  });
+
+  it('cell selection covers every empty position over many calls', () => {
+    const seenFlatIndices = new Set<number>();
+    for (let i = 0; i < 200; i++) {
+      const result = spawnTile(emptyBoard);
+      result.forEach((row, r) => {
+        row.forEach((cell, c) => {
+          if (cell !== null) seenFlatIndices.add(r * 4 + c);
+        });
+      });
+    }
+    expect(seenFlatIndices.size).toBe(16);
   });
 });
