@@ -34,10 +34,10 @@ Single left-to-right pass; merged tiles locked. Returns `{ row, scoreDelta }` pe
 
 1. No merges `[2, 4, 8, 16]` returns `{ row: [2, 4, 8, 16], scoreDelta: 0 }`. Rule 4.
 2. Single pair `[2, 2, null, null]` returns `{ row: [4, null, null, null], scoreDelta: 4 }`.
-3. Two independent merges `[2, 2, 2, 2]` returns `{ row: [4, 4, null, null], scoreDelta: 8 }`. Rule 3 (no double-merge); common bug.
-4. Three same `[2, 2, 2, null]` returns `{ row: [4, 2, null, null], scoreDelta: 4 }`. Rule 2 (leftmost first).
-5. Two non-overlapping pairs `[4, 4, 2, 2]` returns `{ row: [8, 4, null, null], scoreDelta: 12 }`.
-6. Inner pair `[2, 4, 4, 8]` returns `{ row: [2, 8, 8, null], scoreDelta: 8 }`. Trailing `8` does not merge with the new `8`.
+3. Two independent merges `[2, 2, 2, 2]` returns `{ row: [4, null, 4, null], scoreDelta: 8 }`. Rule 3 (no double-merge); common bug. Pure-merge leaves the gap; the second `compressRow` in the move pipeline fills it.
+4. Three same `[2, 2, 2, null]` returns `{ row: [4, null, 2, null], scoreDelta: 4 }`. Rule 2 (leftmost first).
+5. Two non-overlapping pairs `[4, 4, 2, 2]` returns `{ row: [8, null, 4, null], scoreDelta: 12 }`.
+6. Inner pair `[2, 4, 4, 8]` returns `{ row: [2, 8, null, 8], scoreDelta: 8 }`. Trailing `8` does not merge with the new `8`.
 7. Non-compressed `[2, null, 2, null]` returns `{ row: [2, null, 2, null], scoreDelta: 0 }`. mergeRow alone does not compress (TD §4.3 rule 1).
 8. Win-tile creation `[1024, 1024, null, null]` returns `{ row: [2048, null, null, null], scoreDelta: 2048 }`.
 9. scoreDelta is the sum of merged values, not count: `[4, 4, 8, 8]` returns scoreDelta `24`.
