@@ -1,4 +1,5 @@
 import type { Board } from './types';
+import { CONFIG } from '../config';
 
 export function boardsEqual(a: Board, b: Board): boolean {
   return a.every((row, rowIndex) => row.every((cell, colIndex) => cell === b[rowIndex]![colIndex]));
@@ -6,15 +7,6 @@ export function boardsEqual(a: Board, b: Board): boolean {
 
 export function checkWin(board: Board, winTile: number): boolean {
   return board.some((row) => row.some((cell) => cell === winTile));
-}
-
-export function initBoard(): Board {
-  return [
-    [null, null, null, null],
-    [null, null, null, null],
-    [null, null, null, null],
-    [null, null, null, null],
-  ];
 }
 
 export function checkLose(board: Board): boolean {
@@ -41,4 +33,43 @@ export function checkLose(board: Board): boolean {
     return false;
   }
   return true;
+}
+
+function randomIntBetween(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function emptyCellPositions(board: Board): [number, number][] {
+  const positions: [number, number][] = [];
+  board.forEach((row, rowIndex) => {
+    row.forEach((cell, colIndex) => {
+      if (cell === null) positions.push([rowIndex, colIndex]);
+    });
+  });
+  return positions;
+}
+
+function pickRandomN<T>(items: T[], n: number): T[] {
+  return [...items].sort(() => Math.random() - 0.5).slice(0, n);
+}
+
+export function initBoard(): Board {
+  const board: Board = [
+    [null, null, null, null],
+    [null, null, null, null],
+    [null, null, null, null],
+    [null, null, null, null],
+  ];
+  const numInitTiles = randomIntBetween(
+    CONFIG.INIT_TILE_COUNT.min,
+    CONFIG.INIT_TILE_COUNT.max,
+  );
+  const spawnPositions = pickRandomN(emptyCellPositions(board), numInitTiles);
+  return board.map((row, rowIndex) =>
+    row.map((cell, colIndex) =>
+      spawnPositions.some(([spawnRow, spawnCol]) => spawnRow === rowIndex && spawnCol === colIndex)
+        ? 2
+        : cell,
+    ),
+  );
 }
