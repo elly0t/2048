@@ -756,7 +756,6 @@ A `ⓘ` tooltip on the score display shows: _"Score = cumulative sum of merged t
 ```ts
 // src/config.ts
 export const CONFIG = {
-  BOARD_SIZE: 4,
   WIN_TILE: 2048,
   INIT_TILE_COUNT: { min: 2, max: 8 }, // spec unspecified — see assumptions
   SPAWN_WEIGHTS: { 2: 0.9, 4: 0.1 }, // spec unspecified — see assumptions
