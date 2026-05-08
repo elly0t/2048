@@ -159,6 +159,8 @@ Per TD §5.3.
 6. Smoothness invariant under reflect/transpose (neighbour-difference sum).
 7. Deterministic: same board returns same value.
 8. `null` cells handled: no NaN from arithmetic on null.
+9. `monotonicity` and `smoothness` skip null cells consistently — null carries no order signal, must not be treated as `log₂(0) = 0`. Two boards with the same real-tile trend score identically regardless of how nulls are positioned.
+10. `cornerBonus` is invariant under iteration order — when the max tile appears in multiple cells (corner *and* centre, or two corners), reward fires if *any* corner holds the max. Bug pattern: `>` strict-greater + first-write-wins resolves ties by scan order rather than position.
 
 ### expectimax(board, depth)
 
