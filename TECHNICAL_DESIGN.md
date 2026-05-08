@@ -293,6 +293,8 @@ H(board) = α·Monotonicity + β·Smoothness + γ·log₂(EmptyCells) + δ·Corn
 | **log₂(EmptyCells)** | Available space                                           | More space = more options. `log₂` because each extra cell is worth less than the previous: 0→1 empty is huge, 9→10 barely matters |
 | **CornerBonus**      | Largest tile anchored to a corner                         | Frees the rest of the board for merging                                                                                           |
 
+All heuristics use **log₂ space** — gaps between tiles become merge-distances. So `(2, 4)` and `(1024, 2048)` are both 1 merge apart and weighted equally. In raw values they differ by 500× and big tiles would dominate the heuristic regardless of structure.
+
 Why heuristic quality matters more than search depth:
 
 ```
@@ -781,16 +783,17 @@ Inspect config:
 │   │   ├── board.test.ts
 │   │   ├── moves.ts              # compressRow, mergeRow, applyMove
 │   │   ├── moves.test.ts
-│   │   ├── heuristics.ts         # monotonicity, smoothness, corner, empty
-│   │   ├── heuristics.test.ts
-│   │   ├── expectimax.ts         # search + reasoning
-│   │   └── expectimax.test.ts
+│   │   └── types.ts              # Board, Direction, GameStatus, MoveResult, AIAdvice
 │   │
 │   ├── store/
 │   │   ├── gameStore.ts          # Plain class ViewModel
 │   │   └── gameStore.test.ts     # VM tests — zero React imports
 │   │
 │   ├── ai/
+│   │   ├── heuristics.ts         # monotonicity, smoothness, cornerBonus, emptyCells
+│   │   ├── heuristics.test.ts
+│   │   ├── expectimax.ts         # search + reasoning
+│   │   ├── expectimax.test.ts
 │   │   └── getSuggestion.ts      # Adapter — local or remote
 │   │
 │   ├── hooks/
