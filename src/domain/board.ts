@@ -35,8 +35,8 @@ export function checkLose(board: Board): boolean {
   return true;
 }
 
-function randomIntBetween(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+function randomIntBetween(min: number, max: number, rng: () => number = Math.random): number {
+  return Math.floor(rng() * (max - min + 1)) + min;
 }
 
 function emptyCellPositions(board: Board): [number, number][] {
@@ -49,8 +49,15 @@ function emptyCellPositions(board: Board): [number, number][] {
   return positions;
 }
 
-function pickRandomN<T>(items: T[], n: number): T[] {
-  return [...items].sort(() => Math.random() - 0.5).slice(0, n);
+function pickRandomN<T>(items: T[], n: number, rng: () => number = Math.random): T[] {
+  const shuffled = [...items];
+  const limit = Math.min(n, shuffled.length);
+  // Partial Fisher-Yates: only the first `limit` slots need to be settled.
+  for (let cursor = 0; cursor < limit; cursor++) {
+    const swapIndex = cursor + Math.floor(rng() * (shuffled.length - cursor));
+    [shuffled[cursor], shuffled[swapIndex]] = [shuffled[swapIndex]!, shuffled[cursor]!];
+  }
+  return shuffled.slice(0, limit);
 }
 
 export function initBoard(rng: () => number = Math.random): Board {
@@ -63,8 +70,9 @@ export function initBoard(rng: () => number = Math.random): Board {
   const numInitTiles = randomIntBetween(
     CONFIG.INIT_TILE_COUNT.min,
     CONFIG.INIT_TILE_COUNT.max,
+    rng,
   );
-  const spawnPositions = pickRandomN(emptyCellPositions(board), numInitTiles);
+  const spawnPositions = pickRandomN(emptyCellPositions(board), numInitTiles, rng);
   return board.map((row, rowIndex) =>
     row.map((cell, colIndex) =>
       spawnPositions.some(([spawnRow, spawnCol]) => spawnRow === rowIndex && spawnCol === colIndex)
@@ -81,7 +89,7 @@ export function spawnTile(board: Board, rng: () => number = Math.random): Board 
     throw new Error('spawnTile called on a full board');
   }
   const tileValue = rng() < CONFIG.SPAWN_WEIGHTS[2] ? 2 : 4;
-  const [rowIndex, colIndex] = pickRandomN(empties, 1)[0]!;
+  const [rowIndex, colIndex] = pickRandomN(empties, 1, rng)[0]!;
   return board.map((row, r) =>
     row.map((cell, c) => (r === rowIndex && c === colIndex ? tileValue : cell)),
   );
