@@ -164,18 +164,16 @@ Per TD §5.3.
 
 ### expectimax(board, depth)
 
-Per TD §5.1, §5.2.
+Per TD §5.1, §5.2. `expectimax` is value-returning: returns a `number`. Direction selection lives in `getSuggestion`.
 
 1. Depth 0 returns leaf heuristic; no recursion.
 2. Depth 1 on lose board: no max-children; returns heuristic of current board.
 3. Depth 3 on empty board (16 empties, worst-case branching) completes without timeout.
-4. Single-direction-only-valid: chooses that direction; three no-op directions filtered.
-5. All-tied directions: deterministic tie-breaking. Required for reproducible advice (TD §5.4).
-6. Chance node weighting uses 0.9 / 0.1, not uniform. TD §5.1 explicit formula.
-7. Does not mutate input board.
-8. Determinism: same `(board, depth)` returns same value across calls.
-9. Performance: depth 3 within ~100ms on a midgame board (TD §5.2 estimate).
-10. Heuristic at leaves uses full `H(board) = α·M + β·S + γ·log₂(E) + δ·C` per TD §5.3.
+4. Chance node weighting uses 0.9 / 0.1, not uniform. TD §5.1 explicit formula.
+5. Does not mutate input board.
+6. Determinism: same `(board, depth)` returns same value across calls.
+7. Performance: depth 3 within ~100ms on a midgame board (TD §5.2 estimate).
+8. Heuristic at leaves uses full `H(board) = α·M + β·S + γ·log₂(E) + δ·C` per TD §5.3.
 
 ### getSuggestion(board)
 
@@ -185,14 +183,16 @@ Per TD §5.4, §11.
 2. Reasoning string starts with `"Move "`. TD §7.2 spec test.
 3. Lose board: defined behaviour. Document the contract (return null, throw, or fallback).
 4. Win board: still returns advice (continue-after-win, assumption #4).
-5. Reasoning template selected by dominant heuristic delta per TD §5.4 step 3.
-6. Generic template `"Move {dir} — best overall position"` when all deltas under 5% of total score (TD §5.4).
-7. Dominant delta computed against second-best direction, not third or worst.
-8. `debug` populated with `{ scores, computedInMs, nodesEvaluated, depthSearched }` per TD §11.
-9. All four direction scores present in `debug.scores`, including no-op directions.
-10. Determinism: same board returns identical advice across calls, including identical `debug.scores`.
-11. Side effects: `console.log('[AI]', advice)`, `window.__lastAdvice`, `window.__adviceHistory.push(advice)` per TD §11. Mocked in tests.
-12. `AI_MODE='remote'` routes to fetch; `'local'` routes to expectimax. TD §5.4 code path.
+5. Single-direction-only-valid: chooses that direction; three no-op directions get scored but are not selected. (Moved from expectimax — direction selection lives here.)
+6. All-tied directions: deterministic tie-breaking. Required for reproducible advice (TD §5.4). (Moved from expectimax.)
+7. Reasoning template selected by dominant heuristic delta per TD §5.4 step 3.
+8. Generic template `"Move {dir} — best overall position"` when all deltas under 5% of total score (TD §5.4).
+9. Dominant delta computed against second-best direction, not third or worst.
+10. `debug` populated with `{ scores, computedInMs, nodesEvaluated, depthSearched }` per TD §11.
+11. All four direction scores present in `debug.scores`, including no-op directions.
+12. Determinism: same board returns identical advice across calls, including identical `debug.scores`.
+13. Side effects: `console.log('[AI]', advice)`, `window.__lastAdvice`, `window.__adviceHistory.push(advice)` per TD §11. Mocked in tests.
+14. `AI_MODE='remote'` routes to fetch; `'local'` routes to expectimax. TD §5.4 code path.
 
 ---
 

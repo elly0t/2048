@@ -323,7 +323,7 @@ These values are taken from nneonneo's published 2048 AI analysis (the same Stac
 
 ### 5.4 AI Suggestion & Human-Readable Reasoning
 
-Expectimax is the AI suggestion engine. When the player asks for a suggestion, it searches all possible moves to depth 4 and returns the best direction. Plain-English reasoning is derived from the heuristic score deltas, the same values that drove the decision. Both the move and the reasoning are deterministic and fully testable.
+The AI suggestion pipeline returns the best direction along with plain-English reasoning. Internally, `expectimax` is value-returning: it takes a board and a depth and returns a single number. `getSuggestion` runs the per-direction loop — calling `expectimax` once per direction, capturing all four scores (including no-ops, for debug), picking the max, and deriving the reasoning template from heuristic component deltas. Both the move and the reasoning are deterministic and fully testable.
 
 ### nneonneo/2048-ai vs our own implementation
 
