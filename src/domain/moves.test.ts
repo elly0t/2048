@@ -33,6 +33,18 @@ describe('compressRow', () => {
   it('moves a single trailing value to index 0', () => {
     expect(compressRow([null, null, null, 2])).toEqual([2, null, null, null]);
   });
+
+  it('leaves all-same-value row unchanged (compress is not merge)', () => {
+    expect(compressRow([2, 2, 2, 2])).toEqual([2, 2, 2, 2]);
+  });
+
+  it('preserves duplicate values without merging them', () => {
+    expect(compressRow([null, 2, 4, 2])).toEqual([2, 4, 2, null]);
+  });
+
+  it('treats 0 as a value, not as null (=== null, not Boolean truthiness)', () => {
+    expect(compressRow([0, null, 0, null])).toEqual([0, 0, null, null]);
+  });
 });
 
 describe('mergeRow', () => {
@@ -68,6 +80,34 @@ describe('mergeRow', () => {
     expect(mergeRow([4, 4, 8, 8])).toEqual({
       row: [8, null, 16, null],
       scoreDelta: 24,
+    });
+  });
+
+  it('merges two non-overlapping pairs of different values', () => {
+    expect(mergeRow([4, 4, 2, 2])).toEqual({
+      row: [8, null, 4, null],
+      scoreDelta: 12,
+    });
+  });
+
+  it('merges inner pair without re-merging the trailing tile', () => {
+    expect(mergeRow([2, 4, 4, 8])).toEqual({
+      row: [2, 8, null, 8],
+      scoreDelta: 8,
+    });
+  });
+
+  it('does not compress a non-compressed input (merge alone leaves gaps)', () => {
+    expect(mergeRow([2, null, 2, null])).toEqual({
+      row: [2, null, 2, null],
+      scoreDelta: 0,
+    });
+  });
+
+  it('creates the win tile from 1024 + 1024', () => {
+    expect(mergeRow([1024, 1024, null, null])).toEqual({
+      row: [2048, null, null, null],
+      scoreDelta: 2048,
     });
   });
 });

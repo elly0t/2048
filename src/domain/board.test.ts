@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { boardsEqual, checkWin, checkLose, initBoard, spawnTile } from './board';
+import { applyMove } from './moves';
 import { CONFIG } from '../config';
+import { DIRECTION } from './types';
 import type { Board } from './types';
 
 describe('boardsEqual', () => {
@@ -77,6 +79,28 @@ describe('boardsEqual', () => {
     ];
     expect(boardsEqual(withNulls, withZeros)).toBe(false);
   });
+
+  it('agrees with applyMove.changed: equal iff the move was a no-op', () => {
+    const movable: Board = [
+      [2, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    const movableResult = applyMove(movable, DIRECTION.RIGHT);
+    expect(movableResult.changed).toBe(true);
+    expect(boardsEqual(movable, movableResult.board)).toBe(false);
+
+    const stuck: Board = [
+      [2, 4, 2, 4],
+      [4, 2, 4, 2],
+      [2, 4, 2, 4],
+      [4, 2, 4, 2],
+    ];
+    const stuckResult = applyMove(stuck, DIRECTION.LEFT);
+    expect(stuckResult.changed).toBe(false);
+    expect(boardsEqual(stuck, stuckResult.board)).toBe(true);
+  });
 });
 
 describe('checkWin', () => {
@@ -143,6 +167,16 @@ describe('checkWin', () => {
       [null, null, null, null],
     ];
     expect(checkWin(board, 1024)).toBe(true);
+    expect(checkWin(board, 2048)).toBe(false);
+  });
+
+  it('uses strict equality: string "2048" does not match number 2048', () => {
+    const board = [
+      ['2048', null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ] as unknown as Board;
     expect(checkWin(board, 2048)).toBe(false);
   });
 });
@@ -291,6 +325,19 @@ describe('initBoard', () => {
     const first = initBoard(() => 0.5);
     const second = initBoard(() => 0.5);
     expect(boardsEqual(first, second)).toBe(true);
+  });
+
+  it('places tiles at distinct positions (sampling without replacement)', () => {
+    for (let trial = 0; trial < 20; trial++) {
+      const board = initBoard();
+      const positions: string[] = [];
+      board.forEach((row, rowIndex) => {
+        row.forEach((cell, colIndex) => {
+          if (cell !== null) positions.push(`${rowIndex},${colIndex}`);
+        });
+      });
+      expect(new Set(positions).size).toBe(positions.length);
+    }
   });
 });
 
