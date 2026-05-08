@@ -109,6 +109,50 @@ describe('reflect', () => {
       [16, 15, 14, 13],
     ]);
   });
+
+  it('returns an all-null board unchanged when input is empty', () => {
+    const empty: Board = [
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    expect(reflect(empty)).toEqual(empty);
+  });
+
+  it('is an involution: reflect(reflect(b)) deep-equals b', () => {
+    const board: Board = [
+      [2, null, 4, 8],
+      [null, 16, null, 2],
+      [32, 4, null, null],
+      [null, null, 8, 64],
+    ];
+    expect(reflect(reflect(board))).toEqual(board);
+  });
+
+  it('returns new arrays at every level; original references unchanged after call', () => {
+    const board: Board = [
+      [1, 2, 3, 4],
+      [5, 6, 7, 8],
+      [9, 10, 11, 12],
+      [13, 14, 15, 16],
+    ];
+    const snapshot: Board = board.map((row) => [...row]);
+    const result = reflect(board);
+    expect(result).not.toBe(board);
+    expect(result.every((row, rowIndex) => row !== board[rowIndex])).toBe(true);
+    expect(board).toEqual(snapshot);
+  });
+
+  it('reflects rows, not columns — distinguishable from transpose', () => {
+    const board: Board = [
+      [1, 2, 3, 4],
+      [5, 6, 7, 8],
+      [9, 10, 11, 12],
+      [13, 14, 15, 16],
+    ];
+    expect(reflect(board)).not.toEqual(transpose(board));
+  });
 });
 
 describe('transpose', () => {
@@ -126,6 +170,50 @@ describe('transpose', () => {
       [3, 7, 11, 15],
       [4, 8, 12, 16],
     ]);
+  });
+
+  it('returns an all-null board unchanged when input is empty', () => {
+    const empty: Board = [
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    expect(transpose(empty)).toEqual(empty);
+  });
+
+  it('is an involution: transpose(transpose(b)) deep-equals b', () => {
+    const board: Board = [
+      [2, null, 4, 8],
+      [null, 16, null, 2],
+      [32, 4, null, null],
+      [null, null, 8, 64],
+    ];
+    expect(transpose(transpose(board))).toEqual(board);
+  });
+
+  it('is distinguishable from reflect on an asymmetric board', () => {
+    const board: Board = [
+      [1, 2, 3, 4],
+      [5, 6, 7, 8],
+      [9, 10, 11, 12],
+      [13, 14, 15, 16],
+    ];
+    expect(transpose(board)).not.toEqual(reflect(board));
+  });
+
+  it('returns new arrays at every level (no shared row references with input)', () => {
+    const board: Board = [
+      [1, 2, 3, 4],
+      [5, 6, 7, 8],
+      [9, 10, 11, 12],
+      [13, 14, 15, 16],
+    ];
+    const snapshot: Board = board.map((row) => [...row]);
+    const result = transpose(board);
+    expect(result).not.toBe(board);
+    expect(result.every((row, rowIndex) => row !== board[rowIndex])).toBe(true);
+    expect(board).toEqual(snapshot);
   });
 });
 
