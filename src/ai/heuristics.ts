@@ -15,7 +15,7 @@ function rowMonotonicity(row: Row): number {
   //   bigOnRight — row should ascend  going left → right (e.g. [2, 4, 8, 16])
   // Each adjacent pair pays a penalty in the hypothesis it contradicts.
   // Pairs containing a null are skipped — empties carry no order signal.
-  // Return the better hypothesis: the AI rewards either anchored shape.
+  // Return the better hypothesis: sorted-either-way rows escape; zigzag pays.
   let bigOnLeft = 0;
   let bigOnRight = 0;
   for (let i = 0; i + 1 < row.length; i++) {

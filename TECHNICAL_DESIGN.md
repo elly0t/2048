@@ -288,10 +288,10 @@ H(board) = α·Monotonicity + β·Smoothness + γ·log₂(EmptyCells) + δ·Corn
 
 | Component            | What it measures                                          | Why it matters                                                                                                                    |
 | -------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Monotonicity**     | Values increase or decrease consistently in one direction | Keeps large tiles ordered, prevents fragmentation                                                                                 |
+| **Monotonicity**     | Sorted rows (ascending or descending) score 0; zigzag rows pay | Keeps large tiles ordered, prevents fragmentation                                                                                 |
 | **Smoothness**       | Adjacent tiles have similar values                        | Close values merge sooner                                                                                                         |
 | **log₂(EmptyCells)** | Available space                                           | More space = more options. `log₂` because each extra cell is worth less than the previous: 0→1 empty is huge, 9→10 barely matters |
-| **CornerBonus**      | Largest tile anchored to a corner                         | Frees the rest of the board for merging                                                                                           |
+| **CornerBonus**      | Largest tile anchored to any corner                       | Frees the rest of the board for merging                                                                                           |
 
 All heuristics use **log₂ space** — gaps between tiles become merge-distances. So `(2, 4)` and `(1024, 2048)` are both 1 merge apart and weighted equally. In raw values they differ by 500× and big tiles would dominate the heuristic regardless of structure.
 
