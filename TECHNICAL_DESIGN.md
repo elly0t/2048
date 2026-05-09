@@ -14,7 +14,7 @@ The spec leaves several values unspecified. All assumptions are externalised to 
 | 2   | Spawn probability: 90% for `2`, 10% for `4` | Spec says "a 2 or 4" — standard 2048 convention                                                                                                 |
 | 3   | Score = sum of all merged tile values       | Standard 2048 scoring convention — same as the original game                                                                                    |
 | 4   | Win state allows player to continue         | Spec detects win but does not say game ends — continue or restart offered                                                                       |
-| 5   | Expectimax depth = 3                        | See section 5.2 for full rationale                                                                                                              |
+| 5   | Expectimax depth = 3                        | See §5.2 for rationale & phase 2 adaptive depth that was spotted during implementation.                                                                   |
 | 6   | AI uses local Expectimax search             | Deterministic, zero setup, fully testable. Remote AI provider path is documented as a pluggable alternative via `CONFIG.AI_MODE` in `config.ts` |
 
 ---
@@ -277,6 +277,18 @@ Node counts derive from `48^d`: 4 player directions × ~12 chance outcomes (~6 e
 Pure JS without bitboard or chance-node sampling tops out around ~1M heuristic evals/sec. Depth 4 (5.3M nodes) needs sampling or the bitboard + LUT approach, both deferred to phase 2. Section 5.4 documents the swap path to nneonneo (depth 8 in C++) if stronger play is needed.
 
 `EXPECTIMAX_DEPTH = 3` is a named constant in `config.ts`.
+
+### Phase 2: adaptive depth
+
+While writing the code I found one obvious thing. Branching scales hard with number of empties across the board (14 → 28 children per chance node, 2 → 4) but the depth doesn't move. ~100× spread, same budget across all of it.
+
+Therefore depth 3 overspends early game, where there's already plenty of room, and underspends late game, where branches are cheap and we'd benefit from looking 4–5 plies ahead.
+
+The improvement that falls out: `computeDepth(board)` keyed off `|empties|`. Shallower when branching's high, deeper when small. After doing some maths to verify I also checked against nneonneo's 2048-ai afterwards: they scale depth 3→8 by distinct-tile count — same instinct, different keying function. Good signal that the move's the right one.
+
+Wiring is small. The recursion already takes `depth` as a parameter, so it can be linked up with a dynamic function `computeDepth(board)`, table-driven in `config.ts` (sketch: `≥10 → 2`, `5–9 → 3`, `≤4 → 4`). Explicit-depth tests keep passing untouched.
+
+Potential Concerns are running benchmarks and finding data to support, but definitely a feaisble upgrade, just need to do it.
 
 ### 5.3 Heuristic Function
 
@@ -792,9 +804,9 @@ Inspect config:
 │   ├── ai/
 │   │   ├── heuristics.ts         # monotonicity, smoothness, cornerBonus, emptyCells
 │   │   ├── heuristics.test.ts
-│   │   ├── expectimax.ts         # search + reasoning
+│   │   ├── expectimax.ts         # value-returning search
 │   │   ├── expectimax.test.ts
-│   │   └── getSuggestion.ts      # Adapter — local or remote
+│   │   └── getSuggestion.ts      # direction loop + reasoning + remote adapter
 │   │
 │   ├── hooks/
 │   │   └── useGame.ts            # React bridge to GameStore + localStorage + arrow keys
@@ -814,6 +826,9 @@ Inspect config:
 │   └── main.tsx
 │
 ├── README.md
+├── TECHNICAL_DESIGN.md
+├── TEST_PLAN.md
+├── AI_FLOW.md
 ├── tsconfig.json
 ├── vite.config.ts
 └── package.json
