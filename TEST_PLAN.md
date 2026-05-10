@@ -268,6 +268,15 @@ Per TD §8.
 3. `saveGameState(state)` writes JSON to localStorage; tolerates `localStorage.setItem` throwing (private mode, quota exceeded) silently.
 4. `saveBestScore(score)` same tolerance for write failures.
 
+### useGame keyboard + init helpers
+
+Per TD §3.3 (input) and §6.4 (status lifecycle).
+
+1. `keyToDirection(key)` maps `'ArrowLeft'/'ArrowRight'/'ArrowUp'/'ArrowDown'` to the matching `Direction`; returns `null` for any other key (letters, Enter, Space, etc.).
+2. `initStore(store)` hydrates the store from a valid saved state in `localStorage` (board, score, status restored).
+3. `initStore(store)` falls back to `store.reset()` when the saved state JSON is invalid or the key is missing.
+4. `initStore(store)` sets `bestScore` from `localStorage` when valid; defaults to `0` on missing or invalid input.
+
 ### useGame motion inference (deferred — time-permitting)
 
 Per TD §3.3 deferred-polish bullet. Tile animations and the stable-ID identity tracking that drives them ship only if time permits after the static UI is complete. The DOM is structured to receive them without restructuring (slot grid + absolute-positioned tile overlay is already in place).
