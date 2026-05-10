@@ -456,6 +456,8 @@ For 2048, most tiles change on every move. Property-level granularity buys nothi
 
 Test injection — the core reason for a class store — works identically either way.
 
+**React bridge.** Components subscribe via `useSyncExternalStore` against a monotonically incrementing `version` field bumped in `notify()`. This is the React 18 canonical pattern for external stores — tear-safe under concurrent rendering, ~3 lines of store code, no library dependency. The plain-class choice doesn't mean hand-rolling subscription primitives React already provides.
+
 ### 6.3 Store Shape
 
 `GameStatus` and `Direction` are constant enums imported from `domain/types.ts`:
