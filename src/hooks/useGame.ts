@@ -1,18 +1,38 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { GameStore } from '../store/gameStore';
-import type { Direction } from '../domain/types';
-import { saveGameState, saveBestScore } from './persistence';
+import { DIRECTION, type Direction } from '../domain/types';
+import { saveGameState, saveBestScore, loadGameState, loadBestScore } from './persistence';
+import { STORAGE_KEYS } from '../constants/storageKeys';
 
 // React bridge over GameStore (TD §3.3, §6.2). Lazy singleton — module-load
 // init would fire localStorage reads before tests can stub them; getStore()
 // defers side effects until first hook call.
 
-export function keyToDirection(_key: string): Direction | null {
-  return null;
+export function keyToDirection(key: string): Direction | null {
+  switch (key) {
+    case 'ArrowLeft':
+      return DIRECTION.LEFT;
+    case 'ArrowRight':
+      return DIRECTION.RIGHT;
+    case 'ArrowUp':
+      return DIRECTION.UP;
+    case 'ArrowDown':
+      return DIRECTION.DOWN;
+    default:
+      return null;
+  }
 }
 
-export function initStore(_store: GameStore): void {
-  return;
+export function initStore(store: GameStore): void {
+  const loadedState = loadGameState(localStorage.getItem(STORAGE_KEYS.GAME_STATE));
+  if (loadedState) {
+    store.board = loadedState.board;
+    store.status = loadedState.status;
+    store.score = loadedState.score;
+  } else {
+    store.reset();
+  }
+  store.bestScore = loadBestScore(localStorage.getItem(STORAGE_KEYS.BEST_SCORE));
 }
 
 let store: GameStore | null = null;
