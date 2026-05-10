@@ -257,6 +257,42 @@ Per TD §6.5.
 
 ---
 
+## Hook Layer
+
+### useGame load/save helpers
+
+Per TD §8.
+
+1. `loadGameState(raw)` returns a valid state object when JSON parses and matches shape (`{ board: 4×4 of number|null, status: GameStatus, score: number }`); returns `null` on parse failure or shape mismatch.
+2. `loadBestScore(raw)` returns a finite non-negative number; returns `0` on missing or invalid input.
+3. `saveGameState(state)` writes JSON to localStorage; tolerates `localStorage.setItem` throwing (private mode, quota exceeded) silently.
+4. `saveBestScore(score)` same tolerance for write failures.
+
+### useGame motion inference
+
+Per TD §3.3. Identity tracking lives in the hook; the domain stays `(number | null)[][]`.
+
+1. `inferMotions(oldBoard, oldIds, newBoard, direction)` produces one motion entry per non-null cell in `newBoard`.
+2. Slide motion: `fromRow/fromCol` differ from `row/col`; `merged: false`; `spawned: false`.
+3. Merge motion: target tile has `merged: true`; the consumed source tile is not present in the output (it animates by sliding into the target, then the merged flag triggers the pop).
+4. Spawn motion: `spawned: true`; `fromRow/fromCol` equal `row/col` (no slide, fade-in only).
+5. Output also includes the new id-board; ids of moved tiles persist; merged source ids are dropped; spawned cell gets a fresh id.
+6. Determinism: same `(oldBoard, oldIds, newBoard, direction)` yields identical motions and id-board.
+
+---
+
+## UI Layer (E2E, time-permitting)
+
+Manual browser testing covers these by default. If time, Playwright E2E tests on the running dev server:
+
+1. Arrow key dispatches a move; tile slides and score updates.
+2. AI panel button click → reasoning string appears; loading state visible during fetch.
+3. WON state → status overlay shown; Continue dismisses (status stays WON, play continues); Restart starts fresh.
+4. LOST state → status overlay shown with Restart only.
+5. Refresh page mid-game → board, score, bestScore restored from localStorage.
+
+---
+
 ## Cross-cutting properties
 
 Tested once as shared property tests, not repeated per function:
