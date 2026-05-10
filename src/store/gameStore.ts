@@ -75,6 +75,7 @@ export class GameStore {
   }
 
   async requestAdvice(): Promise<void> {
+    if (this.adviceLoading) return;
     this.adviceLoading = true;
     this.advice = null;
     this.notify();
