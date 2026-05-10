@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getSuggestion, selectTopTwo } from './getSuggestion';
+import { getSuggestion, selectTopTwo, pickReasoning } from './getSuggestion';
+import { TEMPLATES, GENERIC_TEMPLATE } from './strings';
 import type { Board, Direction } from '../domain/types';
+import type { ComponentScores } from './types';
 import { CONFIG } from '../config';
 
 // ---- fixtures ----
@@ -81,13 +83,13 @@ describe('getSuggestion — direction selection (cases 5, 6)', () => {
   });
 });
 
-// Cases 7-9 are smoke-tested in RED; tighten with hand-checked boards in GREEN
-// (specific dominant-component boards + a sub-5%-deltas board for the generic template).
-describe('getSuggestion — reasoning templates (cases 7, 8, 9)', () => {
+describe('getSuggestion — reasoning template integration (cases 7, 8, 9)', () => {
   it('reasoning matches one of the known templates', async () => {
     const advice = await getSuggestion(standardBoard);
-    const knownTemplates =
-      /^Move (Left|Right|Up|Down) — (keeps tiles ordered along rows|keeps similar tiles close, more merges available|frees up board space|keeps largest tile anchored in corner|best overall position)$/;
+    const validBodies = [...Object.values(TEMPLATES), GENERIC_TEMPLATE]
+      .map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('|');
+    const knownTemplates = new RegExp(`^Move (Left|Right|Up|Down) — (${validBodies})$`);
     expect(advice.reasoning).toMatch(knownTemplates);
   });
 
@@ -96,6 +98,65 @@ describe('getSuggestion — reasoning templates (cases 7, 8, 9)', () => {
     const b = await getSuggestion(standardBoard);
     expect(a.reasoning).toBe(b.reasoning);
   });
+});
+
+describe('pickReasoning — dominant-component templating (cases 7, 8, 9)', () => {
+  // Synthetic component snapshots; bestScore = 100 puts the threshold at 5.
+  const baseline: ComponentScores = {
+    monotonicity: 0,
+    smoothness: 0,
+    emptyCells: 0,
+    cornerBonus: 0,
+  };
+
+  it('monotonicity dominant → mono template', () => {
+    // weighted delta: 1.0 × (10 − 0) = 10 > 5 (threshold)
+    const best: ComponentScores = { ...baseline, monotonicity: 10 };
+    expect(pickReasoning('left', best, baseline, 100)).toBe(
+      `Move Left — ${TEMPLATES.monotonicity}`,
+    );
+  });
+
+  it('smoothness dominant → smooth template', () => {
+    // weighted delta: 0.1 × (100 − 0) = 10 > 5
+    const best: ComponentScores = { ...baseline, smoothness: 100 };
+    expect(pickReasoning('right', best, baseline, 100)).toBe(
+      `Move Right — ${TEMPLATES.smoothness}`,
+    );
+  });
+
+  it('empty cells dominant → empty template', () => {
+    // weighted delta: 2.7 × (10 − 0) = 27 > 5
+    const best: ComponentScores = { ...baseline, emptyCells: 10 };
+    expect(pickReasoning('up', best, baseline, 100)).toBe(`Move Up — ${TEMPLATES.emptyCells}`);
+  });
+
+  it('cornerBonus dominant → corner template', () => {
+    // weighted delta: 1.0 × (10 − 0) = 10 > 5
+    const best: ComponentScores = { ...baseline, cornerBonus: 10 };
+    expect(pickReasoning('down', best, baseline, 100)).toBe(
+      `Move Down — ${TEMPLATES.cornerBonus}`,
+    );
+  });
+
+  it('all weighted deltas below 5% threshold → generic template', () => {
+    // Largest weighted delta: 2.7 × 1 = 2.7 < 5 (5% of bestScore=100)
+    const best: ComponentScores = {
+      monotonicity: 1,
+      smoothness: 1,
+      emptyCells: 1,
+      cornerBonus: 1,
+    };
+    expect(pickReasoning('left', best, baseline, 100)).toBe(`Move Left — ${GENERIC_TEMPLATE}`);
+  });
+
+  it('null secondBest (only one valid direction) → generic template', () => {
+    expect(pickReasoning('up', baseline, null, 100)).toBe(`Move Up — ${GENERIC_TEMPLATE}`);
+  });
+
+  // Case 9: implicit. pickReasoning takes only 2 component snapshots; selectTopTwo
+  // chooses which is "second-best". Both halves are tested separately, so a delta
+  // computed against third or worst is structurally impossible.
 });
 
 describe('getSuggestion — debug payload (cases 10, 11)', () => {

@@ -5,6 +5,7 @@ import { CONFIG, AI_MODES } from '../config';
 import { scoreComponents } from './heuristics';
 import { chanceValue, WEIGHTS, type SearchStats } from './expectimax';
 import type { AIAdvice, Component, ComponentScores } from './types';
+import { TEMPLATES, GENERIC_TEMPLATE, NO_MOVES_AVAILABLE, LOG_PREFIX } from './strings';
 
 const COMPONENTS: readonly Component[] = [
   'monotonicity',
@@ -13,23 +14,12 @@ const COMPONENTS: readonly Component[] = [
   'cornerBonus',
 ];
 
-// Reasoning templates per TD §5.4 — dominant component → human-readable rationale.
-const TEMPLATES: Record<Component, string> = {
-  monotonicity: 'keeps tiles ordered along rows',
-  smoothness: 'keeps similar tiles close, more merges available',
-  emptyCells: 'frees up board space',
-  cornerBonus: 'keeps largest tile anchored in corner',
-};
-
-// Fallback when no single component dominates (TD §5.4).
-const GENERIC_TEMPLATE = 'best overall position';
-
 function capitalize(direction: Direction): string {
   return direction.charAt(0).toUpperCase() + direction.slice(1);
 }
 
 // Largest weighted component delta picks the template; below threshold → generic (TD §5.4).
-function pickReasoning(
+export function pickReasoning(
   bestDirection: Direction,
   bestComponents: ComponentScores,
   secondBestComponents: ComponentScores | null,
@@ -85,7 +75,7 @@ export function selectTopTwo(
 
 // Logs advice; mirrors to window for live debugging when in a browser (TD §11).
 function emitSideEffects(advice: AIAdvice): void {
-  console.log('[AI]', advice);
+  console.log(LOG_PREFIX, advice);
   const win = (globalThis as { window?: { __lastAdvice?: AIAdvice; __adviceHistory?: AIAdvice[] } })
     .window;
   if (win) {
@@ -121,7 +111,7 @@ function localSuggestion(board: Board): AIAdvice {
 
   let reasoning: string;
   if (bestDirection === null) {
-    reasoning = 'No moves available.';
+    reasoning = NO_MOVES_AVAILABLE;
   } else {
     const bestComponents = components[bestDirection]!;
     const secondBestComponents =
