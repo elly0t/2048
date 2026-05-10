@@ -251,9 +251,10 @@ Per TD §6.5.
 2. On result: `advice = { direction, reasoning, debug }`; loading cleared.
 3. Local mode: calls expectimax synchronously or as a Promise.
 4. Remote mode: fetch failure clears loading and either sets advice to null or surfaces an error.
-5. Concurrent calls: defined behaviour (most-recent-wins or queue). Document.
+5. Concurrent calls: end-state remains consistent — `adviceLoading=false` and a non-null `advice` after both resolve.
 6. Determinism: same board returns identical advice across calls; `__adviceHistory` grows.
 7. Does not mutate `this.board`.
+8. In-flight guard: when called while `adviceLoading=true`, returns immediately without firing a duplicate `notify()` or a duplicate `getSuggestion` call.
 
 ---
 

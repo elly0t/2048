@@ -470,4 +470,22 @@ describe('GameStore.requestAdvice', () => {
     await store.requestAdvice();
     expect(JSON.stringify(store.board)).toBe(snapshot);
   });
+
+  it('case 8: bails when a previous call is in flight (no duplicate work, single notify)', async () => {
+    const store = new GameStore({ rng: () => 0 });
+    store.board = deepCopy(standardBoard);
+    store.status = STATUS.PLAYING;
+    const listener = vi.fn();
+    store.subscribe(listener);
+
+    const first = store.requestAdvice();
+    const second = store.requestAdvice();
+
+    // Sync heads of both calls have run by now. Without the guard, each call
+    // sets adviceLoading=true and calls notify() — listener fires twice. With
+    // the guard, the second call returns before notify(), so listener fires once.
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    await Promise.all([first, second]);
+  });
 });
