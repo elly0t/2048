@@ -90,6 +90,19 @@ describe('initStore', () => {
     expect(store.status).toBe(STATUS.PLAYING);
   });
 
+  it('end-to-end: missing localStorage produces a fresh playable board with random 2s', () => {
+    getItemSpy.mockReturnValue(null);
+
+    const store = new GameStore();
+    initStore(store);
+
+    expect(store.status).toBe(STATUS.PLAYING);
+    const tiles = store.board.flat().filter((c): c is number => c !== null);
+    expect(tiles.length).toBeGreaterThanOrEqual(2);
+    expect(tiles.length).toBeLessThanOrEqual(8);
+    expect(tiles.every((t) => t === 2)).toBe(true);
+  });
+
   it('sets bestScore to 0 when missing or invalid', () => {
     getItemSpy.mockImplementation((key: string) => {
       if (key === STORAGE_KEYS.BEST_SCORE) return 'not-a-number';
