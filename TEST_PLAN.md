@@ -220,16 +220,16 @@ The 6-stage pipeline per TD §4.4. Most likely source of timing bugs in past sub
 
 ### GameStore.isActive (getter)
 
-Per TD §6.3.
+Per TD §6.3 + assumption #4 (continue-after-win).
 
-1. Returns `true` only when `status === STATUS.PLAYING`. Returns `false` for IDLE, WON, LOST.
+1. Returns `true` for PLAYING and WON; returns `false` for IDLE and LOST. WON is included so the player can keep moving past 2048 without resetting.
 
 ### GameStore.largestTile (getter)
 
 Per TD §6.3.
 
 1. Returns the maximum tile value across the board.
-2. Returns `0` on a board with no tiles (avoids `Math.max()` returning `-Infinity`).
+2. Returns `null` on a board with no tiles (avoids `Math.max()` returning `-Infinity` and avoids a `0` sentinel that could be confused with a real tile value).
 
 ### GameStore.reset()
 

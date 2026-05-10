@@ -478,10 +478,13 @@ class GameStore {
   adviceLoading; // boolean
 
   get isActive() {
-    return this.status === STATUS.PLAYING;
+    // PLAYING and WON are interactive; WON included for continue-after-win (assumption #4).
+    return this.status === STATUS.PLAYING || this.status === STATUS.WON;
   }
   get largestTile() {
-    return Math.max(...this.board.flat().filter(Boolean));
+    // null when the board has no tiles — avoids -Infinity from Math.max() on empty.
+    const tiles = this.board.flat().filter((c): c is number => c !== null);
+    return tiles.length === 0 ? null : Math.max(...tiles);
   }
 
   applyMove(direction);
