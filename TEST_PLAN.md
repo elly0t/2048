@@ -215,6 +215,21 @@ The 6-stage pipeline per TD §4.4. Most likely source of timing bugs in past sub
 11. Move while LOST: defined behaviour (no-op or guarded). Document.
 12. localStorage save on every valid move (TD §8); no save on a no-change move.
 13. Board replaced by a new reference, not mutated in place. Subscribers see a new ref.
+14. Explicit LOST guard: a mobile board with `status: LOST` stays unchanged. Without the guard the no-change early-return only catches structurally-immovable boards (case 11), so this case forces the explicit `status === LOST` check.
+15. RNG injection consumed by `spawnTile`: passing `{ rng: () => 0 }` vs `{ rng: () => 0.99 }` produces different post-spawn boards from the same starting position. Catches the "constructor accepts opts.rng but discards it" failure mode.
+
+### GameStore.isActive (getter)
+
+Per TD §6.3.
+
+1. Returns `true` only when `status === STATUS.PLAYING`. Returns `false` for IDLE, WON, LOST.
+
+### GameStore.largestTile (getter)
+
+Per TD §6.3.
+
+1. Returns the maximum tile value across the board.
+2. Returns `0` on a board with no tiles (avoids `Math.max()` returning `-Infinity`).
 
 ### GameStore.reset()
 
