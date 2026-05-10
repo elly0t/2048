@@ -1,5 +1,6 @@
 import type { Board, Row } from '../domain/types';
 import { transpose } from '../domain/moves';
+import type { ComponentScores } from './types';
 
 // Weights and formula per TD §5.3. Components return raw scores;
 // aggregation (H = α·M + β·S + γ·E + δ·C) lives at the expectimax leaf.
@@ -74,4 +75,14 @@ export function emptyCells(board: Board): number {
     0,
   );
   return Math.log2(Math.max(count, 1));
+}
+
+// All four components in one snapshot — used for templating in getSuggestion (TD §5.4).
+export function scoreComponents(board: Board): ComponentScores {
+  return {
+    monotonicity: monotonicity(board),
+    smoothness: smoothness(board),
+    emptyCells: emptyCells(board),
+    cornerBonus: cornerBonus(board),
+  };
 }

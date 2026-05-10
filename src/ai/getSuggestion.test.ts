@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getSuggestion } from './getSuggestion';
-import type { Board } from '../domain/types';
+import { getSuggestion, selectTopTwo } from './getSuggestion';
+import type { Board, Direction } from '../domain/types';
 import { CONFIG } from '../config';
 
 // ---- fixtures ----
@@ -87,7 +87,7 @@ describe('getSuggestion — reasoning templates (cases 7, 8, 9)', () => {
   it('reasoning matches one of the known templates', async () => {
     const advice = await getSuggestion(standardBoard);
     const knownTemplates =
-      /^Move (left|right|up|down) — (keeps tiles ordered along rows|keeps similar tiles close, more merges available|frees up board space|keeps largest tile anchored in corner|best overall position)$/;
+      /^Move (Left|Right|Up|Down) — (keeps tiles ordered along rows|keeps similar tiles close, more merges available|frees up board space|keeps largest tile anchored in corner|best overall position)$/;
     expect(advice.reasoning).toMatch(knownTemplates);
   });
 
@@ -163,6 +163,51 @@ describe('getSuggestion — side effects (case 13)', () => {
     const advice = await getSuggestion(standardBoard);
     const win = (globalThis as { window: { __adviceHistory?: unknown[] } }).window;
     expect(win.__adviceHistory).toContain(advice);
+  });
+});
+
+describe('selectTopTwo — best + second-best selection', () => {
+  it('returns the highest two from an all-valid score map', () => {
+    const scores: Record<Direction, number | null> = { left: 50, right: 100, up: 75, down: 60 };
+    const result = selectTopTwo(scores);
+    expect(result.best).toBe('right');
+    expect(result.secondBest).toBe('up');
+  });
+
+  it('skips null (no-op) scores', () => {
+    const scores: Record<Direction, number | null> = { left: 50, right: null, up: 75, down: null };
+    const result = selectTopTwo(scores);
+    expect(result.best).toBe('up');
+    expect(result.secondBest).toBe('left');
+  });
+
+  it('returns secondBest = null when only one direction is valid', () => {
+    const scores: Record<Direction, number | null> = { left: null, right: null, up: null, down: 42 };
+    const result = selectTopTwo(scores);
+    expect(result.best).toBe('down');
+    expect(result.secondBest).toBeNull();
+  });
+
+  it('returns both null when every direction is a no-op', () => {
+    const scores: Record<Direction, number | null> = { left: null, right: null, up: null, down: null };
+    const result = selectTopTwo(scores);
+    expect(result.best).toBeNull();
+    expect(result.secondBest).toBeNull();
+  });
+
+  it('ties at the top resolve by ALL_DIRECTIONS order (left before right)', () => {
+    const scores: Record<Direction, number | null> = { left: 100, right: 100, up: null, down: null };
+    const result = selectTopTwo(scores);
+    expect(result.best).toBe('left');
+    expect(result.secondBest).toBe('right');
+  });
+
+  it('demotes the previous best to second-best when a higher score arrives later', () => {
+    // Order: left(50) → right(100) bumps left → up(75) replaces left as second
+    const scores: Record<Direction, number | null> = { left: 50, right: 100, up: 75, down: 30 };
+    const result = selectTopTwo(scores);
+    expect(result.best).toBe('right');
+    expect(result.secondBest).toBe('up');
   });
 });
 
