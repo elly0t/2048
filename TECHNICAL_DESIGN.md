@@ -15,13 +15,13 @@ The spec leaves several values unspecified. All assumptions are externalised to 
 | 3   | Score = sum of all merged tile values       | Standard 2048 scoring convention — same as the original game                                                                                    |
 | 4   | Win state allows player to continue         | Spec detects win but does not say game ends — continue or restart offered                                                                       |
 | 5   | Expectimax depth = 3                        | See §5.2 for rationale & phase 2 adaptive depth that was spotted during implementation.                                                                   |
-| 6   | AI uses local Expectimax search             | Deterministic, zero setup, fully testable. Remote AI provider path is documented as a pluggable alternative via `CONFIG.AI_MODE` in `config.ts` |
+| 6   | AI uses local Expectimax search             | Local search keeps tests deterministic and needs no setup. Remote provider available via `CONFIG.AI_MODE` — see §5.4.                           |
 
 ---
 
 ## 2. Tech Stack
 
-ESM (ECMAScript Modules) is the native JS module system browsers support directly — `import/export` syntax. Vite serves ESM files to the browser in dev without bundling, making startup near-instant. Webpack bundles everything first; changes trigger a full or partial rebundle. Vite replaced Webpack-based CRA as the React community standard.
+ESM (ECMAScript Modules) is the native JS module system browsers support directly — `import/export` syntax. Vite serves ESM files to the browser in dev without bundling, making startup near-instant. Webpack bundles everything first; changes trigger a full or partial rebundle.
 
 | Tool                  | Why                                                                                                                                                                                                                                 |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -55,21 +55,21 @@ ESM (ECMAScript Modules) is the native JS module system browsers support directl
 └──────────────────────────────────────┘
 ```
 
-The architecture follows MVVM. `GameStore` has no React imports — game logic is tested independently of the UI. Domain functions are pure, which makes them easy to test in isolation. The layered structure follows from that.
+`GameStore` has zero React imports, so game logic runs and tests in plain Node. Domain functions stay pure for the same reason — easy to test in isolation. That separation is what makes the MVVM split worth it here, not the label.
 
 ### 3.2 Domain Language
 
-Core types are modelled explicitly so function signatures reflect the domain rather than raw primitives.
+Each domain concept gets its own type so signatures read as domain (`Board`, `Direction`, `MoveResult`) instead of primitives like `(number | null)[][]`.
 
-All concept types are defined in `domain/types.ts`. Const-backed types (`Direction`, `GameStatus`) live alongside their runtime const objects (`DIRECTION`, `STATUS`).
+Domain types live in `domain/types.ts`. Const-backed types (`Direction`) live alongside their runtime const object (`DIRECTION`). Module-specific types live with their module — `AIAdvice` in `src/ai/types.ts`, `GameStatus`/`STATUS` (when added) in `src/store/types.ts`.
 
-| Concept      | Shape                                                               |
-| ------------ | ------------------------------------------------------------------- |
-| `Board`      | `(number \| null)[][]` — `null` = empty cell, `number` = tile value |
-| `Direction`  | `'left' \| 'right' \| 'up' \| 'down'`                               |
-| `MoveResult` | `{ board, changed, scoreDelta }`                                    |
-| `GameStatus` | `'idle' \| 'playing' \| 'won' \| 'lost'`                            |
-| `AIAdvice`   | `{ direction, reasoning, debug }`                                   |
+| Concept      | Where                | Shape                                                               |
+| ------------ | -------------------- | ------------------------------------------------------------------- |
+| `Board`      | `domain/types.ts`    | `Row[]` (alias chain: `Cell = number \| null`, `Row = Cell[]`)      |
+| `Direction`  | `domain/types.ts`    | `'left' \| 'right' \| 'up' \| 'down'`                               |
+| `MoveResult` | `domain/types.ts`    | `{ board, changed, scoreDelta }`                                    |
+| `GameStatus` | `store/types.ts`     | `'idle' \| 'playing' \| 'won' \| 'lost'` *(pending §6 build)*       |
+| `AIAdvice`   | `ai/types.ts`        | `{ direction, reasoning, debug }` *(pending §5.4 getSuggestion)*    |
 
 ### 3.3 UI Layout
 
@@ -94,10 +94,10 @@ Single screen. Score bar, centred 4×4 grid, AI panel beside the grid.
 └──────────────────────────────────────────────┘
 ```
 
-- Score bar shows current score and best score with a `ⓘ` tooltip (section 8).
+- Score bar shows current score and best score with a `ⓘ` tooltip (§8).
 - Grid renders 4×4 tiles coloured by value; empty cells stay visible.
-- AI panel button requests a suggestion; result shows direction + reasoning template (section 5.4).
-- Status overlay (not shown): centred modal on win or lose, Continue/Restart actions.
+- AI panel button requests a suggestion; result shows direction + reasoning template (§5.4).
+- Status overlay: centred modal on win or lose, Continue/Restart actions.
 - Input: arrow keys only. No on-screen direction buttons.
 
 ---
@@ -148,7 +148,7 @@ moveLeft = O(4 rows × 4 cells) = O(16) = O(1)
 
 The board is fixed size. Every move is constant time regardless of representation.
 
-Bitboard + LUT precomputation yields ~5–10× speedup. At our depth-3 target (~110ms baseline in pure JS), 10× brings latency to ~11ms; both are well under any UX threshold. The speedup only earns its complexity when the baseline crosses into perceptible territory: at depth 5 (~400ms+ in pure JS), 10× to ~40ms is a real UX difference worth pursuing.
+Bitboard + LUT precomputation yields ~5–10× speedup. At the depth-3 target (~110ms baseline in pure JS), 10× brings latency to ~11ms; both are well under any UX threshold. The speedup only earns its complexity when the baseline crosses into perceptible territory: at depth 5 (~400ms+ in pure JS), 10× to ~40ms is a real UX difference worth pursuing.
 
 If search depth is raised or board size grows, switching to Bitboard + LUT is a natural phase 2: replacing the board representation in `board.ts`, `moves.ts`, and `expectimax.ts`. The store and components interface through `MoveResult` and `GameStore`, so they're unaffected. The algorithm doesn't change; only the data layout does.
 
@@ -177,7 +177,7 @@ compress: [4, 2, null, null]  pack again to fill the gap
 
 ### Merge rules
 
-Purpose-built examples isolating each rule. All shown as Move Left:
+Purpose-built examples isolating each rule, shown as Move Left:
 
 ```
 Rule 1: nulls compressed out toward the move direction before merging
@@ -238,9 +238,9 @@ Each stage has a dedicated test. Stage 2 guards against spawning on a no-change 
 
 ### 5.1 Why Expectimax, Not Minimax
 
-Minimax assumes two players: one maximising, one minimising. This is the right model for adversarial games like chess, but tile spawns in 2048 are random, not adversarial. Minimax would pessimistically assume the worst tile always appears in the worst position, leading to overcautious play.
+Tile spawns in 2048 are random, not adversarial — that's the wrong shape for minimax. Minimax assumes two players (one maximising, one minimising), so it would model the spawn as the worst tile always landing in the worst slot. The AI ends up playing scared.
 
-Expectimax handles randomness correctly by computing expected value at chance nodes, weighted by actual spawn probabilities:
+Expectimax fits the actual game: chance nodes weight outcomes by their real spawn probabilities.
 
 ```
 P(tile = 2) = 0.9,  P(tile = 4) = 0.1
@@ -266,13 +266,21 @@ Depth 1 is purely greedy: sees only immediate merges. Depth 3 evaluates **setup 
 Depth table (estimated; actual values will be measured during build):
 
 ```
-Depth | Approx nodes | Time (pure JS) | Assessment
-  2   |    ~2,300    |  ~2ms          | Misses setup chains
-  3   |  ~110,000    |  ~100ms        | Tractable in pure JS, captures setups
-  4   | ~5,300,000   |  ~1–5s         | Requires sampling/pruning; out of scope
+Depth | Approx midgame nodes | Time (pure JS) | Assessment
+  2   |    ~2,300            |  ~2ms          | Misses setup chains
+  3   |  ~110,000            |  ~100ms        | Tractable in pure JS, captures setups
+  4   | ~5,300,000           |  ~1–5s         | Requires sampling/pruning; out of scope
 ```
 
-Node counts derive from `48^d`: 4 player directions × ~12 chance outcomes (~6 empty × 2 tile values) per turn. Empty-cell count varies (early game ~14, late game ~2); 6 is a midgame snapshot.
+Each ply branches `4 directions × 2·|empties|` = `8·|empties|` (every empty cell can get a 2 or a 4). The table assumes midgame `|empties|=6`, giving `48` per ply and the `48^d` numbers. Real spread:
+
+```
+early ~14 empties  →  112 per ply  →  d=3 ≈ 1.4M   (~13× midgame)
+mid   ~6  empties  →   48 per ply  →  d=3 ≈ 110k   (what the table shows)
+late  ~2  empties  →   16 per ply  →  d=3 ≈ 4k     (~27× lower)
+```
+
+Phase 2 below leans on this spread.
 
 Pure JS without bitboard or chance-node sampling tops out around ~1M heuristic evals/sec. Depth 4 (5.3M nodes) needs sampling or the bitboard + LUT approach, both deferred to phase 2. Section 5.4 documents the swap path to nneonneo (depth 8 in C++) if stronger play is needed.
 
@@ -282,13 +290,13 @@ Pure JS without bitboard or chance-node sampling tops out around ~1M heuristic e
 
 While writing the code I found one obvious thing. Branching scales hard with number of empties across the board (14 → 28 children per chance node, 2 → 4) but the depth doesn't move. ~100× spread, same budget across all of it.
 
-Therefore depth 3 overspends early game, where there's already plenty of room, and underspends late game, where branches are cheap and we'd benefit from looking 4–5 plies ahead.
+Therefore depth 3 overspends early game, where there's already plenty of room, and underspends late game, where branches are cheap and looking 4–5 plies ahead would actually pay off.
 
 The improvement that falls out: `computeDepth(board)` keyed off `|empties|`. Shallower when branching's high, deeper when small. After doing some maths to verify I also checked against nneonneo's 2048-ai afterwards: they scale depth 3→8 by distinct-tile count — same instinct, different keying function. Good signal that the move's the right one.
 
 Wiring is small. The recursion already takes `depth` as a parameter, so it can be linked up with a dynamic function `computeDepth(board)`, table-driven in `config.ts` (sketch: `≥10 → 2`, `5–9 → 3`, `≤4 → 4`). Explicit-depth tests keep passing untouched.
 
-Potential Concerns are running benchmarks and finding data to support, but definitely a feaisble upgrade, just need to do it.
+Potential Concerns are running benchmarks and finding data to support, but definitely a feasible upgrade, just need to do it.
 
 ### 5.3 Heuristic Function
 
@@ -307,6 +315,8 @@ H(board) = α·Monotonicity + β·Smoothness + γ·log₂(EmptyCells) + δ·Corn
 
 All heuristics use **log₂ space** — gaps between tiles become merge-distances. So `(2, 4)` and `(1024, 2048)` are both 1 merge apart and weighted equally. In raw values they differ by 500× and big tiles would dominate the heuristic regardless of structure.
 
+**Sign convention.** Monotonicity and smoothness return `≤ 0` (penalty: 0 for ideal, negative for disorder). Empty cells and corner bonus return `≥ 0` (reward). The aggregator `H = α·M + β·S + γ·log₂(E) + δ·C` mixes both; higher H = better board. The `log₂` term is guarded against `log₂(0) = -∞` by `log₂(max(empties, 1))`, so a full board scores 0 on that term rather than blowing up the sum.
+
 Why heuristic quality matters more than search depth:
 
 ```
@@ -320,8 +330,6 @@ Good heuristic:
   → algorithm correctly avoids Board A
 ```
 
-A shallow search with a good heuristic outperforms a deep search with a bad one.
-
 Weights:
 
 ```
@@ -331,30 +339,26 @@ Weights:
 δ (Corner)       = 1.0
 ```
 
-These values are taken from nneonneo's published 2048 AI analysis (the same StackOverflow answer that documents the algorithm). Tuning weights from scratch requires hundreds of trial games and is well outside the scope of this submission. Using community-validated values lets the AI work as intended without inventing the wheel poorly. Cited in `heuristics.ts` source.
+These values come from nneonneo's published 2048 AI analysis (the same StackOverflow answer that documents the algorithm). Tuning from scratch needs hundreds of trial games — out of scope here. Cited in `heuristics.ts`.
 
 ### 5.4 AI Suggestion & Human-Readable Reasoning
 
 The AI suggestion pipeline returns the best direction along with plain-English reasoning. Internally, `expectimax` is value-returning: it takes a board and a depth and returns a single number. `getSuggestion` runs the per-direction loop — calling `expectimax` once per direction, capturing all four scores (including no-ops, for debug), picking the max, and deriving the reasoning template from heuristic component deltas. Both the move and the reasoning are deterministic and fully testable.
 
-### nneonneo/2048-ai vs our own implementation
+### nneonneo as the alternative
 
-nneonneo/2048-ai (1.2k stars) was the primary alternative considered. It uses Expectimax with a bitboard representation: a 64-bit integer encoding the board as 16 cells × 4 bits (tile exponent). Combined with a precomputed LUT for all possible row transformations, it searches ~10M positions/second. At its default depth 8, it reaches the 2048 tile in 100% of games and the 16384 tile in 94% of games (source: nneonneo's own 100-game benchmark).
+nneonneo/2048-ai (1.2k stars) was the primary alternative considered: Expectimax with a bitboard representation (64-bit int = 16 cells × 4 bits, tile exponent) plus a precomputed LUT for row transforms, searching ~10M positions/second. At depth 8 it reaches the 2048 tile in 100% of games and 16384 in 94% (nneonneo's own 100-game benchmark).
 
-We start with our own Expectimax at depth 3: same heuristics, pure JS, zero setup, directly unit testable. Win rate will be benchmarked during build and documented in the table below. If depth 3 isn't strong enough, the AI module is isolated behind a single interface and can be swapped to nneonneo (depth 8) without touching the game engine.
+Local choice: pure JS Expectimax at depth 3, same heuristics, no setup, directly unit testable. `getSuggestion` is the single swap point — flipping `CONFIG.AI_MODE` to `'remote'` and starting the Docker container leaves the game engine untouched.
 
-### Switching to nneonneo: our preferred path
+### Swap path via Docker
 
-If we switch, we host nneonneo in Docker. Docker locks the build environment with a pinned C++ toolchain, Python version, and library versions inside an isolated container. The reviewer runs `docker-compose up` and gets a working AI server regardless of their host OS. No Xcode setup, no platform-specific compilation issues, no "works on my machine" failures. This is a strength of the Docker approach, not a workaround.
-
-The full switch involves: Docker container hosting nneonneo's compiled C++ binary, a thin Python Flask wrapper exposing `POST /suggest`, and board format translation (2D array ↔ 64-bit bitboard) inside the wrapper. The single integration point in our code is one line:
+Docker keeps the swap reproducible: pinned C++ toolchain, Python version, and library versions in one container, started with `docker-compose up` regardless of host OS — no Xcode setup, no platform-specific compilation. Behind the wrapper: nneonneo's compiled C++ binary, a thin Flask `POST /suggest`, and board-format translation (2D array ↔ 64-bit bitboard).
 
 ```ts
 // src/ai/getSuggestion.ts
 export async function getSuggestion(board) {
   if (CONFIG.AI_MODE === 'remote') {
-    // POST board to local Docker container running nneonneo
-    // Translation between 2D array and bitboard happens server-side
     return await fetch('/api/suggest', {
       method: 'POST',
       body: JSON.stringify({ board }),
@@ -364,7 +368,7 @@ export async function getSuggestion(board) {
 }
 ```
 
-We start with `AI_MODE='local'` set in `config.ts`. Switching to remote requires changing that constant and starting the Docker container; the React code does not change.
+`AI_MODE='local'` is the default. The React code doesn't change either way.
 
 Benchmark (to be filled during build):
 
@@ -436,15 +440,15 @@ Each layer only knows about the layer below it. Domain logic and store are pure 
 
 MobX tracks property reads via ES6 Proxy and re-renders only the components that depend on changed properties. This shines when a small number of properties change among many subscribers — e.g. a 500-row dashboard where 3 prices update per second triggers 3 re-renders, not 500.
 
-For 2048, most tiles change on every move. Property-level granularity gains us nothing when nearly every property is dirty.
+For 2048, most tiles change on every move. Property-level granularity buys nothing when nearly every property is dirty.
 
-| Factor                | MobX                          | Plain class (our choice) |
-| --------------------- | ----------------------------- | ------------------------ |
-| Re-render granularity | Property-level via Proxy      | Component-level          |
-| Test injection        | Identical                     | Identical                |
-| Extra dependencies    | `mobx`, `mobx-react-lite`     | None                     |
-| Boilerplate           | `makeObservable` + decorators | None                     |
-| Value at 4×4 scale    | Marginal                      | Sufficient               |
+| Factor                | MobX                              | Plain class (chosen)                   |
+| --------------------- | --------------------------------- | -------------------------------------- |
+| Re-render granularity | Property-level via Proxy          | Component-level                        |
+| Test injection        | Identical                         | Identical                              |
+| Extra dependencies    | `mobx`, `mobx-react-lite`         | None                                   |
+| Boilerplate           | `makeObservable` + decorators     | None                                   |
+| Value at 4×4 scale    | Property-level rarely fires here  | Component-level re-renders work fine   |
 
 Test injection — the core reason for a class store — works identically either way.
 
@@ -569,12 +573,12 @@ Build order:
 | ------------------ | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Board primitives   | `board.test.ts`      | `initBoard` (correct tile count, all `2`s, random positions), `boardsEqual`, `spawnTile` (cell selection + value is 2 or 4; branching tested via injected RNG) |
 | Move operations    | `moves.test.ts`      | `compressRow`, `mergeRow`, transforms (`reflect`, `transpose` involutions), all four directions — full board snapshots                                         |
-| Win/lose detection | `gameStore.test.ts`  | `checkWin`, `checkLose`                                                                                                                                        |
-| Move sequencing    | `gameStore.test.ts`  | All 6 stages in section 4.4                                                                                                                                    |
-| AI heuristics      | `heuristics.test.ts` | Each heuristic component independently                                                                                                                         |
-| Expectimax         | `expectimax.test.ts` | Known board → expected best direction                                                                                                                          |
-| Advice generation  | `expectimax.test.ts` | Known board → expected reasoning template (deterministic)                                                                                                      |
-| ViewModel          | `gameStore.test.ts`  | State transitions, zero React imports                                                                                                                          |
+| Win/lose detection | `board.test.ts`         | `checkWin`, `checkLose`                                                                                                                                        |
+| Move sequencing    | `gameStore.test.ts`     | All 6 stages in §4.4                                                                                                                                           |
+| AI heuristics      | `heuristics.test.ts`    | Each heuristic component independently                                                                                                                         |
+| Expectimax         | `expectimax.test.ts`    | Known board → expected search value (number, not direction)                                                                                                    |
+| Advice generation  | `getSuggestion.test.ts` | Known board → expected direction + reasoning template (deterministic)                                                                                          |
+| ViewModel          | `gameStore.test.ts`     | State transitions, zero React imports                                                                                                                          |
 
 ### 7.2 Critical Test Cases
 
@@ -774,7 +778,7 @@ export const CONFIG = {
   INIT_TILE_COUNT: { min: 2, max: 8 }, // spec unspecified — see assumptions
   SPAWN_WEIGHTS: { 2: 0.9, 4: 0.1 }, // spec unspecified — see assumptions
   EXPECTIMAX_DEPTH: 3,
-  AI_MODE: 'local', // 'local' | 'remote' — see TD section 5.4
+  AI_MODE: 'local', // 'local' | 'remote' — see TD §5.4
 };
 ```
 
@@ -791,11 +795,11 @@ Inspect config:
 /
 ├── src/
 │   ├── domain/                   # Pure functions — zero framework imports
-│   │   ├── board.ts              # initBoard, boardsEqual, spawnTile
+│   │   ├── board.ts              # initBoard, boardsEqual, spawnTile, checkWin, checkLose, emptyCellPositions, cloneWithCell
 │   │   ├── board.test.ts
 │   │   ├── moves.ts              # compressRow, mergeRow, applyMove
 │   │   ├── moves.test.ts
-│   │   └── types.ts              # Board, Direction, GameStatus, MoveResult, AIAdvice
+│   │   └── types.ts              # Board, Cell, Row, Direction, MoveResult, ALL_DIRECTIONS
 │   │
 │   ├── store/
 │   │   ├── gameStore.ts          # Plain class ViewModel
@@ -806,7 +810,9 @@ Inspect config:
 │   │   ├── heuristics.test.ts
 │   │   ├── expectimax.ts         # value-returning search
 │   │   ├── expectimax.test.ts
-│   │   └── getSuggestion.ts      # direction loop + reasoning + remote adapter
+│   │   ├── getSuggestion.ts      # direction loop + reasoning + remote adapter
+│   │   ├── getSuggestion.test.ts
+│   │   └── types.ts              # AIAdvice, SearchStats
 │   │
 │   ├── hooks/
 │   │   └── useGame.ts            # React bridge to GameStore + localStorage + arrow keys
@@ -867,4 +873,4 @@ The full advice object:
 }
 ```
 
-Purpose: lets the reviewer verify the AI is doing real work — score per direction, reasoning mapped to score deltas, latency within budget. The console gives a live trace; `window.__adviceHistory` allows post-hoc analysis of an entire session. No UI cost — the player-facing interface stays clean.
+The debug payload makes the search inspectable: score per direction, reasoning mapped to score deltas, latency. The console gives a live trace; `window.__adviceHistory` keeps the full session for post-hoc inspection. The player-facing UI stays untouched.
