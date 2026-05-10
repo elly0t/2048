@@ -268,11 +268,13 @@ Per TD §8.
 3. `saveGameState(state)` writes JSON to localStorage; tolerates `localStorage.setItem` throwing (private mode, quota exceeded) silently.
 4. `saveBestScore(score)` same tolerance for write failures.
 
-### useGame motion inference
+### useGame motion inference (deferred — time-permitting)
 
-Per TD §3.3. Identity tracking lives in the hook; the domain stays `(number | null)[][]`.
+Per TD §3.3 deferred-polish bullet. Tile animations and the stable-ID identity tracking that drives them ship only if time permits after the static UI is complete. The DOM is structured to receive them without restructuring (slot grid + absolute-positioned tile overlay is already in place).
 
-1. `inferMotions(oldBoard, oldIds, newBoard, direction)` produces one motion entry per non-null cell in `newBoard`.
+When implemented, `inferMotions(oldBoard, oldIds, newBoard, direction)` is expected to satisfy:
+
+1. Produces one motion entry per non-null cell in `newBoard`.
 2. Slide motion: `fromRow/fromCol` differ from `row/col`; `merged: false`; `spawned: false`.
 3. Merge motion: target tile has `merged: true`; the consumed source tile is not present in the output (it animates by sliding into the target, then the merged flag triggers the pop).
 4. Spawn motion: `spawned: true`; `fromRow/fromCol` equal `row/col` (no slide, fade-in only).

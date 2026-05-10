@@ -96,13 +96,13 @@ Single screen. Score bar, centred 4×4 grid, AI panel beside the grid.
 
 - Score bar shows current score and best score with a `ⓘ` tooltip (§8).
 - Grid renders 4×4 tiles coloured by `log₂(rank)` via a generative HSL function in `tokens.css`. Empty cells stay visible.
-- Tiles have stable IDs inferred in `useGame` (domain stays `(number | null)[][]` — identity is a perception concern, not a game-rule concern). Absolute-positioned children of the static cell grid; CSS transforms handle slide / spawn / merge animations.
+- Grid renders as a static 4×4 cell layer with an absolute-positioned tile overlay on top. The DOM shape is animation-ready, but tile animations (slide / spawn / merge) and the stable-ID identity tracking in `useGame` that drives them are **deferred polish** — see the deferred-polish bullet below. Without animations, the overlay still renders correctly: tiles appear at their target positions on each render.
 - AI panel: button requests a suggestion; result shows direction + reasoning template (§5.4). Right-attached card on desktop; stacked below the board on mobile (single media query).
 - Status overlay: centred modal on win or lose. WON shows Continue (dismiss; play continues per assumption #4) + Restart. LOST shows Restart only.
 - Input: arrow keys captured at window level. No on-screen direction buttons.
-- `prefers-reduced-motion` disables all animations.
 - Components consume state via the `useGame` hook (§10, `src/hooks/useGame.ts`) using `useSyncExternalStore`; they never reach into `GameStore` directly.
 - Accessibility floor: semantic `<button>` for actions, `aria-live="polite"` on score and advice text, `role="dialog"` + `aria-modal="true"` on the status overlay, palette tuned for ≥4.5:1 contrast on tile text.
+- **Deferred polish (time-permitting):** stable-ID tile identity in `useGame`, CSS-transform slide / spawn / merge animations on `Tile`, `prefers-reduced-motion` guard, score-delta float, merge pop. The static board ships first; these layer on without restructuring DOM (the slot-grid + tile-overlay split is already in place).
 
 ---
 
@@ -828,17 +828,19 @@ Inspect config:
 │   │   └── types.ts              # AIAdvice, SearchStats
 │   │
 │   ├── hooks/
-│   │   ├── useGame.ts            # useSyncExternalStore bridge + localStorage + arrow keys + motion inference
-│   │   └── useGame.test.ts       # load/save helpers + motion inference (no React render tests)
+│   │   ├── persistence.ts        # loadGameState, loadBestScore, saveGameState, saveBestScore (split for isolated unit tests)
+│   │   ├── persistence.test.ts
+│   │   ├── useGame.ts            # useSyncExternalStore bridge + localStorage + arrow keys (motion inference: deferred polish — §3.3)
+│   │   └── useGame.test.ts       # hook-level tests if any (no React render tests)
 │   │
 │   ├── components/
 │   │   ├── Header.tsx            # Title, Score, Best, Restart
 │   │   ├── Header.module.css
-│   │   ├── Board.tsx             # 16 Cells (slots) + N Tiles (animated)
+│   │   ├── Board.tsx             # 16 Cells (slots) + N Tiles (animation-ready overlay; animations deferred — §3.3)
 │   │   ├── Board.module.css
 │   │   ├── Cell.tsx              # Static empty slot
 │   │   ├── Cell.module.css
-│   │   ├── Tile.tsx              # Absolute-positioned, React.memo, CSS-transform animated
+│   │   ├── Tile.tsx              # Absolute-positioned, React.memo (CSS-transform animation deferred — §3.3)
 │   │   ├── Tile.module.css
 │   │   ├── AIPanel.tsx           # Suggest button + advice display + loading state
 │   │   ├── AIPanel.module.css
