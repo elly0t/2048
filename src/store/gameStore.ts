@@ -30,6 +30,7 @@ export class GameStore {
 
   private rng: () => number;
   private listeners = new Set<() => void>();
+  private version = 0;
 
   constructor({ rng }: GameStoreOptions = {}) {
     this.rng = rng ?? Math.random;
@@ -98,7 +99,12 @@ export class GameStore {
     };
   }
 
+  // Monotonically increments on every state change. React subscribes via
+  // useSyncExternalStore against this snapshot — see TD §6.2 React bridge.
+  getSnapshot = (): number => this.version;
+
   private notify(): void {
+    this.version++;
     this.listeners.forEach((l) => l());
   }
 }
