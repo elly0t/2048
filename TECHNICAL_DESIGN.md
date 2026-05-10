@@ -247,6 +247,8 @@ P(tile = 2) = 0.9,  P(tile = 4) = 0.1
 Chance node = 0.9 × value(board with 2) + 0.1 × value(board with 4)
 ```
 
+How the search produces a score: from the current board, the search recurses into every reachable future — every player move (max layer) and every spawn outcome (chance layer, weighted 0.9 for a 2 and 0.1 for a 4) — until the depth limit, where each end-state board is scored by the heuristic (§5.3). Those scores aggregate back up: chance layers averaging their children, max layers picking the best. The value at the top is the expected outcome under optimal play — every reachable continuation already factored in.
+
 ### 5.2 Search Depth: Why Depth 3
 
 Depth 3 looks 3 player moves ahead, alternating with chance nodes:
@@ -317,17 +319,15 @@ All heuristics use **log₂ space** — gaps between tiles become merge-distance
 
 **Sign convention.** Monotonicity and smoothness return `≤ 0` (penalty: 0 for ideal, negative for disorder). Empty cells and corner bonus return `≥ 0` (reward). The aggregator `H = α·M + β·S + γ·log₂(E) + δ·C` mixes both; higher H = better board. The `log₂` term is guarded against `log₂(0) = -∞` by `log₂(max(empties, 1))`, so a full board scores 0 on that term rather than blowing up the sum.
 
-Why heuristic quality matters more than search depth:
+Why a multi-component heuristic matters more than score alone:
 
 ```
-Bad heuristic (score only):
-  Board A: score=128, largest tile centred, fragmented
-  Board B: score=128, largest tile in corner, monotonic rows
-  → treated as equal. Board A is one move from losing.
+Same game-score, different positions:
+  Board A:  score=128, largest tile centred, fragmented      → one move from losing
+  Board B:  score=128, largest tile in corner, monotonic rows → safe and clean
 
-Good heuristic:
-  Board A → 340,  Board B → 850
-  → algorithm correctly avoids Board A
+Score-only H treats them as equal.
+Multi-component H scores Board A=340 vs Board B=850 — algorithm correctly avoids A.
 ```
 
 Weights:
@@ -358,17 +358,14 @@ Docker keeps the swap reproducible: pinned C++ toolchain, Python version, and li
 ```ts
 // src/ai/getSuggestion.ts
 export async function getSuggestion(board) {
-  if (CONFIG.AI_MODE === 'remote') {
-    return await fetch('/api/suggest', {
-      method: 'POST',
-      body: JSON.stringify({ board }),
-    }).then((r) => r.json());
-  }
-  return localExpectimax(board); // default — pure JS, no infrastructure
+  const advice =
+    CONFIG.AI_MODE === AI_MODES.REMOTE ? await remoteSuggestion(board) : localSuggestion(board);
+  emitSideEffects(advice); // console.log + window.__lastAdvice + history (TD §11)
+  return advice;
 }
 ```
 
-`AI_MODE='local'` is the default. The React code doesn't change either way.
+`AI_MODES.LOCAL` is the default. Components and `GameStore` call `getSuggestion` regardless of mode — nothing else in the codebase changes.
 
 Benchmark (to be filled during build):
 
@@ -380,27 +377,34 @@ Avg move time:    __ms
 
 ### How the suggestion works
 
+Selection and templating use two different signals: `chanceValue` (search-aware, drives selection) and `scoreComponents` (immediate post-move heuristic snapshot, drives templating). The numbers below are illustrative — search scores aren't simple sums of the immediate components.
+
 ```
-Step 1 — score all 4 directions, capturing each component:
-  Left:  847  components: { mono: 200, smooth: 47, empty: 350, corner: 250 }
-  Right: 651  components: { mono: 150, smooth: 51, empty: 200, corner: 250 }
-  Up:    203  components: { mono: 50,  smooth: 53, empty: 50,  corner: 50 }
-  Down:  189  components: { mono: 49,  smooth: 50, empty: 40,  corner: 50 }
+Step 1 — score all 4 directions:
+  scores     (chanceValue, search-aware):  Left: 12.4   Right: 10.6   Up: 5.2    Down: 4.8
+  components (per-direction snapshot):
+    Left:   { mono: −2, smooth: −1, empty: 4.0, corner: 11 }
+    Right:  { mono: −4, smooth: −2, empty: 1.0, corner: 11 }
+    Up:     { mono: −6, smooth: −3, empty: 1.0, corner:  0 }
+    Down:   { mono: −7, smooth: −3, empty: 1.0, corner:  0 }
 
-Step 2 — select highest: Left
-         second highest: Right
+Step 2 — select best (highest score) and second-best:
+  best        = Left   (12.4)
+  second-best = Right  (10.6)
 
-Step 3 — compute deltas (Left vs Right) — what made Left win:
-  empty:  +150  ← largest absolute delta = dominant
-  mono:    +50
-  corner:    0
-  smooth:   -4
+Step 3 — weighted component deltas (Left vs Right). Each component
+  contributes to H scaled by its weight (α/β/γ/δ), so the deltas
+  are weighted before comparison:
+  empty:   2.7 × (4.0 − 1.0) = +8.1   ← largest absolute weighted delta
+  mono:    1.0 × (−2  − −4)  = +2.0
+  smooth:  0.1 × (−1  − −2)  = +0.1
+  corner:  1.0 × ( 11 −  11) =  0
 
 Step 4 — dominant delta → template:
   "Move Left — frees up board space"
 ```
 
-**Dominant delta** = largest absolute delta between the chosen direction's components and the second-best direction's components. If all deltas are small (< 5% of total score), use a generic template _"Move {dir} — best overall position"_.
+**Dominant delta** = largest absolute weighted delta between the chosen direction's components and the second-best direction's. If that delta is below `CONFIG.GENERIC_TEMPLATE_THRESHOLD` (5%) of the chosen direction's score, fall back to the generic template _"Move {dir} — best overall position"_.
 
 Template map:
 
@@ -414,7 +418,7 @@ Template map:
 Deterministic: given the same board, output is always identical. Fully testable:
 
 ```ts
-expect(getAdvice(knownBoard)).toEqual({
+expect(await getSuggestion(knownBoard)).toMatchObject({
   direction: 'left',
   reasoning: 'Move Left — frees up board space',
 });
@@ -863,9 +867,9 @@ The full advice object:
 ```ts
 {
   direction: 'left',
-  reasoning: 'Move Left — tiles are better ordered, largest tile stays in corner',
+  reasoning: 'Move Left — frees up board space',
   debug: {
-    scores: { left: 847, up: 651, right: 203, down: 189 },
+    scores: { left: 12.4, right: 10.6, up: null, down: 4.8 },
     computedInMs: 7.3,
     nodesEvaluated: 5240,
     depthSearched: 3
@@ -873,4 +877,6 @@ The full advice object:
 }
 ```
 
-The debug payload makes the search inspectable: score per direction, reasoning mapped to score deltas, latency. The console gives a live trace; `window.__adviceHistory` keeps the full session for post-hoc inspection. The player-facing UI stays untouched.
+`debug.scores` allows `null` per direction — a `null` entry marks a no-op (the move didn't change the board), so it's still listed in the payload but excluded from selection. On a lose state (no direction changes the board) `direction` is `null` and `reasoning` is `'No moves available.'`.
+
+The debug payload makes the search inspectable: score per direction, reasoning mapped to component deltas, latency, node count, depth. The console gives a live trace; `window.__adviceHistory` keeps the full session for post-hoc inspection. The player-facing UI stays untouched.
