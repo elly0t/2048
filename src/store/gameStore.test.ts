@@ -297,12 +297,15 @@ describe('GameStore.applyMove', () => {
 // ---- getters (TD §6.3) ----
 
 describe('GameStore — getters', () => {
-  it('isActive: true only when status is PLAYING', () => {
+  it('isActive: true for PLAYING and WON (continue-after-win); false for IDLE / LOST', () => {
     const store = new GameStore();
-    store.status = STATUS.PLAYING;
-    expect(store.isActive).toBe(true);
 
-    [STATUS.IDLE, STATUS.WON, STATUS.LOST].forEach((s) => {
+    [STATUS.PLAYING, STATUS.WON].forEach((s) => {
+      store.status = s;
+      expect(store.isActive).toBe(true);
+    });
+
+    [STATUS.IDLE, STATUS.LOST].forEach((s) => {
       store.status = s;
       expect(store.isActive).toBe(false);
     });
@@ -319,10 +322,10 @@ describe('GameStore — getters', () => {
     expect(store.largestTile).toBe(64);
   });
 
-  it('largestTile: returns 0 on an empty board (no -Infinity from Math.max)', () => {
+  it('largestTile: returns null on an empty board', () => {
     const store = new GameStore();
     // Default empty board after construction.
-    expect(store.largestTile).toBe(0);
+    expect(store.largestTile).toBeNull();
   });
 });
 

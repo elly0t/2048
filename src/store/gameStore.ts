@@ -2,6 +2,10 @@ import type { Board, Direction } from '../domain/types';
 import type { AIAdvice } from '../ai/types';
 import type { GameStatus } from './types';
 import { STATUS } from './types';
+import { applyMove as domainApplyMove } from '../domain/moves';
+import { checkLose, checkWin, initBoard, spawnTile } from '../domain/board';
+import { getSuggestion } from '../ai/getSuggestion';
+import { CONFIG } from '../config';
 
 type GameStoreOptions = {
   rng?: () => number;
@@ -24,30 +28,77 @@ export class GameStore {
   advice: AIAdvice | null = null;
   adviceLoading = false;
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  constructor(_opts: GameStoreOptions = {}) {}
+  private rng: () => number;
+  private listeners = new Set<() => void>();
 
+  constructor({ rng }: GameStoreOptions = {}) {
+    this.rng = rng ?? Math.random;
+  }
+
+  // Active = player can still make moves. WON is included per assumption #4
+  // (continue-after-win); IDLE and LOST are not interactive.
   get isActive(): boolean {
-    throw new Error('not implemented');
+    return this.status === STATUS.PLAYING || this.status === STATUS.WON;
   }
 
-  get largestTile(): number {
-    throw new Error('not implemented');
+  // null when the board has no tiles — avoids -Infinity / 0 sentinel ambiguity.
+  get largestTile(): number | null {
+    const tiles = this.board.flat().filter((cell): cell is number => cell !== null);
+    return tiles.length === 0 ? null : Math.max(...tiles);
   }
 
-  applyMove(_direction: Direction): void {
-    throw new Error('not implemented');
+  applyMove(direction: Direction): void {
+    if (this.status === STATUS.LOST) return;
+
+    const { board: newBoard, changed, scoreDelta } = domainApplyMove(this.board, direction);
+    if (!changed) return;
+
+    this.score += scoreDelta;
+    if (this.score > this.bestScore) {
+      this.bestScore = this.score;
+    }
+
+    if (checkWin(newBoard, CONFIG.WIN_TILE)) {
+      this.status = STATUS.WON;
+      this.board = newBoard;
+      this.notify();
+      return;
+    }
+
+    const nextBoard = spawnTile(newBoard, this.rng);
+    if (checkLose(nextBoard)) {
+      this.status = STATUS.LOST;
+    }
+    this.board = nextBoard;
+    this.notify();
   }
 
   async requestAdvice(): Promise<void> {
-    throw new Error('not implemented');
+    this.adviceLoading = true;
+    this.advice = null;
+    this.notify();
+    this.advice = await getSuggestion(this.board);
+    this.adviceLoading = false;
+    this.notify();
   }
 
   reset(): void {
-    throw new Error('not implemented');
+    this.board = initBoard(this.rng);
+    this.status = STATUS.PLAYING;
+    this.score = 0;
+    this.advice = null;
+    this.adviceLoading = false;
+    this.notify();
   }
 
-  subscribe(_listener: () => void): () => void {
-    throw new Error('not implemented');
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private notify(): void {
+    this.listeners.forEach((l) => l());
   }
 }
