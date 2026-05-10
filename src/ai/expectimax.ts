@@ -1,11 +1,11 @@
-import type { Board, Direction } from '../domain/types';
-import { DIRECTION } from '../domain/types';
+import type { Board } from '../domain/types';
+import { ALL_DIRECTIONS } from '../domain/types';
 import { applyMove } from '../domain/moves';
+import { cloneWithCell, emptyCellPositions } from '../domain/board';
 import { CONFIG } from '../config';
 import { monotonicity, smoothness, cornerBonus, emptyCells } from './heuristics';
 
-// Weights for the heuristic aggregator H(board) = α·M + β·S + γ·E + δ·C.
-// Values from nneonneo's 2048 AI analysis (cited in TD §5.3).
+// Weights from nneonneo's 2048 AI analysis (TD §5.3).
 export const WEIGHTS = {
   monotonicity: 1.0,
   smoothness: 0.1,
@@ -13,12 +13,7 @@ export const WEIGHTS = {
   cornerBonus: 1.0,
 } as const;
 
-const ALL_DIRECTIONS: readonly Direction[] = [
-  DIRECTION.LEFT,
-  DIRECTION.RIGHT,
-  DIRECTION.UP,
-  DIRECTION.DOWN,
-];
+export type SearchStats = { nodesEvaluated: number };
 
 const SPAWN_OUTCOMES: ReadonlyArray<{ value: number; prob: number }> = [
   { value: 2, prob: CONFIG.SPAWN_WEIGHTS[2] },
@@ -34,52 +29,45 @@ function leafValue(board: Board): number {
   );
 }
 
-// Max node. Tries each direction; recurses through chance node on ones that
-// changed the board. If no direction changes the board (lose state), returns
-// the leaf heuristic so the caller still gets a comparable value.
-function maxValue(board: Board, depth: number): number {
-  if (depth === 0) return leafValue(board);
-
-  let best = -Infinity;
-  let anyChanged = false;
-  for (const direction of ALL_DIRECTIONS) {
-    const result = applyMove(board, direction);
-    if (!result.changed) continue;
-    anyChanged = true;
-    const value = chanceValue(result.board, depth - 1);
-    if (value > best) best = value;
+// Max node. No valid direction → leaf H (lose-state fallback).
+function maxValue(board: Board, depth: number, stats?: SearchStats): number {
+  if (depth === 0) {
+    if (stats) stats.nodesEvaluated++;
+    return leafValue(board);
   }
-  return anyChanged ? best : leafValue(board);
+
+  const childValues = ALL_DIRECTIONS
+    .map((direction) => applyMove(board, direction))
+    .filter((result) => result.changed)
+    .map((result) => chanceValue(result.board, depth - 1, stats));
+
+  if (childValues.length === 0) {
+    if (stats) stats.nodesEvaluated++;
+    return leafValue(board);
+  }
+  return Math.max(...childValues);
 }
 
-// Chance node. After a player move, one tile spawns at a uniformly chosen
-// empty cell with value 2 (P=0.9) or 4 (P=0.1).
-//   E[v] = (1/|empties|) · Σ_cell  Σ_outcome  P(outcome) · maxValue(spawn)
-// If the board is full, no spawn happens — drain a depth and recurse.
-function chanceValue(board: Board, depth: number): number {
-  const empties: Array<[number, number]> = [];
-  for (let rowIndex = 0; rowIndex < board.length; rowIndex++) {
-    const row = board[rowIndex]!;
-    for (let colIndex = 0; colIndex < row.length; colIndex++) {
-      if (row[colIndex] === null) empties.push([rowIndex, colIndex]);
-    }
-  }
-  if (empties.length === 0) return maxValue(board, depth);
+// Chance node. E[v] = (1 / |empties|) · Σ P(outcome) · maxValue(spawn).
+// Full board: no spawn, recurse to maxValue at the same depth.
+export function chanceValue(board: Board, depth: number, stats?: SearchStats): number {
+  const empties = emptyCellPositions(board);
+  if (empties.length === 0) return maxValue(board, depth, stats);
 
   let total = 0;
-  for (const [rowIndex, colIndex] of empties) {
-    for (const { value, prob } of SPAWN_OUTCOMES) {
-      const next = board.map((row) => row.slice());
-      next[rowIndex]![colIndex] = value;
-      total += prob * maxValue(next, depth);
-    }
-  }
+  empties.forEach(([rowIndex, colIndex]) => {
+    SPAWN_OUTCOMES.forEach(({ value, prob }) => {
+      total += prob * maxValue(cloneWithCell(board, rowIndex, colIndex, value), depth, stats);
+    });
+  });
   return total / empties.length;
 }
 
+// TODO(phase 2): adaptive depth via computeDepth(board) — see TD §5.2.
 export function expectimax(
   board: Board,
   depth: number = CONFIG.EXPECTIMAX_DEPTH,
+  stats?: SearchStats,
 ): number {
-  return maxValue(board, depth);
+  return maxValue(board, depth, stats);
 }

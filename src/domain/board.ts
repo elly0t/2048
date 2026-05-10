@@ -1,4 +1,4 @@
-import type { Board } from './types';
+import type { Board, Cell } from './types';
 import { CONFIG } from '../config';
 
 export function boardsEqual(a: Board, b: Board): boolean {
@@ -39,7 +39,7 @@ function randomIntBetween(min: number, max: number, rng: () => number = Math.ran
   return Math.floor(rng() * (max - min + 1)) + min;
 }
 
-function emptyCellPositions(board: Board): [number, number][] {
+export function emptyCellPositions(board: Board): [number, number][] {
   const positions: [number, number][] = [];
   board.forEach((row, rowIndex) => {
     row.forEach((cell, colIndex) => {
@@ -47,6 +47,17 @@ function emptyCellPositions(board: Board): [number, number][] {
     });
   });
   return positions;
+}
+
+export function cloneWithCell(
+  board: Board,
+  rowIndex: number,
+  colIndex: number,
+  value: Cell,
+): Board {
+  const newBoard = board.map((row) => row.slice());
+  newBoard[rowIndex]![colIndex] = value;
+  return newBoard;
 }
 
 function pickRandomN<T>(items: T[], n: number, rng: () => number = Math.random): T[] {
@@ -90,7 +101,5 @@ export function spawnTile(board: Board, rng: () => number = Math.random): Board 
   }
   const tileValue = rng() < CONFIG.SPAWN_WEIGHTS[2] ? 2 : 4;
   const [rowIndex, colIndex] = pickRandomN(empties, 1, rng)[0]!;
-  return board.map((row, r) =>
-    row.map((cell, c) => (r === rowIndex && c === colIndex ? tileValue : cell)),
-  );
+  return cloneWithCell(board, rowIndex, colIndex, tileValue);
 }

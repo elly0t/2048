@@ -7,6 +7,8 @@ export const DIRECTION = {
 
 export type Direction = (typeof DIRECTION)[keyof typeof DIRECTION];
 
+export const ALL_DIRECTIONS: readonly Direction[] = Object.values(DIRECTION);
+
 export type Cell = number | null;
 export type Row = Cell[];
 export type Board = Row[];
