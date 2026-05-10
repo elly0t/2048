@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { GameStore } from '../store/gameStore';
 import type { Direction } from '../domain/types';
 import { saveGameState, saveBestScore } from './persistence';
@@ -52,5 +52,15 @@ export function useGame() {
 }
 
 export function useGameKeyboard(): void {
-  return;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      const direction = keyToDirection(e.key);
+      if (!direction) return;
+      e.preventDefault();
+      getStore().applyMove(direction);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 }
