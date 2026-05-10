@@ -1,0 +1,15 @@
+/* Global resets — minimal. Tokens live in tokens.css; load it before this file
+   in main.tsx so the body styles below can reference --color-bg etc. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text-default);
+}

@@ -1,0 +1,30 @@
+/* Design tokens — TD §3.3. Tile per-rank colours come from src/styles/palette.ts
+   (runtime, applied as inline style on Tile). Static surface colours live here. */
+
+:root {
+  /* Surface colours */
+  --color-bg: hsl(210 25% 98%);
+  --color-cell-empty: hsl(210 25% 93%);
+  --color-text-default: hsl(210 60% 18%);
+
+  /* Tile geometry */
+  --tile-radius: 6px;
+  --tile-shadow: 0 1px 3px hsl(210 40% 30% / 0.12);
+
+  /* Board layout */
+  --cell-gap: 12px;
+
+  /* Animation durations — disabled by prefers-reduced-motion below */
+  --duration-slide: 120ms;
+  --duration-spawn: 150ms;
+  --duration-merge-pop: 100ms;
+  --ease-slide: ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-slide: 0ms;
+    --duration-spawn: 0ms;
+    --duration-merge-pop: 0ms;
+  }
+}
