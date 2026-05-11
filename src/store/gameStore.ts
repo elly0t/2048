@@ -59,7 +59,8 @@ export class GameStore {
       this.bestScore = this.score;
     }
 
-    if (checkWin(newBoard, CONFIG.WIN_TILE)) {
+    // Gate on the WON transition — checkWin stays true past 2048, would skip spawn on every move.
+    if (this.status !== STATUS.WON && checkWin(newBoard, CONFIG.WIN_TILE)) {
       this.status = STATUS.WON;
       this.board = newBoard;
       this.notify();
