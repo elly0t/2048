@@ -13,13 +13,19 @@ export function isAdviceKey(key: string): boolean {
 }
 
 export function swipeToDirection(
-  _startX: number,
-  _startY: number,
-  _endX: number,
-  _endY: number,
-  _threshold = 30,
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+  threshold = 30,
 ): Direction | null {
-  return null;
+  const dx = endX - startX;
+  const dy = endY - startY;
+  const absX = Math.abs(dx);
+  const absY = Math.abs(dy);
+  if (absX < threshold && absY < threshold) return null;
+  if (absX > absY) return dx > 0 ? DIRECTION.RIGHT : DIRECTION.LEFT;
+  return dy > 0 ? DIRECTION.DOWN : DIRECTION.UP;
 }
 
 export function keyToDirection(key: string): Direction | null {
