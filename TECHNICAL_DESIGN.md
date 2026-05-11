@@ -870,6 +870,9 @@ Inspect config:
 │   ├── constants/
 │   │   └── storageKeys.ts
 │   │
+│   ├── i18n/
+│   │   └── copy.ts               # Centralised user-facing strings — future-extensible to per-locale files (en.ts, zh.ts, …)
+│   │
 │   ├── config.ts
 │   ├── App.tsx
 │   └── main.tsx
