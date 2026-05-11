@@ -11,3 +11,6 @@ coverage
 
 # Bench: jsonl is a streaming-mid-run convenience, redundant with final .json
 bench/results-*.jsonl
+
+# Claude Code harness local state
+.claude/
