@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { keyToDirection, initStore, isAdviceKey } from './useGame';
+import { keyToDirection, initStore, isAdviceKey, swipeToDirection } from './useGame';
 import { GameStore } from '../store/gameStore';
 import { STATUS } from '../store/types';
 import { STORAGE_KEYS } from '../constants/storageKeys';
@@ -40,6 +40,46 @@ describe('isAdviceKey', () => {
     expect(isAdviceKey('Escape')).toBe(false);
     expect(isAdviceKey('a')).toBe(false);
     expect(isAdviceKey('')).toBe(false);
+  });
+});
+
+describe('swipeToDirection', () => {
+  it('maps a clear right swipe (dx >> dy) to "right"', () => {
+    expect(swipeToDirection(0, 0, 100, 0)).toBe('right');
+  });
+
+  it('maps a clear left swipe to "left"', () => {
+    expect(swipeToDirection(100, 50, 0, 50)).toBe('left');
+  });
+
+  it('maps a clear down swipe (dy >> dx) to "down"', () => {
+    expect(swipeToDirection(50, 0, 50, 100)).toBe('down');
+  });
+
+  it('maps a clear up swipe to "up"', () => {
+    expect(swipeToDirection(50, 100, 50, 0)).toBe('up');
+  });
+
+  it('returns null when both axes are below the threshold (tap / accidental drift)', () => {
+    expect(swipeToDirection(0, 0, 10, 10)).toBeNull();
+    expect(swipeToDirection(50, 50, 55, 48)).toBeNull();
+  });
+
+  it('greater absolute axis wins on diagonal swipes (horizontal-dominant → horizontal)', () => {
+    expect(swipeToDirection(0, 0, 80, 40)).toBe('right');
+    expect(swipeToDirection(100, 0, 0, 40)).toBe('left');
+  });
+
+  it('greater absolute axis wins on diagonal swipes (vertical-dominant → vertical)', () => {
+    expect(swipeToDirection(0, 0, 40, 80)).toBe('down');
+    expect(swipeToDirection(0, 100, 40, 0)).toBe('up');
+  });
+
+  it('uses a custom threshold when provided', () => {
+    // dx=20, below default 30 → null; below custom 50 → null; above custom 10 → right
+    expect(swipeToDirection(0, 0, 20, 0)).toBeNull();
+    expect(swipeToDirection(0, 0, 20, 0, 50)).toBeNull();
+    expect(swipeToDirection(0, 0, 20, 0, 10)).toBe('right');
   });
 });
 

@@ -12,6 +12,16 @@ export function isAdviceKey(key: string): boolean {
   return key === ' ';
 }
 
+export function swipeToDirection(
+  _startX: number,
+  _startY: number,
+  _endX: number,
+  _endY: number,
+  _threshold = 30,
+): Direction | null {
+  return null;
+}
+
 export function keyToDirection(key: string): Direction | null {
   switch (key) {
     case 'ArrowLeft':

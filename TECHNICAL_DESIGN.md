@@ -115,7 +115,7 @@ Mobile (<768px)                       Desktop (≥768px)
 
 **Other:**
 - Status overlay: centred modal on win or lose. WON shows Continue (dismiss; play continues per assumption #4) + Restart. LOST shows Restart only.
-- Input: arrow keys for moves and `Space` for advice, captured at window level. No on-screen direction buttons.
+- Input: arrow keys (moves) and `Space` (advice) captured at window level. On touch devices, finger swipes on the `<main>` content area produce moves — horizontal/vertical axis chosen by the greater absolute delta, with a 30px threshold to filter accidental drift. Swipe and keyboard converge on the same `applyMove(direction)` action; no source distinction at the store level. No on-screen direction buttons.
 - Components consume state via the `useGame` hook (§10, `src/hooks/useGame.ts`) using `useSyncExternalStore`; they never reach into `GameStore` directly.
 - Accessibility floor: semantic `<button>` for actions, `aria-live="polite"` on score and advice text, `aria-label` on the mobile icon-only restart button, `role="dialog"` + `aria-modal="true"` on the status overlay, palette tuned for ≥4.5:1 contrast on tile text.
 - **Deferred polish (time-permitting):** stable-ID tile identity in `useGame`, CSS-transform slide / spawn / merge animations on `Tile`, `prefers-reduced-motion` guard, score-delta float, merge pop. The static board ships first; these layer on without restructuring DOM (the slot-grid + tile-overlay split is already in place).
