@@ -10,9 +10,10 @@ export function AIPanel() {
       <button
         type="button"
         className={styles.askButton}
-        onClick={() => void requestAdvice()}
-        disabled={adviceLoading}
-        aria-busy={adviceLoading}
+        onClick={() => {
+          if (!adviceLoading) void requestAdvice();
+        }}
+        aria-disabled={adviceLoading}
       >
         {adviceLoading ? (
           <span className={styles.askLabel}>{COPY.ai.computing}</span>

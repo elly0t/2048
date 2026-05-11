@@ -80,7 +80,17 @@ export class GameStore {
     this.adviceLoading = true;
     this.advice = null;
     this.notify();
-    this.advice = await getSuggestion(this.board);
+    // Yield to the event loop so React paints the loading state before sync expectimax blocks the thread.
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    const start = performance.now();
+    const advice = await getSuggestion(this.board);
+    // Floor the loading state at CONFIG.MIN_ADVICE_LOADING_MS for perceptible feedback.
+    const elapsed = performance.now() - start;
+    const remaining = CONFIG.MIN_ADVICE_LOADING_MS - elapsed;
+    if (remaining > 0) {
+      await new Promise<void>((resolve) => setTimeout(resolve, remaining));
+    }
+    this.advice = advice;
     this.adviceLoading = false;
     this.notify();
   }

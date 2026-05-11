@@ -14,4 +14,6 @@ export const CONFIG = {
   // Reasoning falls back to "best overall position" when the dominant weighted
   // component delta is below this fraction of the chosen direction's score (TD §5.4).
   GENERIC_TEMPLATE_THRESHOLD: 0.05,
+  // Visible-loading floor — depth-3 expectimax returns in ~74ms, below the flicker-vs-feedback threshold.
+  MIN_ADVICE_LOADING_MS: 150,
 } as const;

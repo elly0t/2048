@@ -30,7 +30,7 @@
   transition: background-color 120ms ease-out;
 }
 
-.askButton:hover:not(:disabled) {
+.askButton:hover:not([aria-disabled='true']) {
   background-color: hsl(255 45% 22%);
 }
 
@@ -39,7 +39,7 @@
   outline-offset: 2px;
 }
 
-.askButton:disabled {
+.askButton[aria-disabled='true'] {
   cursor: progress;
   opacity: 0.85;
 }
