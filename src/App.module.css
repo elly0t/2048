@@ -2,7 +2,7 @@
    AIPanel sits below (fixed on mobile, in-flow on desktop). */
 .main {
   margin: 0 auto;
-  padding: 16px 8px;
+  padding: 16px;
   /* Mobile: leave room for the fixed-bottom AIPanel CTA so the board never sits
      beneath it. ~72px button + 24px breathing + safe-area inset. */
   padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
@@ -14,11 +14,12 @@
   align-items: center;
 }
 
-/* tier: md — desktop: in-flow AIPanel below the board, more breathing room.
-   max-width matches Header's inner column via --content-max so chrome edges align. */
+/* tier: md — desktop: in-flow AIPanel below the board, more vertical breathing.
+   Horizontal padding zero so the 380px column edges align with the board and Header
+   chrome (max-width via --content-max). */
 @media (min-width: 768px) {
   .main {
     max-width: var(--content-max);
-    padding: 32px 16px 16px;
+    padding: 32px 0 16px;
   }
 }

@@ -123,15 +123,25 @@ html:has(dialog[open]) .title[data-status] {
   border: 0;
 }
 
-/* tier: md — desktop: title scales up, icon → text label, more breathing room */
+/* tier: md — desktop: icon → text label, slight title scale-up. Padding stays tight
+   so Header content fits the 380px content column (matches board + AI button width). */
 @media (min-width: 768px) {
   .headerInner {
-    padding: 16px 24px;
-    gap: 24px;
+    padding: 16px;
+    gap: 16px;
   }
 
   .title {
-    font-size: 40px;
+    font-size: 44px;
+  }
+
+  .scoreBlock {
+    padding: 6px 12px;
+    min-width: 56px;
+  }
+
+  .restart {
+    padding: 8px 12px;
   }
 
   .restartIcon {

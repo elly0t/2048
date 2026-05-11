@@ -18,9 +18,9 @@
   --cell-gap: clamp(8px, 3vw, 12px);
   --board-padding: clamp(8px, 3vw, 12px);
 
-  /* Chrome column width — shared by .headerInner and .main so their edges align.
-     Board is narrower (derived from --tile-size × 4 + gaps), intentional hierarchy. */
-  --content-max: 480px;
+  /* Chrome column width — matches board width (4 × --tile-size + gaps) so Header
+     content, board, and AI button all sit in the same 380px column. */
+  --content-max: 380px;
 
   /* Animation durations — disabled by prefers-reduced-motion below */
   --duration-slide: 120ms;
