@@ -217,6 +217,7 @@ The 6-stage pipeline per TD §4.4. Most likely source of timing bugs in past sub
 13. Board replaced by a new reference, not mutated in place. Subscribers see a new ref.
 14. Explicit LOST guard: a mobile board with `status: LOST` stays unchanged. Without the guard the no-change early-return only catches structurally-immovable boards (case 11), so this case forces the explicit `status === LOST` check.
 15. RNG injection consumed by `spawnTile`: passing `{ rng: () => 0 }` vs `{ rng: () => 0.99 }` produces different post-spawn boards from the same starting position. Catches the "constructor accepts opts.rng but discards it" failure mode.
+16. Valid move while already WON still spawns. `checkWin` is `=== WIN_TILE`, so the stage-3 win branch fires on every move once 2048 exists. The win branch must gate on the WON *transition* (status was not WON before this move), not on `checkWin` alone — otherwise post-win continuation drains the board with no new spawns.
 
 ### GameStore.isActive (getter)
 

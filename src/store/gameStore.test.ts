@@ -292,6 +292,26 @@ describe('GameStore.applyMove', () => {
     // Fails when the constructor accepts rng but discards it (Math.random kicks in).
     expect(a.board).toEqual(b.board);
   });
+
+  it('case 16: valid move while already WON still spawns a new tile (post-win continuation)', () => {
+    // Regression: checkWin returns true whenever 2048 is on the board, so applyMove's
+    // win branch fired on every move while WON — skipping spawn. Players who continued
+    // past the win saw the board grind to a halt with no new tiles. TD §4.4 stage 4
+    // intent: spawn-skip applies only to the move that *triggers* the win, not every
+    // move thereafter.
+    const store = new GameStore({ rng: () => 0 });
+    store.status = STATUS.WON;
+    store.board = [
+      [2048, null, null, null],
+      [null, 2, 2, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ];
+    // Before: 3 tiles (2048, 2, 2). Left → row 1 merges 2+2=4 (2 tiles) → spawn adds 1 → 3 tiles.
+    store.applyMove('left');
+    expect(countTiles(store.board)).toBe(3);
+    expect(store.status).toBe(STATUS.WON);
+  });
 });
 
 // ---- getters (TD §6.3) ----
