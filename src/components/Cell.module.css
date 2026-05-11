@@ -1,0 +1,6 @@
+.cell {
+  width: var(--tile-size);
+  height: var(--tile-size);
+  background-color: var(--color-cell-empty);
+  border-radius: var(--tile-radius);
+}

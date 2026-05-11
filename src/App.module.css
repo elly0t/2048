@@ -1,42 +1,24 @@
 /* Centred content column for the board area. Header sits above (full-bleed),
    AIPanel sits below (fixed on mobile, in-flow on desktop). */
 .main {
-  max-width: 380px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 16px 8px;
   /* Mobile: leave room for the fixed-bottom AIPanel CTA so the board never sits
      beneath it. ~72px button + 24px breathing + safe-area inset. */
   padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   /* Disable browser-default touch gestures (scroll, pinch, double-tap-zoom)
      so finger swipes go to our handlers, not the browser. */
   touch-action: none;
-}
-
-.boardPlaceholder {
-  background-color: var(--color-cell-empty);
-  border-radius: var(--tile-radius);
-  padding: 24px;
-  aspect-ratio: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  color: var(--color-text-default);
 }
 
-.boardPre {
-  margin: 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 16px;
-  line-height: 1.6;
-  letter-spacing: 0.04em;
-  font-variant-numeric: tabular-nums;
-}
-
-/* tier: md — desktop: AIPanel goes in-flow below the board, no bottom padding needed.
-   Slightly wider centred column and more vertical breathing room. */
+/* tier: md — desktop: in-flow AIPanel below the board, more breathing room.
+   max-width matches Header's inner column via --content-max so chrome edges align. */
 @media (min-width: 768px) {
   .main {
-    max-width: 420px;
+    max-width: var(--content-max);
     padding: 32px 16px 16px;
   }
 }

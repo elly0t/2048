@@ -7,7 +7,7 @@
 }
 
 .headerInner {
-  max-width: 644px;
+  max-width: var(--content-max);
   margin: 0 auto;
   padding: 12px 16px;
   display: flex;

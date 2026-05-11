@@ -1,0 +1,21 @@
+.board {
+  position: relative;
+  display: inline-block;
+  padding: var(--board-padding);
+  background-color: hsl(210 25% 88%);
+  border-radius: var(--tile-radius);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, var(--tile-size));
+  grid-template-rows: repeat(4, var(--tile-size));
+  gap: var(--cell-gap);
+}
+
+.tileLayer {
+  position: absolute;
+  inset: var(--board-padding);
+  /* Tiles are decorative for layout — swipe is captured on <main>, not here */
+  pointer-events: none;
+}
