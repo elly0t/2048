@@ -93,7 +93,7 @@ html:has(dialog[open]) .title[data-status] {
   cursor: pointer;
   transition: background-color 120ms ease-out;
   min-width: 44px;
-  min-height: 40px;
+  min-height: 44px;
 }
 
 .restart:hover {

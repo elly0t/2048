@@ -32,8 +32,15 @@ export function StatusOverlay() {
   const dismissLabel = isWon ? COPY.status.continueButton : COPY.status.viewBoardButton;
 
   return (
-    <dialog ref={dialogRef} className={styles.dialog} onCancel={handleDismiss}>
-      <h2 className={styles.title}>{isWon ? COPY.status.won : COPY.status.lost}</h2>
+    <dialog
+      ref={dialogRef}
+      className={styles.dialog}
+      onCancel={handleDismiss}
+      aria-labelledby="status-overlay-title"
+    >
+      <h2 id="status-overlay-title" className={styles.title}>
+        {isWon ? COPY.status.won : COPY.status.lost}
+      </h2>
       <div className={styles.actions}>
         <button type="button" onClick={handleDismiss} className={styles.continueButton}>
           {dismissLabel}
