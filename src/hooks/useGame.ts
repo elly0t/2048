@@ -8,6 +8,10 @@ import { STORAGE_KEYS } from '../constants/storageKeys';
 // init would fire localStorage reads before tests can stub them; getStore()
 // defers side effects until first hook call.
 
+export function isAdviceKey(_key: string): boolean {
+  return false;
+}
+
 export function keyToDirection(key: string): Direction | null {
   switch (key) {
     case 'ArrowLeft':

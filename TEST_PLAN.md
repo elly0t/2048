@@ -278,6 +278,7 @@ Per TD §3.3 (input) and §6.4 (status lifecycle).
 3. `initStore(store)` falls back to `store.reset()` when the saved state JSON is invalid or the key is missing.
 4. `initStore(store)` sets `bestScore` from `localStorage` when valid; defaults to `0` on missing or invalid input.
 5. End-to-end: empty `localStorage` + fresh `GameStore` → after `initStore`, board has 2–8 tiles all equal to `2`, status is `PLAYING`. Holds the full chain (initStore → reset → initBoard) in one test so a reviewer doesn't have to chain transitively across two files.
+6. `isAdviceKey(key)` returns `true` for `' '` (Space) and `false` for any other key (arrows, letters, Enter, Escape).
 
 ### useGame motion inference (deferred — time-permitting)
 

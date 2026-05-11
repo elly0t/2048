@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { keyToDirection, initStore } from './useGame';
+import { keyToDirection, initStore, isAdviceKey } from './useGame';
 import { GameStore } from '../store/gameStore';
 import { STATUS } from '../store/types';
 import { STORAGE_KEYS } from '../constants/storageKeys';
@@ -25,6 +25,21 @@ describe('keyToDirection', () => {
     expect(keyToDirection('a')).toBeNull();
     expect(keyToDirection('Enter')).toBeNull();
     expect(keyToDirection(' ')).toBeNull();
+  });
+});
+
+describe('isAdviceKey', () => {
+  it('returns true for the Space key', () => {
+    expect(isAdviceKey(' ')).toBe(true);
+  });
+
+  it('returns false for arrow keys, letters, Enter, and Escape', () => {
+    expect(isAdviceKey('ArrowLeft')).toBe(false);
+    expect(isAdviceKey('ArrowRight')).toBe(false);
+    expect(isAdviceKey('Enter')).toBe(false);
+    expect(isAdviceKey('Escape')).toBe(false);
+    expect(isAdviceKey('a')).toBe(false);
+    expect(isAdviceKey('')).toBe(false);
   });
 });
 
