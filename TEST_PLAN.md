@@ -186,7 +186,7 @@ Per TD §5.4, §11.
 5. Single-direction-only-valid: chooses that direction; three no-op directions get scored but are not selected. (Moved from expectimax — direction selection lives here.)
 6. All-tied directions: deterministic tie-breaking. Required for reproducible advice (TD §5.4). (Moved from expectimax.)
 7. Reasoning template selected by dominant heuristic delta per TD §5.4 step 3.
-8. Generic template `"Move {dir} — best overall position"` when all deltas under 5% of total score (TD §5.4).
+8. Generic template `"Move {direction} — best overall position"` when all deltas under 5% of total score (TD §5.4).
 9. Dominant delta computed against second-best direction, not third or worst.
 10. `debug` populated with `{ scores, computedInMs, nodesEvaluated, depthSearched }` per TD §11.
 11. All four direction scores present in `debug.scores`, including no-op directions.

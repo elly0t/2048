@@ -14,7 +14,7 @@ Module layout:
 maxValue(board, depth):
    if depth == 0                          ──▶ leafValue(board)            [EXIT]
    for each Direction:
-      applyMove(board, dir) ─ if changed ─▶ chanceValue(board', depth-1)
+      applyMove(board, direction) ─ if changed ─▶ chanceValue(board', depth-1)
    if no direction changed (lose)         ──▶ leafValue(board)            [EXIT]
    return max over children
 

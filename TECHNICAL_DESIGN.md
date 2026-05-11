@@ -424,16 +424,16 @@ Step 4 — dominant delta → template:
   "Move Left — frees up board space"
 ```
 
-**Dominant delta** = largest absolute weighted delta between the chosen direction's components and the second-best direction's. If that delta is below `CONFIG.GENERIC_TEMPLATE_THRESHOLD` (5%) of the chosen direction's score, fall back to the generic template _"Move {dir} — best overall position"_.
+**Dominant delta** = largest absolute weighted delta between the chosen direction's components and the second-best direction's. If that delta is below `CONFIG.GENERIC_TEMPLATE_THRESHOLD` (5%) of the chosen direction's score, fall back to the generic template _"Move {direction} — best overall position"_.
 
 Template map:
 
 | Dominant component | Reasoning template                                                |
 | ------------------ | ----------------------------------------------------------------- |
-| Monotonicity       | _"Move {dir} — keeps tiles ordered along rows"_                   |
-| Smoothness         | _"Move {dir} — keeps similar tiles close, more merges available"_ |
-| Empty cells        | _"Move {dir} — frees up board space"_                             |
-| Corner             | _"Move {dir} — keeps largest tile anchored in corner"_            |
+| Monotonicity       | _"Move {direction} — keeps tiles ordered along rows"_                   |
+| Smoothness         | _"Move {direction} — keeps similar tiles close, more merges available"_ |
+| Empty cells        | _"Move {direction} — frees up board space"_                             |
+| Corner             | _"Move {direction} — keeps largest tile anchored in corner"_            |
 
 Deterministic: given the same board, output is always identical. Fully testable:
 
