@@ -54,8 +54,8 @@ html:has(dialog[open]) .title[data-status] {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background-color: hsl(210 25% 88%);
-  color: var(--color-text-default);
+  background-color: hsl(255 35% 22%);
+  color: hsl(0 0% 100%);
   border-radius: var(--tile-radius);
   padding: 6px 14px;
   min-width: 64px;
@@ -66,7 +66,7 @@ html:has(dialog[open]) .title[data-status] {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: hsl(210 30% 35%);
+  color: hsl(255 25% 78%);
 }
 
 .value {
@@ -74,6 +74,7 @@ html:has(dialog[open]) .title[data-status] {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
+  color: hsl(0 0% 100%);
 }
 
 .restart {
@@ -81,7 +82,7 @@ html:has(dialog[open]) .title[data-status] {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background-color: hsl(210 60% 18%);
+  background-color: hsl(255 50% 22%);
   color: hsl(0 0% 100%);
   border: none;
   border-radius: var(--tile-radius);
@@ -96,11 +97,11 @@ html:has(dialog[open]) .title[data-status] {
 }
 
 .restart:hover {
-  background-color: hsl(210 60% 28%);
+  background-color: hsl(255 50% 30%);
 }
 
 .restart:focus-visible {
-  outline: 2px solid hsl(210 60% 50%);
+  outline: 2px solid hsl(255 50% 50%);
   outline-offset: 2px;
 }
 

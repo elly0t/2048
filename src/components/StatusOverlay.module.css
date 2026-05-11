@@ -78,16 +78,16 @@
 
 /* Restart is primary — dark fill, white text (matches Header) */
 .restartButton {
-  background-color: hsl(210 60% 18%);
+  background-color: hsl(255 50% 22%);
   color: hsl(0 0% 100%);
 }
 
 .restartButton:hover {
-  background-color: hsl(210 60% 28%);
+  background-color: hsl(255 50% 30%);
 }
 
 .continueButton:focus-visible,
 .restartButton:focus-visible {
-  outline: 2px solid hsl(210 60% 50%);
+  outline: 2px solid hsl(255 50% 50%);
   outline-offset: 2px;
 }

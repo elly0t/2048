@@ -2,8 +2,9 @@
   position: relative;
   display: inline-block;
   padding: var(--board-padding);
-  background-color: hsl(210 25% 88%);
+  background-color: hsl(255 14% 72%);
   border-radius: var(--tile-radius);
+  box-shadow: inset 0 1px 0 hsl(255 25% 80%), 0 2px 8px hsl(255 30% 30% / 0.08);
 }
 
 .grid {

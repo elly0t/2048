@@ -18,7 +18,7 @@
   gap: 8px;
   width: 100%;
   min-height: 48px;
-  background-color: hsl(210 50% 28%);
+  background-color: hsl(255 45% 28%);
   color: hsl(0 0% 100%);
   border: none;
   border-radius: var(--tile-radius);
@@ -31,11 +31,11 @@
 }
 
 .askButton:hover:not(:disabled) {
-  background-color: hsl(210 50% 22%);
+  background-color: hsl(255 45% 22%);
 }
 
 .askButton:focus-visible {
-  outline: 2px solid hsl(210 60% 50%);
+  outline: 2px solid hsl(255 50% 50%);
   outline-offset: 2px;
 }
 

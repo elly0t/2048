@@ -2,10 +2,11 @@
    (runtime, applied as inline style on Tile). Static surface colours live here. */
 
 :root {
-  /* Surface colours */
-  --color-bg: hsl(210 25% 98%);
-  --color-cell-empty: hsl(210 25% 93%);
-  --color-text-default: hsl(210 60% 18%);
+  /* Surface colours — subtle lavender tint so the page reads as designed
+     rather than default-white, and chrome echoes the tile palette family. */
+  --color-bg: hsl(255 22% 96%);
+  --color-cell-empty: hsl(255 18% 90%);
+  --color-text-default: hsl(255 35% 14%);
 
   /* Tile geometry */
   --tile-radius: 6px;
