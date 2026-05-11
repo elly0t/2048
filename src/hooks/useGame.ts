@@ -125,6 +125,8 @@ export function useGameTouch(): TouchHandlers {
 export function useGameKeyboard(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Browser auto-repeat fires keydown rapidly while held — one press = one move.
+      if (e.repeat) return;
       if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
       if (isAdviceKey(e.key)) {
         e.preventDefault();
