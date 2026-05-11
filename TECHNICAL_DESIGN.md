@@ -319,7 +319,7 @@ The improvement that falls out: `computeDepth(board)` keyed off `|empties|`. Sha
 
 Wiring is small. The recursion already takes `depth` as a parameter, so it can be linked up with a dynamic function `computeDepth(board)`, table-driven in `config.ts` (sketch: `≥10 → 2`, `5–9 → 3`, `≤4 → 4`). Explicit-depth tests keep passing untouched.
 
-Potential Concerns are running benchmarks and finding data to support, but definitely a feasible upgrade, just need to do it.
+The fixed-depth-3 benchmark (`bench/BENCHMARK_REPORT.md`) confirms the keying logic: depth 3 dominates depth 2 on 4096 reach rate (27% vs 14%) and mean score (+17%), but mean ms/move at depth 3 is ~74ms vs depth 2's ~1.5ms — exactly the sparse-board cost adaptive depth would avoid. Empirical baseline before tuning.
 
 ### 5.3 Heuristic Function
 
@@ -388,13 +388,17 @@ export async function getSuggestion(board) {
 
 `AI_MODES.LOCAL` is the default. Components and `GameStore` call `getSuggestion` regardless of mode — nothing else in the codebase changes.
 
-Benchmark (to be filled during build):
+Benchmark (full write-up in `bench/BENCHMARK_REPORT.md`):
 
 ```
 Implementation:   Own Expectimax, depth 3
-2048 reach rate:  __% (n=100 games)
-Avg move time:    __ms
+2048 reach rate:  77% (n=100, Wilson 95% CI [67.8, 84.2])
+Reach 4096:       27% (CI [19.3, 36.4])
+Mean score:       37,561
+Avg move time:    74ms (p95 187ms, max 780ms)
 ```
+
+Random and greedy baselines were also run (each n=100). Both reach 0% on 2048; greedy caps at 512, random caps at 256. Calibration confirmed: the search contributes real move quality, not heuristics riding on luck.
 
 ### How the suggestion works
 
