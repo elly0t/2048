@@ -73,35 +73,51 @@ Domain types live in `domain/types.ts`. Const-backed types (`Direction`) live al
 
 ### 3.3 UI Layout
 
-Single screen. Score bar, centred 4×4 grid, AI panel beside the grid.
+Three-row shell: full-bleed top bar / centred board / bottom AI CTA. Responsive via a single 768px breakpoint — same DOM, the swap is button label/size and CTA positioning, not a layout reflow.
+
+**Breakpoint system:** standard sm/md/lg/xl tiers (640/768/1024/1280 px, defined as CSS variables in `tokens.css`). Only `md` (768) is structurally active for this layout — the chrome is light (title, scores, restart, board, AI CTA), so the only meaningful boundary is mobile↔desktop. Other tiers are documented for future extension (e.g. larger tiles at `lg`, side AI panel at `xl`) without restructuring DOM.
 
 ```
-┌──────────────────────────────────────────────┐
-│  2048                Score: 1024             │
-│                      Best:  2048             │
-├──────────────────────────────────────────────┤
-│   ┌────┬────┬────┬────┐                      │
-│   │  2 │    │  4 │    │     [ Suggest move ] │
-│   ├────┼────┼────┼────┤                      │
-│   │    │  8 │    │  2 │     Last advice: ←   │
-│   ├────┼────┼────┼────┤     "Move Left —     │
-│   │    │    │  4 │    │      frees board     │
-│   ├────┼────┼────┼────┤      space"          │
-│   │  2 │  4 │    │ 16 │                      │
-│   └────┴────┴────┴────┘                      │
-│                                              │
-│              ← ↑ → ↓  to move                │
-└──────────────────────────────────────────────┘
+Mobile (<768px)                       Desktop (≥768px)
+┌──────────────────────────┐          ┌──────────────────────────────────────┐
+│ 2048   SCORE BEST   ↺    │          │ 2048      SCORE BEST     [New Game]  │
+├──────────────────────────┤          ├──────────────────────────────────────┤
+│                          │          │                                      │
+│   ┌────┬────┬────┬────┐  │          │       ┌────┬────┬────┬────┐          │
+│   │  2 │    │  4 │    │  │          │       │  2 │    │  4 │    │          │
+│   ├────┼────┼────┼────┤  │          │       ├────┼────┼────┼────┤          │
+│   │    │  8 │    │  2 │  │          │       │    │  8 │    │  2 │          │
+│   ├────┼────┼────┼────┤  │          │       ├────┼────┼────┼────┤          │
+│   │    │    │  4 │    │  │          │       │    │    │  4 │    │          │
+│   ├────┼────┼────┼────┤  │          │       ├────┼────┼────┼────┤          │
+│   │  2 │  4 │    │ 16 │  │          │       │  2 │  4 │    │ 16 │          │
+│   └────┴────┴────┴────┘  │          │       └────┴────┴────┴────┘          │
+│                          │          │                                      │
+│                          │          │          [✨ Ask AI (Space)]         │
+├──────────────────────────┤          │                                      │
+│  [✨ Ask AI (Space)]     │ ← fixed  └──────────────────────────────────────┘
+└──────────────────────────┘
 ```
 
-- Score bar shows current score and best score with a `ⓘ` tooltip (§8).
-- Grid renders 4×4 tiles coloured by `log₂(rank)` via a generative HSL function in `tokens.css`. Empty cells stay visible.
-- Grid renders as a static 4×4 cell layer with an absolute-positioned tile overlay on top. The DOM shape is animation-ready, but tile animations (slide / spawn / merge) and the stable-ID identity tracking in `useGame` that drives them are **deferred polish** — see the deferred-polish bullet below. Without animations, the overlay still renders correctly: tiles appear at their target positions on each render.
-- AI panel: button requests a suggestion; result shows direction + reasoning template (§5.4). Right-attached card on desktop; stacked below the board on mobile (single media query).
+**Top bar (full viewport width, both viewports):**
+- Title "2048" on the left.
+- Score and Best pills in the centre.
+- Restart on the right: circular-arrow icon on mobile (`aria-label="New game"`), "New Game" text on desktop.
+
+**Board area (centred, both viewports):**
+- 4×4 grid coloured by `log₂(rank)` via a generative HSL function in `palette.ts` (runtime, applied as inline style on Tile). Empty cells stay visible (`var(--color-cell-empty)` from `tokens.css`).
+- Static 4×4 cell layer with an absolute-positioned tile overlay on top. DOM is animation-ready, but tile animations (slide / spawn / merge) and stable-ID identity tracking in `useGame` are **deferred polish** — see the deferred-polish bullet below. Without animations, the overlay renders correctly: tiles appear at their target positions on each render.
+
+**AI CTA (bottom, both viewports):**
+- Mobile (<768px): fixed to the bottom of the viewport, full-width. Thumb-zone friendly.
+- Desktop (≥768px): normal flow below the board, board-width, centred.
+- Click or press `Space` to request a suggestion. Loading state shows "Computing…" inline. Result direction + reasoning template (§5.4) renders below the button.
+
+**Other:**
 - Status overlay: centred modal on win or lose. WON shows Continue (dismiss; play continues per assumption #4) + Restart. LOST shows Restart only.
-- Input: arrow keys captured at window level. No on-screen direction buttons.
+- Input: arrow keys for moves and `Space` for advice, captured at window level. No on-screen direction buttons.
 - Components consume state via the `useGame` hook (§10, `src/hooks/useGame.ts`) using `useSyncExternalStore`; they never reach into `GameStore` directly.
-- Accessibility floor: semantic `<button>` for actions, `aria-live="polite"` on score and advice text, `role="dialog"` + `aria-modal="true"` on the status overlay, palette tuned for ≥4.5:1 contrast on tile text.
+- Accessibility floor: semantic `<button>` for actions, `aria-live="polite"` on score and advice text, `aria-label` on the mobile icon-only restart button, `role="dialog"` + `aria-modal="true"` on the status overlay, palette tuned for ≥4.5:1 contrast on tile text.
 - **Deferred polish (time-permitting):** stable-ID tile identity in `useGame`, CSS-transform slide / spawn / merge animations on `Tile`, `prefers-reduced-motion` guard, score-delta float, merge pop. The static board ships first; these layer on without restructuring DOM (the slot-grid + tile-overlay split is already in place).
 
 ---

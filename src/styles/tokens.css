@@ -19,6 +19,16 @@
   --duration-spawn: 150ms;
   --duration-merge-pop: 100ms;
   --ease-slide: ease-out;
+
+  /* Responsive breakpoints — standard sm/md/lg/xl tier system. Only --breakpoint-md
+     (mobile↔desktop) is structurally active for this layout; sm/lg/xl are documented
+     and JS-readable for future extension. Note: CSS custom properties can't be
+     interpolated inside @media queries directly, so values are repeated in component
+     CSS with a tier-name comment for traceability. */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
 }
 
 @media (prefers-reduced-motion: reduce) {
