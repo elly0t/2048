@@ -7,24 +7,29 @@ export function Header() {
 
   return (
     <header className={styles.header}>
-      <h1 className={styles.title}>{COPY.app.title}</h1>
-      <div className={styles.scores}>
-        <div className={styles.scoreBlock}>
-          <span className={styles.label}>{COPY.header.scoreLabel}</span>
-          <span className={styles.value} aria-live="polite">
-            {score}
-          </span>
+      <div className={styles.headerInner}>
+        <h1 className={styles.title}>{COPY.app.title}</h1>
+        <div className={styles.scores}>
+          <div className={styles.scoreBlock}>
+            <span className={styles.label}>{COPY.header.scoreLabel}</span>
+            <span className={styles.value} aria-live="polite">
+              {score}
+            </span>
+          </div>
+          <div className={styles.scoreBlock}>
+            <span className={styles.label}>{COPY.header.bestLabel}</span>
+            <span className={styles.value} aria-live="polite">
+              {bestScore}
+            </span>
+          </div>
         </div>
-        <div className={styles.scoreBlock}>
-          <span className={styles.label}>{COPY.header.bestLabel}</span>
-          <span className={styles.value} aria-live="polite">
-            {bestScore}
+        <button type="button" className={styles.restart} onClick={() => reset()}>
+          <span aria-hidden="true" className={styles.restartIcon}>
+            ↺
           </span>
-        </div>
+          <span className={styles.restartLabel}>{COPY.header.newGame}</span>
+        </button>
       </div>
-      <button className={styles.restart} onClick={() => reset()}>
-        Restart
-      </button>
     </header>
   );
 }
