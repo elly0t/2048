@@ -27,6 +27,7 @@ export class GameStore {
   bestScore = 0;
   advice: AIAdvice | null = null;
   adviceLoading = false;
+  lastDirection: Direction | null = null;
 
   private rng: () => number;
   private listeners = new Set<() => void>();

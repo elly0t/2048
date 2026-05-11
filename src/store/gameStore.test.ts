@@ -312,6 +312,19 @@ describe('GameStore.applyMove', () => {
     expect(countTiles(store.board)).toBe(3);
     expect(store.status).toBe(STATUS.WON);
   });
+
+  it('case 17: lastDirection tracks last valid move; null initially and after reset', () => {
+    const store = new GameStore({ rng: () => 0 });
+    expect(store.lastDirection).toBeNull();
+
+    store.board = deepCopy(standardBoard);
+    store.status = STATUS.PLAYING;
+    store.applyMove('right');
+    expect(store.lastDirection).toBe('right');
+
+    store.reset();
+    expect(store.lastDirection).toBeNull();
+  });
 });
 
 // ---- getters (TD §6.3) ----
