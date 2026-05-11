@@ -8,8 +8,8 @@ import { STORAGE_KEYS } from '../constants/storageKeys';
 // init would fire localStorage reads before tests can stub them; getStore()
 // defers side effects until first hook call.
 
-export function isAdviceKey(_key: string): boolean {
-  return false;
+export function isAdviceKey(key: string): boolean {
+  return key === ' ';
 }
 
 export function keyToDirection(key: string): Direction | null {
@@ -79,6 +79,11 @@ export function useGameKeyboard(): void {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      if (isAdviceKey(e.key)) {
+        e.preventDefault();
+        void getStore().requestAdvice();
+        return;
+      }
       const direction = keyToDirection(e.key);
       if (!direction) return;
       e.preventDefault();
