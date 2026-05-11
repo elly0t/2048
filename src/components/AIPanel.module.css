@@ -1,0 +1,79 @@
+/* Mobile (default — <768px): fixed-bottom CTA, full viewport width.
+   See TD §3.3 — Ask AI is the primary action; thumb-zone friendly. */
+.panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  background-color: var(--color-bg);
+  box-shadow: 0 -2px 8px hsl(210 40% 30% / 0.08);
+  z-index: 10;
+}
+
+.askButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  background-color: hsl(210 50% 28%);
+  color: hsl(0 0% 100%);
+  border: none;
+  border-radius: var(--tile-radius);
+  padding: 12px 20px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 120ms ease-out;
+}
+
+.askButton:hover:not(:disabled) {
+  background-color: hsl(210 50% 22%);
+}
+
+.askButton:focus-visible {
+  outline: 2px solid hsl(210 60% 50%);
+  outline-offset: 2px;
+}
+
+.askButton:disabled {
+  cursor: progress;
+  opacity: 0.85;
+}
+
+.askLabel {
+  font-weight: 700;
+}
+
+.shortcutHint {
+  font-weight: 400;
+  opacity: 0.75;
+  font-size: 13px;
+}
+
+.advice {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-default);
+}
+
+.adviceDirection {
+  text-transform: capitalize;
+  font-weight: 700;
+}
+
+/* tier: md — desktop (≥768px): in-flow, centred under the board, board-width */
+@media (min-width: 768px) {
+  .panel {
+    position: static;
+    max-width: 380px;
+    margin: 24px auto 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+}
