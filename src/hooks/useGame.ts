@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useSyncExternalStore, type TouchEvent } from 'react';
 import { GameStore } from '../store/gameStore';
 import { DIRECTION, type Direction } from '../domain/types';
 import { saveGameState, saveBestScore, loadGameState, loadBestScore } from './persistence';
@@ -88,6 +88,37 @@ export function useGame() {
     move: s.applyMove.bind(s),
     reset: s.reset.bind(s),
     requestAdvice: s.requestAdvice.bind(s),
+  };
+}
+
+type TouchHandlers = {
+  onTouchStart: (e: TouchEvent) => void;
+  onTouchEnd: (e: TouchEvent) => void;
+  onTouchCancel: () => void;
+};
+
+// Touch gesture handlers (TD §3.3). Spread onto the swipe surface.
+export function useGameTouch(): TouchHandlers {
+  const start = useRef<{ x: number; y: number } | null>(null);
+
+  return {
+    onTouchStart: (e) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      start.current = { x: touch.clientX, y: touch.clientY };
+    },
+    onTouchEnd: (e) => {
+      const origin = start.current;
+      start.current = null;
+      if (!origin) return;
+      const touch = e.changedTouches[0];
+      if (!touch) return;
+      const direction = swipeToDirection(origin.x, origin.y, touch.clientX, touch.clientY);
+      if (direction) getStore().applyMove(direction);
+    },
+    onTouchCancel: () => {
+      start.current = null;
+    },
   };
 }
 

@@ -7,6 +7,9 @@
   /* Mobile: leave room for the fixed-bottom AIPanel CTA so the board never sits
      beneath it. ~72px button + 24px breathing + safe-area inset. */
   padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  /* Disable browser-default touch gestures (scroll, pinch, double-tap-zoom)
+     so finger swipes go to our handlers, not the browser. */
+  touch-action: none;
 }
 
 .boardPlaceholder {
