@@ -20,9 +20,10 @@ export const COPY = {
     computing: 'Computing…',
   },
   status: {
-    won: 'You won',
-    lost: 'Game over',
+    won: 'You won', // modal title
+    lost: 'Game over', // modal title
     continueButton: 'Continue',
+    viewBoardButton: 'View board',
     restartButton: 'Restart',
   },
   meta: {

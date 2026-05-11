@@ -24,6 +24,26 @@
   flex: 0 0 auto;
 }
 
+/* Ambient end-state tint with a 500ms delay so it lands after the modal's fade-out finishes, giving the shift its own moment. */
+.title[data-status='won'],
+.title[data-status='lost'] {
+  transition: color 300ms ease-out 500ms;
+}
+
+.title[data-status='won'] {
+  color: hsl(35 60% 25%);
+}
+
+.title[data-status='lost'] {
+  color: hsl(210 10% 50%);
+}
+
+/* Modal-open override: fast fade to neutral so the title doesn't compete with the modal opening. */
+html:has(dialog[open]) .title[data-status] {
+  color: var(--color-text-default);
+  transition: color var(--duration-spawn) ease-out;
+}
+
 .scores {
   display: flex;
   gap: 8px;

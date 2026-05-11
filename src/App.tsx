@@ -2,6 +2,7 @@ import { useGameKeyboard, useGameTouch } from './hooks/useGame';
 import { Header } from './components/Header';
 import { Board } from './components/Board';
 import { AIPanel } from './components/AIPanel';
+import { StatusOverlay } from './components/StatusOverlay';
 import styles from './App.module.css';
 
 export function App() {
@@ -15,6 +16,7 @@ export function App() {
         <Board />
       </main>
       <AIPanel />
+      <StatusOverlay />
     </>
   );
 }

@@ -1,0 +1,93 @@
+.dialog {
+  margin: auto;
+  border: none;
+  border-radius: var(--tile-radius);
+  background-color: var(--color-bg);
+  color: var(--color-text-default);
+  padding: 24px;
+  min-width: 280px;
+  max-width: 400px;
+  box-shadow: 0 8px 32px hsl(210 40% 20% / 0.3);
+  /* Fade-in via @starting-style + allow-discrete — native <dialog> animation pattern. */
+  opacity: 1;
+  transition:
+    opacity var(--duration-spawn) ease-out,
+    overlay var(--duration-spawn) allow-discrete,
+    display var(--duration-spawn) allow-discrete;
+}
+
+@starting-style {
+  .dialog[open] {
+    opacity: 0;
+  }
+}
+
+.dialog::backdrop {
+  background-color: hsl(210 30% 15% / 0.55);
+  opacity: 1;
+  transition:
+    opacity var(--duration-spawn) ease-out,
+    overlay var(--duration-spawn) allow-discrete,
+    display var(--duration-spawn) allow-discrete;
+}
+
+@starting-style {
+  .dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+.title {
+  margin: 0 0 20px;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.continueButton,
+.restartButton {
+  flex: 1;
+  border: none;
+  border-radius: var(--tile-radius);
+  padding: 12px 20px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  white-space: nowrap;
+  transition: background-color 120ms ease-out;
+}
+
+/* Continue is secondary — light surface, dark text */
+.continueButton {
+  background-color: hsl(210 25% 80%);
+  color: var(--color-text-default);
+}
+
+.continueButton:hover {
+  background-color: hsl(210 25% 70%);
+}
+
+/* Restart is primary — dark fill, white text (matches Header) */
+.restartButton {
+  background-color: hsl(210 60% 18%);
+  color: hsl(0 0% 100%);
+}
+
+.restartButton:hover {
+  background-color: hsl(210 60% 28%);
+}
+
+.continueButton:focus-visible,
+.restartButton:focus-visible {
+  outline: 2px solid hsl(210 60% 50%);
+  outline-offset: 2px;
+}

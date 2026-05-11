@@ -114,7 +114,8 @@ Mobile (<768px)                       Desktop (≥768px)
 - Click or press `Space` to request a suggestion. Loading state shows "Computing…" inline. Result direction + reasoning template (§5.4) renders below the button.
 
 **Other:**
-- Status overlay: centred modal on win or lose. WON shows Continue (dismiss; play continues per assumption #4) + Restart. LOST shows Restart only.
+- Status overlay: centred modal on win or lose. WON shows Continue (dismiss; play continues per assumption #4) + Restart. LOST shows View board (dismiss to inspect the final locked state) + Restart. Dismissed-for-current-status is held in local component state lazily initialised from current status — if the page mounts already in an end-state (e.g. refresh while WON), the modal stays closed (player has seen it before).
+- Persistent end-state cue: a subtle colour tint on the Header title (`<h1>`) via `data-status="won|lost"` — gold for WON, muted grey for LOST. No separate banner / no decorative chrome. The modal is the dramatic announcement; the title tint is ambient post-dismissal awareness. Frozen-board state on LOST is its own signal (no valid moves apply).
 - Input: arrow keys (moves) and `Space` (advice) captured at window level. On touch devices, finger swipes on the `<main>` content area produce moves — horizontal/vertical axis chosen by the greater absolute delta, with a 30px threshold to filter accidental drift. Swipe and keyboard converge on the same `applyMove(direction)` action; no source distinction at the store level. No on-screen direction buttons.
 - Components consume state via the `useGame` hook (§10, `src/hooks/useGame.ts`) using `useSyncExternalStore`; they never reach into `GameStore` directly.
 - Accessibility floor: semantic `<button>` for actions, `aria-live="polite"` on score and advice text, `aria-label` on the mobile icon-only restart button, `role="dialog"` + `aria-modal="true"` on the status overlay, palette tuned for ≥4.5:1 contrast on tile text.
@@ -860,7 +861,7 @@ Inspect config:
 │   │   ├── Tile.module.css
 │   │   ├── AIPanel.tsx           # Suggest button + advice display + loading state
 │   │   ├── AIPanel.module.css
-│   │   ├── StatusOverlay.tsx     # Win/lose modal — Continue (WON) / Restart
+│   │   ├── StatusOverlay.tsx     # Win/lose modal — Continue (WON) or View board (LOST) + Restart
 │   │   └── StatusOverlay.module.css
 │   │
 │   ├── styles/
