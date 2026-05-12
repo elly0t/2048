@@ -110,25 +110,25 @@ export class MotionTracker {
 
 export function useGame() {
   const s = getStore();
-  useSyncExternalStore(s.subscribe.bind(s), s.getSnapshot);
+  useSyncExternalStore(s.subscribe, s.getSnapshot);
   const trackerRef = useRef<MotionTracker | null>(null);
   if (!trackerRef.current) trackerRef.current = new MotionTracker(s.board);
   const tracker = trackerRef.current;
+  const prevBoardRef = useRef(s.board);
   const [motions, setMotions] = useState<TileMotion[]>([]);
 
-  const move = (direction: Direction) => {
-    const oldBoard = s.board;
-    s.applyMove(direction);
-    if (s.lastDirection) {
-      setMotions(tracker.track(oldBoard, s.board, s.lastDirection));
+  // Board-change driven (not move-wrapper driven) so keyboard/touch handlers that call getStore().applyMove directly still trigger motion inference.
+  useEffect(() => {
+    const prev = prevBoardRef.current;
+    if (prev === s.board) return;
+    prevBoardRef.current = s.board;
+    if (s.lastDirection === null) {
+      tracker.reset(s.board);
+      setMotions([]);
+    } else {
+      setMotions(tracker.track(prev, s.board, s.lastDirection));
     }
-  };
-
-  const reset = () => {
-    s.reset();
-    tracker.reset(s.board);
-    setMotions([]);
-  };
+  }, [s.board, s.lastDirection, tracker]);
 
   return {
     board: s.board,
@@ -140,9 +140,9 @@ export function useGame() {
     advice: s.advice,
     adviceLoading: s.adviceLoading,
     motions,
-    move,
-    reset,
-    requestAdvice: s.requestAdvice.bind(s),
+    move: s.applyMove,
+    reset: s.reset,
+    requestAdvice: s.requestAdvice,
   };
 }
 

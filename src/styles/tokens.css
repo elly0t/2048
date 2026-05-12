@@ -10,7 +10,8 @@
 
   /* Tile geometry */
   --tile-radius: 6px;
-  --tile-shadow: 0 1px 3px hsl(210 40% 30% / 0.12);
+  /* Symmetric (no Y offset) — biased shadow extends visibly past board edge when tile scale-animates. */
+  --tile-shadow: 0 0 3px hsl(210 40% 30% / 0.12);
   /* Tile size scales between 64px (~320px viewport) and 80px (≥400px viewport)
      so the 4×4 board never overflows on small phones. Capped at 80 above 400. */
   --tile-size: clamp(64px, 20vw, 80px);
@@ -23,11 +24,21 @@
      content, board, and AI button all sit in the same 380px column. */
   --content-max: 380px;
 
-  /* Animation durations — disabled by prefers-reduced-motion below */
-  --duration-slide: 120ms;
-  --duration-spawn: 150ms;
-  --duration-merge-pop: 100ms;
-  --ease-slide: ease-out;
+  /* Animation timings — split into two semantic families:
+     - tile-* drive the game-board motion narrative (slide, spawn, pop)
+     - ui-* drive the surrounding UI shell (dialog fades, button hover feedback)
+     They're decoupled so re-tuning the game feel doesn't drag dialogs/buttons along.
+     All disabled by prefers-reduced-motion below. */
+  --duration-tile-slide: 180ms;
+  --duration-tile-spawn: 250ms;
+  --duration-tile-pop: 200ms;
+  --delay-tile-spawn: 240ms;
+  --delay-tile-pop: 0ms;
+  --duration-ui-fade: 150ms;
+  --duration-ui-hover: 120ms;
+  /* Monotonic ease-out for tile slide and scale — no past-target overshoot. Merge bounce comes from the pop keyframe shape, not from easing. */
+  --ease-tile-slide: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-tile-scale: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Responsive breakpoints — standard sm/md/lg/xl tier system. Only --breakpoint-md
      (mobile↔desktop) is structurally active for this layout; sm/lg/xl are documented
@@ -42,8 +53,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --duration-slide: 0ms;
-    --duration-spawn: 0ms;
-    --duration-merge-pop: 0ms;
+    --duration-tile-slide: 0ms;
+    --duration-tile-spawn: 0ms;
+    --duration-tile-pop: 0ms;
+    --delay-tile-spawn: 0ms;
+    --delay-tile-pop: 0ms;
+    --duration-ui-fade: 0ms;
+    --duration-ui-hover: 0ms;
   }
 }

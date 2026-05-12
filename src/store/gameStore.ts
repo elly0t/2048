@@ -49,7 +49,7 @@ export class GameStore {
     return tiles.length === 0 ? null : Math.max(...tiles);
   }
 
-  applyMove(direction: Direction): void {
+  applyMove = (direction: Direction): void => {
     if (this.status === STATUS.LOST) return;
 
     const { board: newBoard, changed, scoreDelta } = domainApplyMove(this.board, direction);
@@ -76,9 +76,9 @@ export class GameStore {
     this.lastDirection = direction;
     this.board = nextBoard;
     this.notify();
-  }
+  };
 
-  async requestAdvice(): Promise<void> {
+  requestAdvice = async (): Promise<void> => {
     if (this.adviceLoading) return;
     this.adviceLoading = true;
     this.advice = null;
@@ -96,9 +96,9 @@ export class GameStore {
     this.advice = advice;
     this.adviceLoading = false;
     this.notify();
-  }
+  };
 
-  reset(): void {
+  reset = (): void => {
     this.board = initBoard(this.rng);
     this.status = STATUS.PLAYING;
     this.score = 0;
@@ -106,14 +106,14 @@ export class GameStore {
     this.adviceLoading = false;
     this.lastDirection = null;
     this.notify();
-  }
+  };
 
-  subscribe(listener: () => void): () => void {
+  subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
     return () => {
       this.listeners.delete(listener);
     };
-  }
+  };
 
   // Monotonically increments on every state change. React subscribes via
   // useSyncExternalStore against this snapshot — see TD §6.2 React bridge.

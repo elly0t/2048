@@ -41,7 +41,7 @@
 /* Modal-open override: fast fade to neutral so the title doesn't compete with the modal opening. */
 html:has(dialog[open]) .title[data-status] {
   color: var(--color-text-default);
-  transition: color var(--duration-spawn) ease-out;
+  transition: color var(--duration-ui-fade) ease-out;
 }
 
 .scores {
@@ -91,7 +91,7 @@ html:has(dialog[open]) .title[data-status] {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 120ms ease-out;
+  transition: background-color var(--duration-ui-hover) ease-out;
   min-width: 44px;
   min-height: 44px;
 }

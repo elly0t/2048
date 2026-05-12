@@ -11,10 +11,42 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   box-shadow: var(--tile-shadow);
-  /* Position formula: each step = tile-size + cell-gap.
-     Animatable later via `transition: transform var(--duration-slide)`. */
-  transform: translate(
-    calc(var(--col) * (var(--tile-size) + var(--cell-gap))),
-    calc(var(--row) * (var(--tile-size) + var(--cell-gap)))
-  );
+  /* Position via standalone `translate` (not `transform: translate`) so the
+     standalone `scale` property in tile-pop composes cleanly. Mixing the two
+     causes scale to magnify the translate (per CSS Transforms L2 spec):
+     `transform: translate(X,Y)` + `scale: 1.15` ⇒ point lands at (1.15·X, 1.15·Y),
+     not (X, Y) — a position-dependent overshoot. */
+  translate:
+    calc(var(--col) * (var(--tile-size) + var(--cell-gap)))
+    calc(var(--row) * (var(--tile-size) + var(--cell-gap)));
+  transition: translate var(--duration-tile-slide) var(--ease-tile-slide);
+  scale: 1;
+}
+
+.tile[data-spawned] {
+  animation: tile-spawn var(--duration-tile-spawn) var(--ease-tile-scale) var(--delay-tile-spawn) both;
+}
+
+.tile[data-merged] {
+  animation: tile-pop var(--duration-tile-pop) var(--ease-tile-scale) var(--delay-tile-pop);
+}
+
+@keyframes tile-spawn {
+  from {
+    opacity: 0;
+    scale: 0.5;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes tile-pop {
+  0%, 100% {
+    scale: 1;
+  }
+  50% {
+    scale: 1.15;
+  }
 }

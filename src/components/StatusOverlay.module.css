@@ -11,9 +11,9 @@
   /* Fade-in via @starting-style + allow-discrete — native <dialog> animation pattern. */
   opacity: 1;
   transition:
-    opacity var(--duration-spawn) ease-out,
-    overlay var(--duration-spawn) allow-discrete,
-    display var(--duration-spawn) allow-discrete;
+    opacity var(--duration-ui-fade) ease-out,
+    overlay var(--duration-ui-fade) allow-discrete,
+    display var(--duration-ui-fade) allow-discrete;
 }
 
 @starting-style {
@@ -26,9 +26,9 @@
   background-color: hsl(210 30% 15% / 0.55);
   opacity: 1;
   transition:
-    opacity var(--duration-spawn) ease-out,
-    overlay var(--duration-spawn) allow-discrete,
-    display var(--duration-spawn) allow-discrete;
+    opacity var(--duration-ui-fade) ease-out,
+    overlay var(--duration-ui-fade) allow-discrete,
+    display var(--duration-ui-fade) allow-discrete;
 }
 
 @starting-style {
@@ -63,7 +63,7 @@
   cursor: pointer;
   min-height: 44px;
   white-space: nowrap;
-  transition: background-color 120ms ease-out;
+  transition: background-color var(--duration-ui-hover) ease-out;
 }
 
 /* Continue is secondary — light surface, dark text */
