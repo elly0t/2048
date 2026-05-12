@@ -96,7 +96,7 @@ describe('inferMotions', () => {
       'left',
       seq(),
     );
-    const merge = motions.find((m) => m.row === 0 && m.col === 0);
+    const merge = motions.find((m) => m.row === 0 && m.col === 0 && !m.ghost);
     expect(merge?.merged).toBe(true);
     expect(merge?.value).toBe(4);
 
@@ -214,8 +214,8 @@ describe('inferMotions', () => {
       seq(),
     );
     expect(motions).toHaveLength(5); // 2 ghosts + 2 targets + 1 spawn
-    const m0 = motions.find((m) => m.row === 0 && m.col === 0);
-    const m1 = motions.find((m) => m.row === 0 && m.col === 1);
+    const m0 = motions.find((m) => m.row === 0 && m.col === 0 && !m.ghost);
+    const m1 = motions.find((m) => m.row === 0 && m.col === 1 && !m.ghost);
     expect(m0?.merged).toBe(true);
     expect(m0?.value).toBe(4);
     expect(m1?.merged).toBe(true);
@@ -253,7 +253,7 @@ describe('inferMotions', () => {
       seq(),
     );
     expect(motions).toHaveLength(3); // 1 ghost + 1 target + 1 spawn
-    const merge = motions.find((m) => m.row === 3 && m.col === 0);
+    const merge = motions.find((m) => m.row === 3 && m.col === 0 && !m.ghost);
     expect(merge?.merged).toBe(true);
     expect(merge?.value).toBe(4);
     // For 'down', the tile closer to the bottom is leading — b survives.

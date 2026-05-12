@@ -30,6 +30,11 @@ type LabeledTile = {
   merged: boolean;
 };
 
+type MergedEntry = {
+  tile: LabeledTile;
+  ghost?: LabeledTile;
+};
+
 export function inferMotions(
   oldBoard: Board,
   oldIds: IdBoard,
@@ -54,19 +59,32 @@ export function inferMotions(
 
     const merged = slideAndMerge(tiles);
 
-    merged.forEach((tile, idx) => {
+    merged.forEach((entry, idx) => {
       const cell = line[idx];
       if (!cell) return;
       const [row, col] = cell;
-      idBoard[row]![col] = tile.id;
+      idBoard[row]![col] = entry.tile.id;
+      if (entry.ghost) {
+        motions.push({
+          id: entry.ghost.id,
+          value: entry.ghost.value,
+          row,
+          col,
+          fromRow: entry.ghost.fromRow,
+          fromCol: entry.ghost.fromCol,
+          merged: false,
+          spawned: false,
+          ghost: true,
+        });
+      }
       motions.push({
-        id: tile.id,
-        value: tile.value,
+        id: entry.tile.id,
+        value: entry.tile.value,
         row,
         col,
-        fromRow: tile.fromRow,
-        fromCol: tile.fromCol,
-        merged: tile.merged,
+        fromRow: entry.tile.fromRow,
+        fromCol: entry.tile.fromCol,
+        merged: entry.tile.merged,
         spawned: false,
         ghost: false,
       });
@@ -98,16 +116,17 @@ export function inferMotions(
   return { motions, idBoard };
 }
 
-// Walks tiles in scan order; merges adjacent equals, leading id survives.
-function slideAndMerge(tiles: LabeledTile[]): LabeledTile[] {
-  const result: LabeledTile[] = [];
+// Walks tiles in scan order; merges adjacent equals, leading id survives; consumed source stored as ghost.
+function slideAndMerge(tiles: LabeledTile[]): MergedEntry[] {
+  const result: MergedEntry[] = [];
   for (const tile of tiles) {
     const last = result[result.length - 1];
-    if (last && !last.merged && last.value === tile.value) {
-      last.value *= 2;
-      last.merged = true;
+    if (last && !last.tile.merged && last.tile.value === tile.value) {
+      last.tile.value *= 2;
+      last.tile.merged = true;
+      last.ghost = tile;
     } else {
-      result.push({ ...tile });
+      result.push({ tile: { ...tile } });
     }
   }
   return result;
