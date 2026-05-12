@@ -621,6 +621,7 @@ Build order:
 | Expectimax         | `expectimax.test.ts`    | Known board → expected search value (number, not direction)                                                                                                    |
 | Advice generation  | `getSuggestion.test.ts` | Known board → expected direction + reasoning template (deterministic)                                                                                          |
 | ViewModel          | `gameStore.test.ts`     | State transitions, zero React imports                                                                                                                          |
+| E2E (UI seams)     | `e2e/*.spec.ts`         | Browser-driven keyboard/touch wiring, localStorage round-trip, modal lifecycle, AI observability hook — opt-in via `npm run e2e`, see §12                      |
 
 ### 7.2 Critical Test Cases
 
@@ -667,7 +668,7 @@ Move Right / Up / Down, lose/win detection, spawn placement, no-spawn-after-win,
 
 ### 7.3 Pre-Push Hooks
 
-`husky` runs `npm test` before every `git push`. Bypass: `git push --no-verify`.
+`husky` runs `npm run check` (typecheck + lint + format + `npm test`) before every `git push`. Bypass: `git push --no-verify`. E2E is deliberately excluded from the hook — see §12.3.
 
 ---
 
@@ -812,4 +813,42 @@ The full advice object:
 
 `debug.scores` allows `null` per direction — a `null` entry marks a no-op (the move didn't change the board), so it's still listed in the payload but excluded from selection. On a lose state (no direction changes the board) `direction` is `null` and `reasoning` is `'No moves available.'`.
 
-The debug payload makes the search inspectable: score per direction, reasoning mapped to component deltas, latency, node count, depth. The console gives a live trace; `window.__adviceHistory` keeps the full session for post-hoc inspection. The player-facing UI stays untouched.
+The debug payload makes the search inspectable: score per direction, reasoning mapped to component deltas, latency, node count, depth. The console gives a live trace; `window.__adviceHistory` keeps the full session for post-hoc inspection. The player-facing UI stays untouched. `window.__lastAdvice` is also the E2E observability hook for TP §UI #2 (see §12.4).
+
+---
+
+## 12. E2E Layer
+
+Playwright drives a real browser against the production bundle (`vite preview`). It covers seams unit tests cannot reach: keyboard and touch event wiring, localStorage round-trips on page reload, async loading state during expectimax compute (the rAF + 150ms floor from §3.3), and the modal `<dialog>` lifecycle. Scenario enumeration lives in TP §UI Layer.
+
+### 12.1 Browser Matrix
+
+Chromium and WebKit. Chromium is primary. WebKit regression-tests the Safari rAF fix from §3.3 (commit `e8af6c3`) — without WebKit in CI, that fix can silently regress. WebKit also powers TP §UI #11 (touch swipe) via Playwright's iPhone device descriptors. Firefox is omitted: Gecko-specific regressions aren't part of the deployed surface and the install + CI cost isn't earned.
+
+### 12.2 Server Mode
+
+Tests run against `vite preview` after `vite build`. The dev server is faster to start but tests with the production bundle is the most accurate. Build adds ~5s of startup.
+
+### 12.3 Husky Scope & Entry Points
+
+E2E is deliberately not in pre-push, otherwise it'd be too heavy weight. `npm test` stays Vitest-only to be faster with no browser install needed, reliable on a fresh clone. E2E runs via two opt-in scripts:
+
+```
+npm run e2e:install   # one-time browser download (~270 MB, Chromium + WebKit)
+npm run e2e           # vite build && vite preview && playwright test
+```
+
+README documents the cold-machine path.
+
+### 12.4 Fixtures (`e2e/fixtures.ts`)
+
+Four shared contracts the suite depends on:
+
+- RNG seed — `page.addInitScript` overrides `Math.random` with a per-test seed before any app code runs. Strictly required where a spawn position is part of the assertion (TP §UI #1); used elsewhere for general reproducibility. Without it, those tests are flake bombs.
+- localStorage reset — `beforeEach` clears `2048_game_state` and `2048_best_score`. Prevents bleed between persistence scenarios (TP §UI #3, #8, #9, #12).
+- Touch gesture helper — `touchGesture(page, from, to)` dispatches `touchstart`/`touchend` with WebKit-safe coordinates above the 30px `swipeToDirection` threshold. Used by TP §UI #11.
+- AI observability — TP §UI #2 reads `window.__lastAdvice` and `window.__adviceHistory` (the contract from §11). E2E asserts on the same payload visible in DevTools.
+
+### 12.5 Vitest Boundary
+
+Vitest and Playwright share the `.spec.ts` extension. `vite.config.ts` adds `test.exclude: ['e2e/**', 'node_modules/**', 'dist/**']` so Vitest skips Playwright files. `playwright.config.ts` scopes `testDir: 'e2e'`. The two runners do not overlap; `npm test` and `npm run e2e` are independent commands.

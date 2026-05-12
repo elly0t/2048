@@ -200,7 +200,7 @@ Per TD §5.4, §11.
 
 ### GameStore.applyMove(direction)
 
-The 6-stage pipeline per TD §4.4. Most likely source of timing bugs in past submissions.
+The 6-stage pipeline per TD §4.4. Most likely source of timing bugs for this kind of game.
 
 1. Stage 2: no-change move. Board, score, status all unchanged; no spawn. TD §6.6 and §7.2.
 2. Stage 3: move creates 2048. Status becomes WON; no new tile spawned. TD §6.6 and §7.2.
@@ -208,7 +208,7 @@ The 6-stage pipeline per TD §4.4. Most likely source of timing bugs in past sub
 4. Stage 4: spawn after a valid non-winning move. Exactly one new tile (TD §7.2).
 5. Stage 5: lose triggered post-spawn. A board with a single empty cell, where the spawn fills it and no merges remain, transitions to LOST. checkLose runs on `boardWithTile`, not `newBoard`. TD §4.4 stage 5.
 6. Stage 5: lose NOT triggered when merges remain. A full board with adjacent equals stays in PLAYING.
-7. Score increments cumulatively (`score += scoreDelta`), never reassigned. TD §6.5. Past failure: score stuck at 0.
+7. Score increments cumulatively (`score += scoreDelta`), never reassigned. TD §6.5. Common bug: score stuck at 0.
 8. `bestScore` updates on a new high; preserved across resets. TD §6.5.
 9. Win-then-lose precedence: stage 3 returns before stage 4, so lose-after-win cannot fire. Final status is WON. TD §4.4.
 10. Move while WON: continues per assumption #4; applyMove proceeds normally.
@@ -299,15 +299,23 @@ When implemented, `inferMotions(oldBoard, oldIds, newBoard, direction)` is expec
 
 ---
 
-## UI Layer (E2E, time-permitting)
+## UI Layer (E2E)
 
-Manual browser testing covers these by default. If time, Playwright E2E tests on the running dev server:
+Playwright covers DOM/wiring seams unit tests can't reach. Browser matrix, fixtures, entry points: see TD §12.
 
-1. Arrow key dispatches a move; tile slides and score updates.
-2. AI panel button click → reasoning string appears; loading state visible during fetch.
-3. WON state → status overlay shown; Continue dismisses (status stays WON, play continues); Restart starts fresh.
-4. LOST state → status overlay shown with Restart only.
-5. Refresh page mid-game → board, score, bestScore restored from localStorage.
+1. All 4 directions (parameterised: Left, Right, Up, Down). Seeded board, arrow key, assert exact post-collapse cells, exact `scoreDelta`, spawn at the seeded RNG position.
+2. Ask AI integration. Click → `aria-busy` true → after resolve, `window.__lastAdvice` contains `{direction, scores, depth}` with `direction ∈ {left,right,up,down}`; reasoning text contains the direction name; `window.__adviceHistory.length` increments. Second click on the same board: same direction, history increments again.
+3. Restart / new game. Play to non-zero score; Restart; exactly 2 tiles of value 2, `score === 0`, `bestScore` preserved.
+4. WIN at spawn boundary. Seed `[..., 1024, 1024, ...]` row; ArrowLeft; WON overlay shown before the post-move spawn would have landed (status === WON in same tick as the merge).
+5. WIN Continue keeps status WON. Click Continue; overlay closes; `status === 'won'` persists; subsequent moves succeed; Ask AI still returns advice (TD assumption #4).
+6. LOST state, no crash. Seeded near-full board, lock with one move; LOST overlay shown with both buttons; no console errors; `spawnTile` not invoked post-lock.
+7. LOST View Board dismisses. Click View Board; overlay closes; `status === 'lost'` persists; arrow keys no-op.
+8. Refresh restores full state. Make moves; reload; board cells, score, and bestScore match pre-reload.
+9. Refresh into end-state does NOT re-prompt. Drive to WON, refresh; overlay must not auto-open (lazy-init invariant, `StatusOverlay.tsx` L11–12).
+10. No-spawn on no-op move. Wall-stacked `[2,4,8,16]` row; ArrowLeft; tile count and score both unchanged.
+11. Touch swipe (WebKit only). iPhone viewport; horizontal touch gesture across `<main>` exceeding the 30px `swipeToDirection` threshold; same collapse + delta as #1 Left.
+12. bestScore high-water mark. Play to X; refresh; play to Y > X; refresh; `bestScore === Y`.
+13. Cold-load initial board. Clear localStorage; navigate to `/`; ≥1 non-null cell, all non-null values === 2, `score === 0`, status === PLAYING.
 
 ---
 
@@ -321,16 +329,19 @@ Tested once as shared property tests, not repeated per function:
 
 ---
 
-## Cross-reference: past-comment patterns addressed
+## Cross-reference: common failure modes
 
-Patterns extracted from prior reviewer comments and where they are caught:
+Common failure modes for this kind of game and where they are caught:
 
-| Past failure pattern                     | Where addressed in this plan                    |
-| ---------------------------------------- | ----------------------------------------------- |
-| Win/lose timing wrong (post-spawn check) | GameStore.applyMove cases 1, 2, 5, 9            |
-| Spawn on no-op move                      | applyMove case 1; GameStore.applyMove case 1    |
-| AI module not tested                     | expectimax (10 cases), getSuggestion (12 cases) |
-| spawnTile errors on full board           | spawnTile case 3                                |
-| Score always 0                           | GameStore.applyMove case 7                      |
-| Lose-by-spawn missed                     | checkLose case 9; GameStore.applyMove case 5    |
-| Win-and-lose simultaneity                | GameStore.applyMove case 9                      |
+| Failure mode                             | Where addressed in this plan                                  |
+| ---------------------------------------- | ------------------------------------------------------------- |
+| Win/lose timing wrong (post-spawn check) | GameStore.applyMove cases 1, 2, 5, 9; E2E §UI #4              |
+| Spawn on no-op move                      | applyMove case 1; GameStore.applyMove case 1; E2E §UI #10     |
+| AI module not tested                     | expectimax (10 cases), getSuggestion (12 cases); E2E §UI #2   |
+| spawnTile errors on full board           | spawnTile case 3; E2E §UI #6                                  |
+| Score always 0                           | GameStore.applyMove case 7; E2E §UI #1, #12                   |
+| Lose-by-spawn missed                     | checkLose case 9; GameStore.applyMove case 5                  |
+| Win-and-lose simultaneity                | GameStore.applyMove case 9                                    |
+| Win silently cleared on continue         | E2E §UI #5                                                    |
+| Only checks overall state                | E2E §UI assertions are deep — specific cells + exact deltas   |
+| Initial board untested (spec item 1)     | E2E §UI #13                                                   |
