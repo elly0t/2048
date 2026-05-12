@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { keyToDirection, initStore, isAdviceKey, swipeToDirection } from './useGame';
+import { keyToDirection, initStore, isAdviceKey, swipeToDirection, MotionTracker } from './useGame';
+import type { Board } from '../domain/types';
 import { GameStore } from '../store/gameStore';
 import { STATUS } from '../store/types';
 import { STORAGE_KEYS } from '../constants/storageKeys';
@@ -169,5 +170,95 @@ describe('initStore', () => {
     initStore(store);
 
     expect(store.bestScore).toBe(0);
+  });
+});
+
+const NULL_ROW = [null, null, null, null] as const;
+
+describe('MotionTracker', () => {
+  it('init — idBoard has non-null ids for occupied cells, null for empty', () => {
+    const board: Board = [
+      [2, null, null, null],
+      [null, 4, null, null],
+      [...NULL_ROW],
+      [...NULL_ROW],
+    ];
+    const tracker = new MotionTracker(board);
+    expect(tracker.idBoard[0]?.[0]).toBeTruthy();
+    expect(tracker.idBoard[0]?.[1]).toBeNull();
+    expect(tracker.idBoard[1]?.[1]).toBeTruthy();
+    expect(tracker.idBoard[1]?.[0]).toBeNull();
+  });
+
+  it('track — sliding tile keeps its id at the new position', () => {
+    const board: Board = [
+      [null, null, null, 2],
+      [...NULL_ROW],
+      [...NULL_ROW],
+      [...NULL_ROW],
+    ];
+    const tracker = new MotionTracker(board);
+    const oldId = tracker.idBoard[0]?.[3];
+    expect(oldId).toBeTruthy(); // guard: init must assign an id before track is meaningful
+    const newBoard: Board = [
+      [2, null, null, null],
+      [...NULL_ROW],
+      [...NULL_ROW],
+      [null, null, null, 2],
+    ];
+    tracker.track(board, newBoard, 'left');
+    expect(tracker.idBoard[0]?.[0]).toBe(oldId);
+    expect(tracker.idBoard[0]?.[3]).toBeNull();
+  });
+
+  it('track — returns non-empty motions array including a slide entry', () => {
+    const board: Board = [
+      [null, null, null, 2],
+      [...NULL_ROW],
+      [...NULL_ROW],
+      [...NULL_ROW],
+    ];
+    const tracker = new MotionTracker(board);
+    const newBoard: Board = [
+      [2, null, null, null],
+      [...NULL_ROW],
+      [...NULL_ROW],
+      [null, null, null, 2],
+    ];
+    const motions = tracker.track(board, newBoard, 'left');
+    expect(motions.length).toBeGreaterThan(0);
+    const slide = motions.find((m) => !m.spawned && !m.ghost);
+    expect(slide?.fromCol).toBe(3);
+    expect(slide?.col).toBe(0);
+  });
+
+  it('reset — clears motions and reinitializes idBoard from new board', () => {
+    const board: Board = [
+      [null, null, null, 2],
+      [...NULL_ROW],
+      [...NULL_ROW],
+      [...NULL_ROW],
+    ];
+    const tracker = new MotionTracker(board);
+    const newBoard: Board = [
+      [2, null, null, null],
+      [...NULL_ROW],
+      [...NULL_ROW],
+      [null, null, null, 2],
+    ];
+    tracker.track(board, newBoard, 'left');
+    expect(tracker.motions.length).toBeGreaterThan(0);
+
+    const freshBoard: Board = [
+      [2, null, null, null],
+      [null, null, null, 2],
+      [...NULL_ROW],
+      [...NULL_ROW],
+    ];
+    tracker.reset(freshBoard);
+    expect(tracker.motions).toHaveLength(0);
+    expect(tracker.idBoard[0]?.[0]).toBeTruthy();
+    expect(tracker.idBoard[1]?.[3]).toBeTruthy();
+    expect(tracker.idBoard[0]?.[1]).toBeNull();
   });
 });

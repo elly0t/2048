@@ -1,8 +1,9 @@
 import { useEffect, useRef, useSyncExternalStore, type TouchEvent } from 'react';
 import { GameStore } from '../store/gameStore';
-import { DIRECTION, type Direction } from '../domain/types';
+import { DIRECTION, type Board, type Direction } from '../domain/types';
 import { saveGameState, saveBestScore, loadGameState, loadBestScore } from './persistence';
 import { STORAGE_KEYS } from '../constants/storageKeys';
+import type { IdBoard, TileMotion } from './motion';
 
 // React bridge over GameStore (TD §3.3, §6.2). Lazy singleton — module-load
 // init would fire localStorage reads before tests can stub them; getStore()
@@ -71,6 +72,15 @@ export function getStore(): GameStore {
     });
   }
   return store;
+}
+
+export class MotionTracker {
+  idBoard: IdBoard = Array.from({ length: 4 }, () => Array<string | null>(4).fill(null));
+  motions: TileMotion[] = [];
+
+  constructor(_initialBoard: Board) {}
+  track(_oldBoard: Board, _newBoard: Board, _direction: Direction): TileMotion[] { return []; }
+  reset(_newBoard: Board): void {}
 }
 
 export function useGame() {
