@@ -14,3 +14,4 @@ bench/results-*.jsonl
 
 # Claude Code harness local state
 .claude/
+.vercel
