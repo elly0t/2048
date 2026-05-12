@@ -70,10 +70,7 @@ export function cornerBonus(board: Board): number {
 
 export function emptyCells(board: Board): number {
   // log₂(max(count, 1)) — guarded against -Infinity on a full board (TD §5.3).
-  const count = board.reduce(
-    (sum, row) => sum + row.filter((cell) => cell === null).length,
-    0,
-  );
+  const count = board.reduce((sum, row) => sum + row.filter((cell) => cell === null).length, 0);
   return Math.log2(Math.max(count, 1));
 }
 

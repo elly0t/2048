@@ -134,9 +134,7 @@ describe('pickReasoning — dominant-component templating (cases 7, 8, 9)', () =
   it('cornerBonus dominant → corner template', () => {
     // weighted delta: 1.0 × (10 − 0) = 10 > 5
     const best: ComponentScores = { ...baseline, cornerBonus: 10 };
-    expect(pickReasoning('down', best, baseline, 100)).toBe(
-      `Move Down — ${TEMPLATES.cornerBonus}`,
-    );
+    expect(pickReasoning('down', best, baseline, 100)).toBe(`Move Down — ${TEMPLATES.cornerBonus}`);
   });
 
   it('all weighted deltas below 5% threshold → generic template', () => {
@@ -170,12 +168,7 @@ describe('getSuggestion — debug payload (cases 10, 11)', () => {
 
   it('debug.scores includes all 4 directions even when some are no-ops', async () => {
     const advice = await getSuggestion(onlyDownValidBoard);
-    expect(Object.keys(advice.debug.scores).sort()).toEqual([
-      'down',
-      'left',
-      'right',
-      'up',
-    ]);
+    expect(Object.keys(advice.debug.scores).sort()).toEqual(['down', 'left', 'right', 'up']);
   });
 
   it('debug.depthSearched matches CONFIG.EXPECTIMAX_DEPTH', async () => {
@@ -243,21 +236,36 @@ describe('selectTopTwo — best + second-best selection', () => {
   });
 
   it('returns secondBest = null when only one direction is valid', () => {
-    const scores: Record<Direction, number | null> = { left: null, right: null, up: null, down: 42 };
+    const scores: Record<Direction, number | null> = {
+      left: null,
+      right: null,
+      up: null,
+      down: 42,
+    };
     const result = selectTopTwo(scores);
     expect(result.best).toBe('down');
     expect(result.secondBest).toBeNull();
   });
 
   it('returns both null when every direction is a no-op', () => {
-    const scores: Record<Direction, number | null> = { left: null, right: null, up: null, down: null };
+    const scores: Record<Direction, number | null> = {
+      left: null,
+      right: null,
+      up: null,
+      down: null,
+    };
     const result = selectTopTwo(scores);
     expect(result.best).toBeNull();
     expect(result.secondBest).toBeNull();
   });
 
   it('ties at the top resolve by ALL_DIRECTIONS order (left before right)', () => {
-    const scores: Record<Direction, number | null> = { left: 100, right: 100, up: null, down: null };
+    const scores: Record<Direction, number | null> = {
+      left: 100,
+      right: 100,
+      up: null,
+      down: null,
+    };
     const result = selectTopTwo(scores);
     expect(result.best).toBe('left');
     expect(result.secondBest).toBe('right');

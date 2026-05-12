@@ -5,8 +5,7 @@ import styles from './Header.module.css';
 
 export function Header() {
   const { score, bestScore, status, reset } = useGame();
-  const titleStatus =
-    status === STATUS.WON ? 'won' : status === STATUS.LOST ? 'lost' : undefined;
+  const titleStatus = status === STATUS.WON ? 'won' : status === STATUS.LOST ? 'lost' : undefined;
 
   return (
     <header className={styles.header}>

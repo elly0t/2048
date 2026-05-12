@@ -191,12 +191,7 @@ describe('MotionTracker', () => {
   });
 
   it('track — sliding tile keeps its id at the new position', () => {
-    const board: Board = [
-      [null, null, null, 2],
-      [...NULL_ROW],
-      [...NULL_ROW],
-      [...NULL_ROW],
-    ];
+    const board: Board = [[null, null, null, 2], [...NULL_ROW], [...NULL_ROW], [...NULL_ROW]];
     const tracker = new MotionTracker(board);
     const oldId = tracker.idBoard[0]?.[3];
     expect(oldId).toBeTruthy(); // guard: init must assign an id before track is meaningful
@@ -212,12 +207,7 @@ describe('MotionTracker', () => {
   });
 
   it('track — returns non-empty motions array including a slide entry', () => {
-    const board: Board = [
-      [null, null, null, 2],
-      [...NULL_ROW],
-      [...NULL_ROW],
-      [...NULL_ROW],
-    ];
+    const board: Board = [[null, null, null, 2], [...NULL_ROW], [...NULL_ROW], [...NULL_ROW]];
     const tracker = new MotionTracker(board);
     const newBoard: Board = [
       [2, null, null, null],
@@ -233,12 +223,7 @@ describe('MotionTracker', () => {
   });
 
   it('reset — clears motions and reinitializes idBoard from new board', () => {
-    const board: Board = [
-      [null, null, null, 2],
-      [...NULL_ROW],
-      [...NULL_ROW],
-      [...NULL_ROW],
-    ];
+    const board: Board = [[null, null, null, 2], [...NULL_ROW], [...NULL_ROW], [...NULL_ROW]];
     const tracker = new MotionTracker(board);
     const newBoard: Board = [
       [2, null, null, null],

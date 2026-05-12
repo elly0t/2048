@@ -84,9 +84,7 @@ export class GameStore {
     this.advice = null;
     this.notify();
     // rAF + setTimeout(0) — bare setTimeout never painted the loading state on Safari (WebKit coalesces short tasks).
-    await new Promise<void>((resolve) =>
-      requestAnimationFrame(() => setTimeout(resolve, 0)),
-    );
+    await new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
     const start = performance.now();
     const advice = await getSuggestion(this.board);
     // Floor the loading state at CONFIG.MIN_ADVICE_LOADING_MS for perceptible feedback.

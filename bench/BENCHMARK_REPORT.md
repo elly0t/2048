@@ -12,13 +12,13 @@
 
 Expectimax reaches 2048 in ≥77% of games at depth 2 or 3. Random and greedy baselines never reach it (0/100 each). At n=50/100, **d2 and d3 win at indistinguishable rates** (80% vs 77%, Fisher's exact p ≈ 0.84) — the n=10/20 difference reported earlier was sample noise. d3 reaches 4096 about twice as often (27% vs 14%, p ≈ 0.10 — borderline at n=150) and posts a 17% higher mean score (37,561 vs 32,178). The cost is latency: d3 mean ms/move is ~35× d2, p95 is ~58× higher.
 
-| Policy | n | Win (≥2048) | 95% CI | Reach 4096 | 95% CI | Mean score | p50 ms/move | p95 ms/move | max ms/move |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Random | 100 | 0% | [0, 3.7] | 0% | [0, 3.7] | 1,065 | 0.0006 | 0.0091 | 0.33 |
-| Greedy | 100 | 0% | [0, 3.7] | 0% | [0, 3.7] | 3,157 | 0.0007 | 0.0118 | 0.54 |
-| Expectimax d2 | 50 | 80% | [67.0, 88.8] | 14% | [7.0, 26.2] | 32,178 | 1.40 | 3.20 | 83.39 |
-| Expectimax d3 | 100 | 77% | [67.8, 84.2] | **27%** | [19.3, 36.4] | **37,561** | 53.79 | 186.77 | 780.52 |
-| Expectimax d4 | — | DNF | — | — | — | — | — | — | — |
+| Policy        | n   | Win (≥2048) | 95% CI       | Reach 4096 | 95% CI       | Mean score | p50 ms/move | p95 ms/move | max ms/move |
+| ------------- | --- | ----------- | ------------ | ---------- | ------------ | ---------- | ----------- | ----------- | ----------- |
+| Random        | 100 | 0%          | [0, 3.7]     | 0%         | [0, 3.7]     | 1,065      | 0.0006      | 0.0091      | 0.33        |
+| Greedy        | 100 | 0%          | [0, 3.7]     | 0%         | [0, 3.7]     | 3,157      | 0.0007      | 0.0118      | 0.54        |
+| Expectimax d2 | 50  | 80%         | [67.0, 88.8] | 14%        | [7.0, 26.2]  | 32,178     | 1.40        | 3.20        | 83.39       |
+| Expectimax d3 | 100 | 77%         | [67.8, 84.2] | **27%**    | [19.3, 36.4] | **37,561** | 53.79       | 186.77      | 780.52      |
+| Expectimax d4 | —   | DNF         | —            | —          | —            | —          | —           | —           | —           |
 
 **Pick d3 over d2.** Same win rate, ~2× the 4096 rate, +17% mean score, p95 ~187ms. Acceptable if the UI can tolerate occasional ~200ms suggestions and rare ~800ms outliers.
 
@@ -29,6 +29,7 @@ Expectimax reaches 2048 in ≥77% of games at depth 2 or 3. Random and greedy ba
 **Self-play loop.** Each game starts from `initBoard(seededRng)`. Each turn: `chooseDirection(board)` returns a direction; `applyMove` advances the board; `spawnTile` adds a tile. Continue until `checkLose(board)` or no direction changes the board.
 
 **Policies (`bench/play.ts`):**
+
 - **Random.** Pick uniformly at random among legal directions. Drawn from a separate RNG stream (`seed ^ 0x9e3779b9`) so it doesn't perturb spawns.
 - **Greedy.** Pick the direction with the maximum immediate `scoreDelta`. Ties broken by `ALL_DIRECTIONS` order.
 - **Expectimax.** Loop legal directions; for each, call `chanceValue(result.board, depth-1, stats)` from `src/ai/expectimax.ts`. Also calls `scoreComponents(result.board)` per direction (production does this for the reasoning template, TD §5.4) so latency includes that work. `console.log` + `window` mirror side effects from `getSuggestion` are excluded — sub-millisecond, would inflate the bench.
@@ -38,6 +39,7 @@ Expectimax reaches 2048 in ≥77% of games at depth 2 or 3. Random and greedy ba
 **Depth override.** Bench calls `chanceValue` directly with depth as a parameter, bypassing `CONFIG.AI_DEPTH`. No production code modified.
 
 **Game counts.**
+
 - Random: 100 games.
 - Greedy: 100 games.
 - Expectimax d2: 50 games (~2.5s/game).
@@ -52,12 +54,12 @@ Expectimax reaches 2048 in ≥77% of games at depth 2 or 3. Random and greedy ba
 
 ## Baselines
 
-| Policy | n | Best tile achieved | % reach 256 | % reach 512 | Mean score |
-| --- | --- | --- | --- | --- | --- |
-| Random | 100 | 256 (1 game) | 9% | 0% | 1,065 |
-| Greedy | 100 | 512 (12 games) | 65% | 12% | 3,157 |
-| Expectimax d2 | 50 | 4096 | 100% | 100% | 32,178 |
-| Expectimax d3 | 100 | 4096 | 100% | 100% | 37,561 |
+| Policy        | n   | Best tile achieved | % reach 256 | % reach 512 | Mean score |
+| ------------- | --- | ------------------ | ----------- | ----------- | ---------- |
+| Random        | 100 | 256 (1 game)       | 9%          | 0%          | 1,065      |
+| Greedy        | 100 | 512 (12 games)     | 65%         | 12%         | 3,157      |
+| Expectimax d2 | 50  | 4096               | 100%        | 100%        | 32,178     |
+| Expectimax d3 | 100 | 4096               | 100%        | 100%        | 37,561     |
 
 Random AI cannot reach 512. Greedy caps at 512 (never 1024). Expectimax reaches at least 1024 in every game at either depth tested. The search contributes the move quality — it's not heuristics riding on luck.
 
@@ -67,28 +69,28 @@ Random AI cannot reach 512. Greedy caps at 512 (never 1024). Expectimax reaches 
 
 ### Win rate (reach 2048)
 
-| | wins | n | win % | Wilson 95% CI |
-| --- | --- | --- | --- | --- |
-| d2 | 40 | 50 | 80.0% | [67.0, 88.8] |
-| d3 | 77 | 100 | 77.0% | [67.8, 84.2] |
+|     | wins | n   | win % | Wilson 95% CI |
+| --- | ---- | --- | ----- | ------------- |
+| d2  | 40   | 50  | 80.0% | [67.0, 88.8]  |
+| d3  | 77   | 100 | 77.0% | [67.8, 84.2]  |
 
 Fisher's exact two-tailed p ≈ 0.84. The 3-point gap is consistent with noise. There is no detectable win-rate advantage for either depth.
 
 ### Higher-tile ceiling (reach 4096)
 
-| | reach | n | reach % | Wilson 95% CI |
-| --- | --- | --- | --- | --- |
-| d2 | 7 | 50 | 14.0% | [7.0, 26.2] |
-| d3 | 27 | 100 | 27.0% | [19.3, 36.4] |
+|     | reach | n   | reach % | Wilson 95% CI |
+| --- | ----- | --- | ------- | ------------- |
+| d2  | 7     | 50  | 14.0%   | [7.0, 26.2]   |
+| d3  | 27    | 100 | 27.0%   | [19.3, 36.4]  |
 
 Fisher's exact two-tailed p ≈ 0.10. Borderline; consistent with a real ~2× effect at n=150, not conclusive. Neither configuration ever reached 8192.
 
 ### Score distribution
 
-| | mean | p25 | p50 | p75 | max |
-| --- | --- | --- | --- | --- | --- |
-| d2 | 32,178 | 25,901 | 32,930 | 36,651 | 60,824 |
-| d3 | 37,561 | 28,668 | 35,458 | 47,824 | 79,600 |
+|     | mean   | p25    | p50    | p75    | max    |
+| --- | ------ | ------ | ------ | ------ | ------ |
+| d2  | 32,178 | 25,901 | 32,930 | 36,651 | 60,824 |
+| d3  | 37,561 | 28,668 | 35,458 | 47,824 | 79,600 |
 
 d3's distribution sits ~17% above d2 across mean, median, and p75. The gap widens at the upper end (p75: +30%). The shift is across the whole distribution, not driven by a single peak game.
 
@@ -96,9 +98,9 @@ d3's distribution sits ~17% above d2 across mean, median, and p75. The gap widen
 
 ## Latency
 
-| | mean | p50 | p75 | p95 | p99 | p99.9 | max |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| d2 ms | 1.56 | 1.40 | 2.08 | 3.20 | 4.45 | 8.12 | 83.39 |
+|       | mean  | p50   | p75    | p95    | p99    | p99.9  | max    |
+| ----- | ----- | ----- | ------ | ------ | ------ | ------ | ------ |
+| d2 ms | 1.56  | 1.40  | 2.08   | 3.20   | 4.45   | 8.12   | 83.39  |
 | d3 ms | 73.95 | 53.79 | 102.05 | 186.77 | 281.93 | 419.62 | 780.52 |
 
 d2 latency is invisible to a user. d3 mean (~74ms) is invisible; p95 (~187ms) is borderline-perceptible; p99.9 (~420ms) and max (~780ms) are noticeable but rare. For a "click → see suggestion" affordance this is acceptable; for an AI playing every move continuously, the p99 would be the binding constraint.

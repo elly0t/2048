@@ -15,9 +15,7 @@ export function checkLose(board: Board): boolean {
   // Horizontal adjacent pair → merge possible
   if (
     board.some((row) =>
-      row.some(
-        (cell, colIndex) => colIndex + 1 < row.length && cell === row[colIndex + 1],
-      ),
+      row.some((cell, colIndex) => colIndex + 1 < row.length && cell === row[colIndex + 1]),
     )
   ) {
     return false;
@@ -92,7 +90,6 @@ export function initBoard(rng: () => number = Math.random): Board {
     ),
   );
 }
-
 
 export function spawnTile(board: Board, rng: () => number = Math.random): Board {
   const empties = emptyCellPositions(board);

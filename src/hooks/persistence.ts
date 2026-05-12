@@ -64,8 +64,6 @@ function isValidBoard(value: unknown): value is Board {
     (row) =>
       Array.isArray(row) &&
       row.length === 4 &&
-      row.every(
-        (cell) => cell === null || (typeof cell === 'number' && Number.isFinite(cell)),
-      ),
+      row.every((cell) => cell === null || (typeof cell === 'number' && Number.isFinite(cell))),
   );
 }

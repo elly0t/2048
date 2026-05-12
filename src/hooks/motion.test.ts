@@ -89,13 +89,7 @@ describe('inferMotions', () => {
       [null, null, null, 2],
     ];
 
-    const { motions, idBoard } = inferMotions(
-      oldBoard,
-      oldIds,
-      newBoard,
-      'left',
-      seq(),
-    );
+    const { motions, idBoard } = inferMotions(oldBoard, oldIds, newBoard, 'left', seq());
     const merge = motions.find((m) => m.row === 0 && m.col === 0 && !m.ghost);
     expect(merge?.merged).toBe(true);
     expect(merge?.value).toBe(4);
@@ -161,12 +155,7 @@ describe('inferMotions', () => {
   });
 
   it('rule 6 — deterministic: same inputs + same id stream yield identical output', () => {
-    const oldBoard: Board = [
-      [2, 2, 2, 2],
-      [...ALL_NULL_ROW],
-      [...ALL_NULL_ROW],
-      [...ALL_NULL_ROW],
-    ];
+    const oldBoard: Board = [[2, 2, 2, 2], [...ALL_NULL_ROW], [...ALL_NULL_ROW], [...ALL_NULL_ROW]];
     const oldIds: IdBoard = [
       ['a', 'b', 'c', 'd'],
       [...ALL_NULL_ROW],
@@ -187,12 +176,7 @@ describe('inferMotions', () => {
   });
 
   it('multi-merge in one row: [a,b,c,d] left with all 2s yields two merges; leading ids survive', () => {
-    const oldBoard: Board = [
-      [2, 2, 2, 2],
-      [...ALL_NULL_ROW],
-      [...ALL_NULL_ROW],
-      [...ALL_NULL_ROW],
-    ];
+    const oldBoard: Board = [[2, 2, 2, 2], [...ALL_NULL_ROW], [...ALL_NULL_ROW], [...ALL_NULL_ROW]];
     const oldIds: IdBoard = [
       ['a', 'b', 'c', 'd'],
       [...ALL_NULL_ROW],
@@ -206,13 +190,7 @@ describe('inferMotions', () => {
       [null, null, null, 2],
     ];
 
-    const { motions, idBoard } = inferMotions(
-      oldBoard,
-      oldIds,
-      newBoard,
-      'left',
-      seq(),
-    );
+    const { motions, idBoard } = inferMotions(oldBoard, oldIds, newBoard, 'left', seq());
     expect(motions).toHaveLength(5); // 2 ghosts + 2 targets + 1 spawn
     const m0 = motions.find((m) => m.row === 0 && m.col === 0 && !m.ghost);
     const m1 = motions.find((m) => m.row === 0 && m.col === 1 && !m.ghost);
@@ -245,13 +223,7 @@ describe('inferMotions', () => {
       [4, null, null, null], // merged toward bottom
     ];
 
-    const { motions, idBoard } = inferMotions(
-      oldBoard,
-      oldIds,
-      newBoard,
-      'down',
-      seq(),
-    );
+    const { motions, idBoard } = inferMotions(oldBoard, oldIds, newBoard, 'down', seq());
     expect(motions).toHaveLength(3); // 1 ghost + 1 target + 1 spawn
     const merge = motions.find((m) => m.row === 3 && m.col === 0 && !m.ghost);
     expect(merge?.merged).toBe(true);

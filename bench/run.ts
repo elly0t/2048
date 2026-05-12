@@ -54,9 +54,6 @@ for (let i = 0; i < games; i++) {
 const totalElapsed = ((Date.now() - overallStart) / 1000).toFixed(1);
 console.error(`[bench] done in ${totalElapsed}s`);
 
-writeFileSync(
-  jsonPath,
-  JSON.stringify({ policy, depth, games, seedStart, results }, null, 2),
-);
+writeFileSync(jsonPath, JSON.stringify({ policy, depth, games, seedStart, results }, null, 2));
 console.error(`[bench] wrote ${jsonPath}`);
 process.stdout.write(JSON.stringify({ policy, depth, games, jsonPath }) + '\n');

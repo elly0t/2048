@@ -160,7 +160,7 @@ Per TD §5.3.
 7. Deterministic: same board returns same value.
 8. `null` cells handled: no NaN from arithmetic on null.
 9. `monotonicity` and `smoothness` skip null cells consistently — null carries no order signal, must not be treated as `log₂(0) = 0`. Two boards with the same real-tile trend score identically regardless of how nulls are positioned.
-10. `cornerBonus` is invariant under iteration order — when the max tile appears in multiple cells (corner *and* centre, or two corners), reward fires if *any* corner holds the max. Bug pattern: `>` strict-greater + first-write-wins resolves ties by scan order rather than position.
+10. `cornerBonus` is invariant under iteration order — when the max tile appears in multiple cells (corner _and_ centre, or two corners), reward fires if _any_ corner holds the max. Bug pattern: `>` strict-greater + first-write-wins resolves ties by scan order rather than position.
 
 ### expectimax(board, depth)
 
@@ -217,7 +217,7 @@ The 6-stage pipeline per TD §4.4. Most likely source of timing bugs in past sub
 13. Board replaced by a new reference, not mutated in place. Subscribers see a new ref.
 14. Explicit LOST guard: a mobile board with `status: LOST` stays unchanged. Without the guard the no-change early-return only catches structurally-immovable boards (case 11), so this case forces the explicit `status === LOST` check.
 15. RNG injection consumed by `spawnTile`: passing `{ rng: () => 0 }` vs `{ rng: () => 0.99 }` produces different post-spawn boards from the same starting position. Catches the "constructor accepts opts.rng but discards it" failure mode.
-16. Valid move while already WON still spawns. `checkWin` is `=== WIN_TILE`, so the stage-3 win branch fires on every move once 2048 exists. The win branch must gate on the WON *transition* (status was not WON before this move), not on `checkWin` alone — otherwise post-win continuation drains the board with no new spawns.
+16. Valid move while already WON still spawns. `checkWin` is `=== WIN_TILE`, so the stage-3 win branch fires on every move once 2048 exists. The win branch must gate on the WON _transition_ (status was not WON before this move), not on `checkWin` alone — otherwise post-win continuation drains the board with no new spawns.
 17. `lastDirection` tracks the direction of the most recent board-changing move. `null` initially and after `reset()`. Used by `useGame` to drive motion inference; not part of game logic, just metadata.
 
 ### GameStore.isActive (getter)

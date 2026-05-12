@@ -50,9 +50,10 @@ export function pickReasoning(
 }
 
 // Top-2 in one pass; strict `>` makes ALL_DIRECTIONS order the tie-breaker.
-export function selectTopTwo(
-  scores: Record<Direction, number | null>,
-): { best: Direction | null; secondBest: Direction | null } {
+export function selectTopTwo(scores: Record<Direction, number | null>): {
+  best: Direction | null;
+  secondBest: Direction | null;
+} {
   let best: Direction | null = null;
   let bestScore = -Infinity;
   let secondBest: Direction | null = null;

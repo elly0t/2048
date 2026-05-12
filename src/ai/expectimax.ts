@@ -36,8 +36,7 @@ function maxValue(board: Board, depth: number, stats?: SearchStats): number {
     return leafValue(board);
   }
 
-  const childValues = ALL_DIRECTIONS
-    .map((direction) => applyMove(board, direction))
+  const childValues = ALL_DIRECTIONS.map((direction) => applyMove(board, direction))
     .filter((result) => result.changed)
     .map((result) => chanceValue(result.board, depth - 1, stats));
 

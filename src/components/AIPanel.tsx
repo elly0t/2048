@@ -26,8 +26,8 @@ export function AIPanel() {
       </button>
       {advice && !adviceLoading && (
         <p className={styles.advice} aria-live="polite">
-          <strong className={styles.adviceDirection}>{advice.direction ?? '—'}</strong>{' '}
-          — {advice.reasoning}
+          <strong className={styles.adviceDirection}>{advice.direction ?? '—'}</strong> —{' '}
+          {advice.reasoning}
         </p>
       )}
     </div>

@@ -42,9 +42,7 @@ export function inferMotions(
   direction: Direction,
   nextId: () => string,
 ): MotionResult {
-  const idBoard: IdBoard = Array.from({ length: 4 }, () =>
-    Array<string | null>(4).fill(null),
-  );
+  const idBoard: IdBoard = Array.from({ length: 4 }, () => Array<string | null>(4).fill(null));
   const motions: TileMotion[] = [];
 
   for (const line of scanLines(direction)) {

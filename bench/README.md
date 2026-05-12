@@ -6,21 +6,21 @@ Self-play harness for measuring AI quality and latency. The full write-up lives 
 
 **Source (4 files):**
 
-| File | Purpose |
-| --- | --- |
-| `play.ts` | One self-play game. Policy-pluggable (`random`, `greedy`, `expectimax`). Returns `GameStats`. |
-| `run.ts` | CLI driver. Runs N games under one policy. Writes `results-{tag}.json` + streams `results-{tag}.jsonl` mid-run. |
-| `rng.ts` | Seedable `mulberry32` RNG. Deterministic game trajectories per seed. |
+| File         | Purpose                                                                                                               |
+| ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `play.ts`    | One self-play game. Policy-pluggable (`random`, `greedy`, `expectimax`). Returns `GameStats`.                         |
+| `run.ts`     | CLI driver. Runs N games under one policy. Writes `results-{tag}.json` + streams `results-{tag}.jsonl` mid-run.       |
+| `rng.ts`     | Seedable `mulberry32` RNG. Deterministic game trajectories per seed.                                                  |
 | `analyze.ts` | Aggregates one or more `results-*.json` files into report-ready summary stats (Wilson CIs, percentiles, reach rates). |
 
 **Data (3 files committed; one missing — see note):**
 
-| File | Games | Purpose |
-| --- | --- | --- |
-| `results-random.json` | 100 | Baseline (random direction) — calibrates floor. |
-| `results-greedy.json` | 100 | Baseline (max-immediate-`scoreDelta`) — calibrates "cheap heuristic" floor. |
-| `results-d2.json` | 50 | Expectimax depth 2. |
-| `results-d3.json` | — | **Not committed.** d3 raw was lost during a seed-12 isolation rerun (output path collision since fixed via `--out-tag`). Aggregate stats are in `BENCHMARK_REPORT.md`. Regenerate via the d3 command below if you need raw data; takes ~3.7 hr. |
+| File                  | Games | Purpose                                                                                                                                                                                                                                         |
+| --------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `results-random.json` | 100   | Baseline (random direction) — calibrates floor.                                                                                                                                                                                                 |
+| `results-greedy.json` | 100   | Baseline (max-immediate-`scoreDelta`) — calibrates "cheap heuristic" floor.                                                                                                                                                                     |
+| `results-d2.json`     | 50    | Expectimax depth 2.                                                                                                                                                                                                                             |
+| `results-d3.json`     | —     | **Not committed.** d3 raw was lost during a seed-12 isolation rerun (output path collision since fixed via `--out-tag`). Aggregate stats are in `BENCHMARK_REPORT.md`. Regenerate via the d3 command below if you need raw data; takes ~3.7 hr. |
 
 **Note on `.jsonl` files.** `bench/results-*.jsonl` is the per-game streaming output (appended as each game finishes). Useful mid-run if a kill happens; redundant with the final `.json` afterward. **Gitignored** (`bench/results-*.jsonl` in `.gitignore`) — they're regenerated locally on each run.
 
@@ -46,14 +46,14 @@ Total wall time on Apple M4 Pro: random/greedy <1s each, d2 ~2 min, d3 ~3.7 hr.
 
 ## CLI flags (run.ts)
 
-| Flag | Default | Notes |
-| --- | --- | --- |
-| `--policy` | `expectimax` | `random` / `greedy` / `expectimax` |
-| `--depth` | `3` | Only used when `--policy expectimax` |
-| `--games` | `50` | Number of games to play |
-| `--seed-start` | `1` | First seed; subsequent games use `seedStart+i` |
-| `--move-cap` | `5000` | Safety bound; observed games end via `checkLose` well below this |
-| `--out-tag` | `''` | Optional suffix on output file to avoid clobbering main results (e.g. `--out-tag seed12`) |
+| Flag           | Default      | Notes                                                                                     |
+| -------------- | ------------ | ----------------------------------------------------------------------------------------- |
+| `--policy`     | `expectimax` | `random` / `greedy` / `expectimax`                                                        |
+| `--depth`      | `3`          | Only used when `--policy expectimax`                                                      |
+| `--games`      | `50`         | Number of games to play                                                                   |
+| `--seed-start` | `1`          | First seed; subsequent games use `seedStart+i`                                            |
+| `--move-cap`   | `5000`       | Safety bound; observed games end via `checkLose` well below this                          |
+| `--out-tag`    | `''`         | Optional suffix on output file to avoid clobbering main results (e.g. `--out-tag seed12`) |
 
 Output paths follow `bench/results-{tag}.json` where `tag = d{depth}` for expectimax, otherwise the policy name. With `--out-tag X`, the suffix becomes `{tag}-{X}`.
 
@@ -87,6 +87,7 @@ Spot-check the report by reading the JSON directly. Each `results-*.json` has sh
 ```
 
 Common checks:
+
 - Win rate at 2048: count `results` where `maxTile >= 2048`.
 - Reach rate at 4096: count `results` where `maxTile >= 4096`.
 - p95 ms/move: flatten `msPerMove` across all games, sort, take the 95th percentile.

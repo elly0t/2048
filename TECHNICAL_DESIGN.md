@@ -18,26 +18,26 @@ If you only have 15 minutes: §4.3 move pipeline · §5.2 depth rationale · §5
 
 The spec leaves several values unspecified. All assumptions are externalised to `config.ts` — logged to console on start, and configurable by editing the file directly.
 
-| #   | Assumption                                  | Reason                                                                                                                                          |
-| --- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Initial board places 2–8 tiles of value `2` | Spec says "random number of 2s" — range matches density of the spec example                                                                     |
-| 2   | Spawn probability: 90% for `2`, 10% for `4` | Spec says "a 2 or 4" — standard 2048 convention                                                                                                 |
-| 3   | Score = sum of all merged tile values       | Standard 2048 scoring convention — same as the original game                                                                                    |
-| 4   | Win state allows player to continue         | Spec detects win but does not say game ends — continue or restart offered                                                                       |
-| 5   | Expectimax depth = 3                        | See §5.2 for rationale & phase 2 adaptive depth that was spotted during implementation.                                                                   |
-| 6   | AI uses local Expectimax search             | Local search keeps tests deterministic and needs no setup. Remote provider available via `CONFIG.AI_MODE` — see §5.5.                           |
+| #   | Assumption                                  | Reason                                                                                                                |
+| --- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| 1   | Initial board places 2–8 tiles of value `2` | Spec says "random number of 2s" — range matches density of the spec example                                           |
+| 2   | Spawn probability: 90% for `2`, 10% for `4` | Spec says "a 2 or 4" — standard 2048 convention                                                                       |
+| 3   | Score = sum of all merged tile values       | Standard 2048 scoring convention — same as the original game                                                          |
+| 4   | Win state allows player to continue         | Spec detects win but does not say game ends — continue or restart offered                                             |
+| 5   | Expectimax depth = 3                        | See §5.2 for rationale & phase 2 adaptive depth that was spotted during implementation.                               |
+| 6   | AI uses local Expectimax search             | Local search keeps tests deterministic and needs no setup. Remote provider available via `CONFIG.AI_MODE` — see §5.5. |
 
 ---
 
 ## 2. Tech Stack
 
-| Tool                  | Why                                                                                                                                                                                                                                 |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **React**             | Component model fits tile-based grid UI naturally                                                                                                                                                                                   |
-| **TypeScript**        | Static types — catches indexing and merge bugs early                                                                                                                                                                                |
-| **Vite**              | Native ESM dev server — instant startup, no webpack bundling overhead                                                                                                                                                               |
-| **Vitest**            | Shares Vite's config, aliases, and transforms — no duplicate pipeline. `npm test` works out of the box.                                                                                                                             |
-| **Plain class store** | Framework-agnostic, injectable, testable without React                                                                                                                                                                              |
+| Tool                  | Why                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------- |
+| **React**             | Component model fits tile-based grid UI naturally                                                       |
+| **TypeScript**        | Static types — catches indexing and merge bugs early                                                    |
+| **Vite**              | Native ESM dev server — instant startup, no webpack bundling overhead                                   |
+| **Vitest**            | Shares Vite's config, aliases, and transforms — no duplicate pipeline. `npm test` works out of the box. |
+| **Plain class store** | Framework-agnostic, injectable, testable without React                                                  |
 
 ---
 
@@ -71,13 +71,13 @@ Each domain concept gets its own type so signatures read as domain (`Board`, `Di
 
 Domain types live in `domain/types.ts`. Const-backed types (`Direction`) live alongside their runtime const object (`DIRECTION`). Module-specific types live with their module — `AIAdvice` in `src/ai/types.ts`, `GameStatus`/`STATUS` (when added) in `src/store/types.ts`.
 
-| Concept      | Where                | Shape                                                               |
-| ------------ | -------------------- | ------------------------------------------------------------------- |
-| `Board`      | `domain/types.ts`    | `Row[]` (alias chain: `Cell = number \| null`, `Row = Cell[]`)      |
-| `Direction`  | `domain/types.ts`    | `'left' \| 'right' \| 'up' \| 'down'`                               |
-| `MoveResult` | `domain/types.ts`    | `{ board, changed, scoreDelta }`                                    |
-| `GameStatus` | `store/types.ts`     | `'idle' \| 'playing' \| 'won' \| 'lost'` *(pending §6 build)*       |
-| `AIAdvice`   | `ai/types.ts`        | `{ direction, reasoning, debug }` *(pending §5.4 getSuggestion)*    |
+| Concept      | Where             | Shape                                                            |
+| ------------ | ----------------- | ---------------------------------------------------------------- |
+| `Board`      | `domain/types.ts` | `Row[]` (alias chain: `Cell = number \| null`, `Row = Cell[]`)   |
+| `Direction`  | `domain/types.ts` | `'left' \| 'right' \| 'up' \| 'down'`                            |
+| `MoveResult` | `domain/types.ts` | `{ board, changed, scoreDelta }`                                 |
+| `GameStatus` | `store/types.ts`  | `'idle' \| 'playing' \| 'won' \| 'lost'` _(pending §6 build)_    |
+| `AIAdvice`   | `ai/types.ts`     | `{ direction, reasoning, debug }` _(pending §5.4 getSuggestion)_ |
 
 ### 3.3 UI Layout
 
@@ -108,21 +108,25 @@ Mobile (<768px)                       Desktop (≥768px)
 ```
 
 **Top bar (full viewport width, both viewports):**
+
 - Title "2048" on the left.
 - Score and Best pills in the centre.
 - Restart on the right: circular-arrow icon on mobile (`aria-label="New game"`), "New Game" text on desktop.
 
 **Board area (centred, both viewports):**
+
 - 4×4 grid coloured by `log₂(rank)` via a generative HSL function in `palette.ts` (runtime, applied as inline style on Tile). Empty cells stay visible (`var(--color-cell-empty)` from `tokens.css`).
 - Static 4×4 cell layer with an absolute-positioned tile overlay on top. The overlay keys tiles by stable id; slide / spawn / merge-pop animations are driven by CSS transitions on the standalone `translate` property (see §3.4). `prefers-reduced-motion` zeroes every motion token.
 
 **AI CTA (bottom, both viewports):**
+
 - Mobile (<768px): fixed to the bottom of the viewport, full-width. Thumb-zone friendly.
 - Desktop (≥768px): normal flow below the board, board-width, centred.
 - Click or press `Space` to request a suggestion. Loading state shows "Computing…" inline. Result direction + reasoning template (§5.4) renders below the button.
 - Loading paint: the `adviceLoading=true` render is followed by `requestAnimationFrame(() => setTimeout(0))` before sync expectimax — bare `setTimeout(0)` never painted on Safari (WebKit coalesces short tasks; Chromium opportunistically paints between them).
 
 **Other:**
+
 - Status overlay: centred modal on win or lose. WON shows Continue (dismiss; play continues per assumption #4) + Restart. LOST shows View board (dismiss to inspect the final locked state) + Restart. Dismissed state is held locally; refresh-while-WON keeps the modal closed.
 - Persistent end-state cue: a subtle colour tint on the Header title (`<h1>`) via `data-status="won|lost"` — gold for WON, muted grey for LOST. No separate banner / no decorative chrome.
 - Input: arrow keys (moves) and `Space` (advice) captured at window level. On touch devices, finger swipes on the `<main>` content area produce moves — horizontal/vertical axis chosen by the greater absolute delta, with a 30px threshold to filter accidental drift. Swipe and keyboard converge on the same `applyMove(direction)` action; no source distinction at the store level. No on-screen direction buttons.
@@ -348,12 +352,12 @@ When Expectimax hits maximum depth it estimates board quality via a scoring form
 H(board) = α·Monotonicity + β·Smoothness + γ·log₂(EmptyCells) + δ·CornerBonus
 ```
 
-| Component            | What it measures                                          | Why it matters                                                                                                                    |
-| -------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Component            | What it measures                                               | Why it matters                                                                                                                    |
+| -------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | **Monotonicity**     | Sorted rows (ascending or descending) score 0; zigzag rows pay | Keeps large tiles ordered, prevents fragmentation                                                                                 |
-| **Smoothness**       | Adjacent tiles have similar values                        | Close values merge sooner                                                                                                         |
-| **log₂(EmptyCells)** | Available space                                           | More space = more options. `log₂` because each extra cell is worth less than the previous: 0→1 empty is huge, 9→10 barely matters |
-| **CornerBonus**      | Largest tile anchored to any corner                       | Frees the rest of the board for merging                                                                                           |
+| **Smoothness**       | Adjacent tiles have similar values                             | Close values merge sooner                                                                                                         |
+| **log₂(EmptyCells)** | Available space                                                | More space = more options. `log₂` because each extra cell is worth less than the previous: 0→1 empty is huge, 9→10 barely matters |
+| **CornerBonus**      | Largest tile anchored to any corner                            | Frees the rest of the board for merging                                                                                           |
 
 All heuristics use **log₂ space** — gaps between tiles become merge-distances. So `(2, 4)` and `(1024, 2048)` are both 1 merge apart and weighted equally. In raw values they differ by 500× and big tiles would dominate the heuristic regardless of structure.
 
@@ -452,8 +456,8 @@ Step 4 — dominant delta → template:
 
 Template map:
 
-| Dominant component | Reasoning template                                                |
-| ------------------ | ----------------------------------------------------------------- |
+| Dominant component | Reasoning template                                                      |
+| ------------------ | ----------------------------------------------------------------------- |
 | Monotonicity       | _"Move {direction} — keeps tiles ordered along rows"_                   |
 | Smoothness         | _"Move {direction} — keeps similar tiles close, more merges available"_ |
 | Empty cells        | _"Move {direction} — frees up board space"_                             |
@@ -490,13 +494,13 @@ MobX tracks property reads via ES6 Proxy and re-renders only the components that
 
 For 2048, most tiles change on every move. Property-level granularity buys nothing when nearly every property is dirty.
 
-| Factor                | MobX                              | Plain class (chosen)                   |
-| --------------------- | --------------------------------- | -------------------------------------- |
-| Re-render granularity | Property-level via Proxy          | Component-level                        |
-| Test injection        | Identical                         | Identical                              |
-| Extra dependencies    | `mobx`, `mobx-react-lite`         | None                                   |
-| Boilerplate           | `makeObservable` + decorators     | None                                   |
-| Value at 4×4 scale    | Property-level rarely fires here  | Component-level re-renders work fine   |
+| Factor                | MobX                             | Plain class (chosen)                 |
+| --------------------- | -------------------------------- | ------------------------------------ |
+| Re-render granularity | Property-level via Proxy         | Component-level                      |
+| Test injection        | Identical                        | Identical                            |
+| Extra dependencies    | `mobx`, `mobx-react-lite`        | None                                 |
+| Boilerplate           | `makeObservable` + decorators    | None                                 |
+| Value at 4×4 scale    | Property-level rarely fires here | Component-level re-renders work fine |
 
 Test injection — the core reason for a class store — works identically either way.
 
@@ -508,14 +512,14 @@ Test injection — the core reason for a class store — works identically eithe
 
 ```ts
 class GameStore {
-  board;          // Board
-  status;         // GameStatus
-  score;          // cumulative; += scoreDelta on each move
-  bestScore;      // persists across resets
-  advice;         // AIAdvice | null
-  adviceLoading;  // boolean
+  board; // Board
+  status; // GameStatus
+  score; // cumulative; += scoreDelta on each move
+  bestScore; // persists across resets
+  advice; // AIAdvice | null
+  adviceLoading; // boolean
 
-  get isActive();    // PLAYING or WON (WON interactive per assumption #4)
+  get isActive(); // PLAYING or WON (WON interactive per assumption #4)
   get largestTile(); // max tile value; null on empty board
 
   applyMove(direction);
@@ -607,10 +611,10 @@ Build order:
 
 ### 7.1 Test Layers
 
-| Layer              | File                 | What is tested                                                                                                                                                 |
-| ------------------ | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Board primitives   | `board.test.ts`      | `initBoard` (correct tile count, all `2`s, random positions), `boardsEqual`, `spawnTile` (cell selection + value is 2 or 4; branching tested via injected RNG) |
-| Move operations    | `moves.test.ts`      | `compressRow`, `mergeRow`, transforms (`reflect`, `transpose` involutions), all four directions — full board snapshots                                         |
+| Layer              | File                    | What is tested                                                                                                                                                 |
+| ------------------ | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Board primitives   | `board.test.ts`         | `initBoard` (correct tile count, all `2`s, random positions), `boardsEqual`, `spawnTile` (cell selection + value is 2 or 4; branching tested via injected RNG) |
+| Move operations    | `moves.test.ts`         | `compressRow`, `mergeRow`, transforms (`reflect`, `transpose` involutions), all four directions — full board snapshots                                         |
 | Win/lose detection | `board.test.ts`         | `checkWin`, `checkLose`                                                                                                                                        |
 | Move sequencing    | `gameStore.test.ts`     | All 6 stages in §4.4                                                                                                                                           |
 | AI heuristics      | `heuristics.test.ts`    | Each heuristic component independently                                                                                                                         |
@@ -688,13 +692,13 @@ A `ⓘ` tooltip on the score display shows: _"Score = cumulative sum of merged t
 ```ts
 // src/config.ts
 export const CONFIG = {
-  WIN_TILE: 2048,                       // §4.1
-  INIT_TILE_COUNT: { min: 2, max: 8 },  // §1 assumption 1
-  SPAWN_WEIGHTS: { 2: 0.9, 4: 0.1 },    // §1 assumption 2
-  EXPECTIMAX_DEPTH: 3,                  // §5.2
-  AI_MODE: 'local',                     // 'local' | 'remote' — §5.5
-  MIN_ADVICE_LOADING_MS: 150,           // §3.3 loading paint floor
-  GENERIC_TEMPLATE_THRESHOLD: 0.05,     // §5.6 reasoning template fallback
+  WIN_TILE: 2048, // §4.1
+  INIT_TILE_COUNT: { min: 2, max: 8 }, // §1 assumption 1
+  SPAWN_WEIGHTS: { 2: 0.9, 4: 0.1 }, // §1 assumption 2
+  EXPECTIMAX_DEPTH: 3, // §5.2
+  AI_MODE: 'local', // 'local' | 'remote' — §5.5
+  MIN_ADVICE_LOADING_MS: 150, // §3.3 loading paint floor
+  GENERIC_TEMPLATE_THRESHOLD: 0.05, // §5.6 reasoning template fallback
 };
 ```
 

@@ -79,10 +79,7 @@ describe('saveGameState', () => {
 
   it('writes the JSON-serialised state under STORAGE_KEYS.GAME_STATE', () => {
     saveGameState(validState);
-    expect(setItemSpy).toHaveBeenCalledWith(
-      STORAGE_KEYS.GAME_STATE,
-      JSON.stringify(validState),
-    );
+    expect(setItemSpy).toHaveBeenCalledWith(STORAGE_KEYS.GAME_STATE, JSON.stringify(validState));
   });
 
   it('swallows errors when setItem throws (private mode / quota exceeded)', () => {
