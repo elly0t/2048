@@ -65,6 +65,7 @@ describe('inferMotions', () => {
       fromCol: 3,
       merged: false,
       spawned: false,
+      ghost: false,
     });
   });
 
@@ -212,7 +213,7 @@ describe('inferMotions', () => {
       'left',
       seq(),
     );
-    expect(motions).toHaveLength(3); // 2 merges + 1 spawn
+    expect(motions).toHaveLength(5); // 2 ghosts + 2 targets + 1 spawn
     const m0 = motions.find((m) => m.row === 0 && m.col === 0);
     const m1 = motions.find((m) => m.row === 0 && m.col === 1);
     expect(m0?.merged).toBe(true);
@@ -251,11 +252,74 @@ describe('inferMotions', () => {
       'down',
       seq(),
     );
-    expect(motions).toHaveLength(2);
+    expect(motions).toHaveLength(3); // 1 ghost + 1 target + 1 spawn
     const merge = motions.find((m) => m.row === 3 && m.col === 0);
     expect(merge?.merged).toBe(true);
     expect(merge?.value).toBe(4);
     // For 'down', the tile closer to the bottom is leading — b survives.
     expect(idBoard[3]?.[0]).toBe('b');
+  });
+
+  it('ghost — consumed source emits ghost motion sliding to merge destination', () => {
+    const oldBoard: Board = [
+      [2, 2, null, null],
+      [...ALL_NULL_ROW],
+      [...ALL_NULL_ROW],
+      [...ALL_NULL_ROW],
+    ];
+    const oldIds: IdBoard = [
+      ['a', 'b', null, null],
+      [...ALL_NULL_ROW],
+      [...ALL_NULL_ROW],
+      [...ALL_NULL_ROW],
+    ];
+    const newBoard: Board = [
+      [4, null, null, null],
+      [...ALL_NULL_ROW],
+      [...ALL_NULL_ROW],
+      [...ALL_NULL_ROW],
+    ];
+
+    const { motions } = inferMotions(oldBoard, oldIds, newBoard, 'left', seq());
+    const ghost = motions.find((m) => m.id === 'b');
+    expect(ghost).toEqual({
+      id: 'b',
+      value: 2,
+      row: 0,
+      col: 0,
+      fromRow: 0,
+      fromCol: 1,
+      merged: false,
+      spawned: false,
+      ghost: true,
+    });
+  });
+
+  it('ghost order — ghost precedes target in motions[] for correct z-stacking', () => {
+    const oldBoard: Board = [
+      [2, 2, null, null],
+      [...ALL_NULL_ROW],
+      [...ALL_NULL_ROW],
+      [...ALL_NULL_ROW],
+    ];
+    const oldIds: IdBoard = [
+      ['a', 'b', null, null],
+      [...ALL_NULL_ROW],
+      [...ALL_NULL_ROW],
+      [...ALL_NULL_ROW],
+    ];
+    const newBoard: Board = [
+      [4, null, null, null],
+      [...ALL_NULL_ROW],
+      [...ALL_NULL_ROW],
+      [...ALL_NULL_ROW],
+    ];
+
+    const { motions } = inferMotions(oldBoard, oldIds, newBoard, 'left', seq());
+    const ghostIdx = motions.findIndex((m) => m.id === 'b');
+    const targetIdx = motions.findIndex((m) => m.id === 'a');
+    expect(ghostIdx).toBeGreaterThanOrEqual(0);
+    expect(targetIdx).toBeGreaterThanOrEqual(0);
+    expect(ghostIdx).toBeLessThan(targetIdx);
   });
 });

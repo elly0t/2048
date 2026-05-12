@@ -11,6 +11,8 @@ export type TileMotion = {
   fromCol: number;
   merged: boolean;
   spawned: boolean;
+  // Consumed merge source — slides to destination then unmounts; renders before target for z-order.
+  ghost: boolean;
 };
 
 export type IdBoard = (string | null)[][];
@@ -66,6 +68,7 @@ export function inferMotions(
         fromCol: tile.fromCol,
         merged: tile.merged,
         spawned: false,
+        ghost: false,
       });
     });
   }
@@ -87,6 +90,7 @@ export function inferMotions(
         fromCol: c,
         merged: false,
         spawned: true,
+        ghost: false,
       });
     }
   }
