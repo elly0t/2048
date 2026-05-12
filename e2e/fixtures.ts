@@ -41,6 +41,29 @@ function hashString(s: string): number {
   return h >>> 0;
 }
 
+type SeedState = {
+  board: (number | null)[][];
+  score?: number;
+  status?: 'playing' | 'won' | 'lost';
+  bestScore?: number;
+};
+
+// Seed localStorage before app hydration. Idempotent — `page.reload()` keeps
+// the app's saved state instead of re-seeding (needed by persistence scenarios).
+export async function seedBoard(page: Page, state: SeedState): Promise<void> {
+  await page.addInitScript((s: SeedState) => {
+    if (!localStorage.getItem('2048_game_state')) {
+      localStorage.setItem(
+        '2048_game_state',
+        JSON.stringify({ board: s.board, score: s.score ?? 0, status: s.status ?? 'playing' }),
+      );
+    }
+    if (s.bestScore !== undefined && !localStorage.getItem('2048_best_score')) {
+      localStorage.setItem('2048_best_score', String(s.bestScore));
+    }
+  }, state);
+}
+
 // `useSwipe` consumes touchstart + touchend only — no move events needed.
 export async function touchGesture(
   page: Page,
