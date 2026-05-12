@@ -106,7 +106,7 @@ Mobile (<768px)                       Desktop (≥768px)
 
 **Board area (centred, both viewports):**
 - 4×4 grid coloured by `log₂(rank)` via a generative HSL function in `palette.ts` (runtime, applied as inline style on Tile). Empty cells stay visible (`var(--color-cell-empty)` from `tokens.css`).
-- Static 4×4 cell layer with an absolute-positioned tile overlay on top. DOM is animation-ready, but tile animations (slide / spawn / merge) and stable-ID identity tracking in `useGame` are **deferred polish** — see the deferred-polish bullet below. Without animations, the overlay renders correctly: tiles appear at their target positions on each render.
+- Static 4×4 cell layer with an absolute-positioned tile overlay on top. The overlay keys tiles by stable id; slide / spawn / merge-pop animations are driven by CSS transitions on the standalone `translate` property (see §3.4). `prefers-reduced-motion` zeroes every motion token.
 
 **AI CTA (bottom, both viewports):**
 - Mobile (<768px): fixed to the bottom of the viewport, full-width. Thumb-zone friendly.
@@ -120,7 +120,21 @@ Mobile (<768px)                       Desktop (≥768px)
 - Input: arrow keys (moves) and `Space` (advice) captured at window level. On touch devices, finger swipes on the `<main>` content area produce moves — horizontal/vertical axis chosen by the greater absolute delta, with a 30px threshold to filter accidental drift. Swipe and keyboard converge on the same `applyMove(direction)` action; no source distinction at the store level. No on-screen direction buttons.
 - Components consume state via the `useGame` hook (§10, `src/hooks/useGame.ts`) using `useSyncExternalStore`; they never reach into `GameStore` directly.
 - Accessibility floor: semantic `<button>` for actions, `aria-live="polite"` on score and advice text, `aria-label` on the mobile icon-only restart button, `role="dialog"` + `aria-modal="true"` on the status overlay, palette tuned for ≥4.5:1 contrast on tile text.
-- **Deferred polish (time-permitting):** stable-ID tile identity in `useGame`, CSS-transform slide / spawn / merge animations on `Tile`, `prefers-reduced-motion` guard, score-delta float, merge pop. The static board ships first; these layer on without restructuring DOM (the slot-grid + tile-overlay split is already in place).
+
+### 3.4 Tile Motion
+
+Motion is a stream of `TileMotion[]` inferred from before/after boards plus the last direction (`hooks/motion.ts`). Three kinds: survivors (slide), consumed merge sources (ghost — slides to destination then unmounts), freshly spawned tiles. The overlay keys tiles by stable id so React reconciles them across moves — same DOM node, sliding cell to cell.
+
+**Two-beat timing.**
+
+```
+0ms ──── 180ms ──── 240ms ─────── 490ms
+[slide ────────────]
+[pop (if merge) ───]
+                    [spawn ────────────────]
+```
+
+Slide (180ms) and merge-pop (200ms) run concurrent; spawn (250ms) is delayed 240ms so new tiles land after the board settles. Easing is `cubic-bezier(0.16, 1, 0.3, 1)` for both — bounce comes from the pop keyframe shape (`scale: 1 → 1.15 → 1`).
 
 ---
 
