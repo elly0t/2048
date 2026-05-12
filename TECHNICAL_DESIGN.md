@@ -2,6 +2,16 @@
 
 This document explains the design decisions behind the implementation. Architectural decisions are documented here before implementation — if a better approach emerges during development, this document is updated to reflect it.
 
+## Distinctive Design Choices
+
+- **Plain-class ViewModel over MobX** — `GameStore` is a vanilla class behind `useSyncExternalStore`; zero React imports, tests run in plain Node (§6.2).
+- **2D array over bitboard** — readability over a 10× speedup we don't yet need; bitboard remains a clean phase-2 swap (§4.2).
+- **Expectimax (not minimax) at depth 3** — spawns are random, not adversarial; phase 2 adaptive depth keyed off `|empties|` (§5.1, §5.2).
+- **Pluggable AI provider** — `CONFIG.AI_MODE` flips local↔remote with no callsite changes; the remote path (nneonneo via Docker) is designed and the dispatcher is wired — the container itself is phase 2 (§5.4–§5.5).
+- **Motion inferred from before/after boards** — `TileMotion[]` stream with stable ids drives slide/spawn/pop animations; React reconciles the same DOM node across moves (§3.4).
+
+If you only have 15 minutes: §4.3 move pipeline · §5.2 depth rationale · §5.6 suggestion pipeline + benchmark · §6.2 MobX trade-off.
+
 ---
 
 ## 1. Assumptions
@@ -15,7 +25,7 @@ The spec leaves several values unspecified. All assumptions are externalised to 
 | 3   | Score = sum of all merged tile values       | Standard 2048 scoring convention — same as the original game                                                                                    |
 | 4   | Win state allows player to continue         | Spec detects win but does not say game ends — continue or restart offered                                                                       |
 | 5   | Expectimax depth = 3                        | See §5.2 for rationale & phase 2 adaptive depth that was spotted during implementation.                                                                   |
-| 6   | AI uses local Expectimax search             | Local search keeps tests deterministic and needs no setup. Remote provider available via `CONFIG.AI_MODE` — see §5.4.                           |
+| 6   | AI uses local Expectimax search             | Local search keeps tests deterministic and needs no setup. Remote provider available via `CONFIG.AI_MODE` — see §5.5.                           |
 
 ---
 
@@ -138,6 +148,8 @@ Slide (180ms) and merge-pop (200ms) run concurrent; spawn (250ms) is delayed 240
 
 ## 4. Core Domain Logic
 
+2D array board, canonical `moveLeft` with the other three directions implemented as reflect/transpose around it. Per-row pipeline is `compressRow → mergeRow → compressRow`. Six-stage sequencing in the store guards against spawn-after-no-change and spawn-after-win.
+
 Move processing is layered. `GameStore` handles state transitions and sequencing (§4.4); `moves.ts` handles the row-level transform (§4.3); `compressRow` and `mergeRow` are the per-row primitives. Reading top-down:
 
 ```
@@ -256,11 +268,13 @@ The order of operations in `GameStore.applyMove()` matters; incorrect sequencing
 6. update state
 ```
 
-Each stage has a dedicated test. Stage 2 guards against spawning on a no-change move. Stage 3 guards against spawning after a win. Stage 5 runs `checkLose` on `boardWithTile` (post-spawn), not `newBoard`, because a spawn that fills the last empty cell with no available merges can itself trigger the lose state.
+Each stage has a dedicated test. Stage 2 guards against spawning on a no-change move. Stage 3 guards against spawning after a win. Stage 5 runs `checkLose` on `boardWithTile` (post-spawn), not `newBoard`, because a spawn that fills the last empty cell with no available merges can itself trigger the lose state. The before/after boards from stage 6 feed motion inference — §3.4.
 
 ---
 
 ## 5. AI Strategy: Local Expectimax
+
+Expectimax at depth 3, four-term heuristic with weights derived from nneonneo's benchmark, ~74ms/move (p95 187ms), 77% reach 2048 (n=100). Phase 2 adaptive depth keyed off `|empties|` — same instinct as nneonneo, different signal. Local search is default; remote nneonneo via Docker behind the same `getSuggestion` contract (§5.5).
 
 ### 5.1 Why Expectimax, Not Minimax
 
@@ -310,7 +324,7 @@ late  ~2  empties  →   16 per ply  →  d=3 ≈ 4k     (~27× lower)
 
 Phase 2 below leans on this spread.
 
-Pure JS without bitboard or chance-node sampling tops out around ~1M heuristic evals/sec. Depth 4 (5.3M nodes) needs sampling or the bitboard + LUT approach, both deferred to phase 2. Section 5.4 documents the swap path to nneonneo (depth 8 in C++) if stronger play is needed.
+Pure JS without bitboard or chance-node sampling tops out around ~1M heuristic evals/sec. Depth 4 (5.3M nodes) needs sampling or the bitboard + LUT approach, both deferred to phase 2. Section 5.5 documents the swap path to nneonneo (depth 8 in C++) if stronger play is needed.
 
 `EXPECTIMAX_DEPTH = 3` is a named constant in `config.ts`.
 
@@ -367,19 +381,9 @@ Weights:
 
 These values come from nneonneo's published 2048 AI analysis (the same StackOverflow answer that documents the algorithm). Tuning from scratch needs hundreds of trial games — out of scope here. Cited in `heuristics.ts`.
 
-### 5.4 AI Suggestion & Human-Readable Reasoning
+### 5.4 AI Provider Abstraction
 
-The AI suggestion pipeline returns the best direction along with plain-English reasoning. Internally, `expectimax` is value-returning: it takes a board and a depth and returns a single number. `getSuggestion` runs the per-direction loop — calling `expectimax` once per direction, capturing all four scores (including no-ops, for debug), picking the max, and deriving the reasoning template from heuristic component deltas. Both the move and the reasoning are deterministic and fully testable.
-
-### nneonneo as the alternative
-
-nneonneo/2048-ai (1.2k stars) was the primary alternative considered: Expectimax with a bitboard representation (64-bit int = 16 cells × 4 bits, tile exponent) plus a precomputed LUT for row transforms, searching ~10M positions/second. At depth 8 it reaches the 2048 tile in 100% of games and 16384 in 94% (nneonneo's own 100-game benchmark).
-
-Local choice: pure JS Expectimax at depth 3, same heuristics, no setup, directly unit testable. `getSuggestion` is the single swap point — flipping `CONFIG.AI_MODE` to `'remote'` and starting the Docker container leaves the game engine untouched.
-
-### Swap path via Docker
-
-Docker keeps the swap reproducible: pinned C++ toolchain, Python version, and library versions in one container, started with `docker-compose up` regardless of host OS — no Xcode setup, no platform-specific compilation. Behind the wrapper: nneonneo's compiled C++ binary, a thin Flask `POST /suggest`, and board-format translation (2D array ↔ 64-bit bitboard).
+`getSuggestion` is the single swap point. `CONFIG.AI_MODE` flips local↔remote; components and `GameStore` call `getSuggestion` regardless. `AI_MODES.LOCAL` is the default — no Docker required out of the box.
 
 ```ts
 // src/ai/getSuggestion.ts
@@ -391,9 +395,7 @@ export async function getSuggestion(board) {
 }
 ```
 
-`AI_MODES.LOCAL` is the default. Components and `GameStore` call `getSuggestion` regardless of mode — nothing else in the codebase changes.
-
-Benchmark (full write-up in `bench/BENCHMARK_REPORT.md`):
+Local benchmark (full write-up in `bench/BENCHMARK_REPORT.md`):
 
 ```
 Implementation:   Own Expectimax, depth 3
@@ -405,7 +407,19 @@ Avg move time:    74ms (p95 187ms, max 780ms)
 
 Random and greedy baselines were also run (each n=100). Both reach 0% on 2048; greedy caps at 512, random caps at 256. Calibration confirmed: the search contributes real move quality, not heuristics riding on luck.
 
-### How the suggestion works
+### 5.5 Remote Provider: nneonneo via Docker
+
+nneonneo/2048-ai (1.2k stars) was the primary alternative: Expectimax with a bitboard representation (64-bit int = 16 cells × 4 bits, tile exponent) plus a precomputed LUT for row transforms, searching ~10M positions/second. At depth 8 it reaches the 2048 tile in 100% of games and 16384 in 94% (nneonneo's own 100-game benchmark).
+
+Docker keeps the swap reproducible: pinned C++ toolchain, Python version, and library versions in one container, started with `docker-compose up` regardless of host OS — no Xcode setup, no platform-specific compilation. Behind the wrapper: nneonneo's compiled C++ binary, a thin Flask `POST /suggest`, and board-format translation (2D array ↔ 64-bit bitboard).
+
+Flipping `CONFIG.AI_MODE` to `'remote'` and starting the container leaves the game engine untouched — the rest of the app doesn't know which provider answered.
+
+### 5.6 Suggestion Pipeline & Reasoning Template
+
+`expectimax` is value-returning: it takes a board and a depth and returns a single number. `getSuggestion` runs the per-direction loop — calling `expectimax` once per direction, capturing all four scores (including no-ops, for debug), picking the max, and deriving the reasoning template from heuristic component deltas. Both the move and the reasoning are deterministic and fully testable.
+
+#### How the suggestion works
 
 Selection and templating use two different signals: `chanceValue` (search-aware, drives selection) and `scoreComponents` (immediate post-move heuristic snapshot, drives templating). The numbers below are illustrative — search scores aren't simple sums of the immediate components.
 
@@ -528,7 +542,7 @@ reset()              → status = PLAYING
 ```
 Action                  | State changes
 ------------------------|--------------------------------------------------
-applyMove(direction)    | board, score (+= scoreDelta), status
+applyMove(direction)    | board, score (+= scoreDelta), status (6-stage sequencing — §4.4)
 requestAdvice()         | adviceLoading = true, advice = null
                         | → on result: advice = { direction, reasoning, debug }
                         |              adviceLoading = false
@@ -674,11 +688,13 @@ A `ⓘ` tooltip on the score display shows: _"Score = cumulative sum of merged t
 ```ts
 // src/config.ts
 export const CONFIG = {
-  WIN_TILE: 2048,
-  INIT_TILE_COUNT: { min: 2, max: 8 }, // spec unspecified — see assumptions
-  SPAWN_WEIGHTS: { 2: 0.9, 4: 0.1 }, // spec unspecified — see assumptions
-  EXPECTIMAX_DEPTH: 3,
-  AI_MODE: 'local', // 'local' | 'remote' — see TD §5.4
+  WIN_TILE: 2048,                       // §4.1
+  INIT_TILE_COUNT: { min: 2, max: 8 },  // §1 assumption 1
+  SPAWN_WEIGHTS: { 2: 0.9, 4: 0.1 },    // §1 assumption 2
+  EXPECTIMAX_DEPTH: 3,                  // §5.2
+  AI_MODE: 'local',                     // 'local' | 'remote' — §5.5
+  MIN_ADVICE_LOADING_MS: 150,           // §3.3 loading paint floor
+  GENERIC_TEMPLATE_THRESHOLD: 0.05,     // §5.6 reasoning template fallback
 };
 ```
 
