@@ -15,3 +15,9 @@ bench/results-*.jsonl
 # Claude Code harness local state
 .claude/
 .vercel
+
+# Playwright
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
