@@ -430,10 +430,12 @@ describe('GameStore.reset', () => {
 describe('GameStore.requestAdvice', () => {
   beforeEach(() => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => setTimeout(cb, 0));
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('case 1: synchronously sets adviceLoading=true, advice=null', () => {

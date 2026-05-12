@@ -257,6 +257,7 @@ Per TD §6.5.
 6. Determinism: same board returns identical advice across calls; `__adviceHistory` grows.
 7. Does not mutate `this.board`.
 8. In-flight guard: when called while `adviceLoading=true`, returns immediately without firing a duplicate `notify()` or a duplicate `getSuggestion` call.
+9. Loading paint (manual, cross-browser): on Safari and Chromium, trigger Ask AI on a non-trivial board — "Computing…" must appear and stay ≥150ms before the result replaces it. Regression guard for the rAF + setTimeout yield (TD §3.3).
 
 ---
 

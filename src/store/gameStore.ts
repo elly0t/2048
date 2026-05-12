@@ -83,8 +83,10 @@ export class GameStore {
     this.adviceLoading = true;
     this.advice = null;
     this.notify();
-    // Yield to the event loop so React paints the loading state before sync expectimax blocks the thread.
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    // rAF + setTimeout(0) — bare setTimeout never painted the loading state on Safari (WebKit coalesces short tasks).
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => setTimeout(resolve, 0)),
+    );
     const start = performance.now();
     const advice = await getSuggestion(this.board);
     // Floor the loading state at CONFIG.MIN_ADVICE_LOADING_MS for perceptible feedback.

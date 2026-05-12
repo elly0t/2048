@@ -112,6 +112,7 @@ Mobile (<768px)                       Desktop (≥768px)
 - Mobile (<768px): fixed to the bottom of the viewport, full-width. Thumb-zone friendly.
 - Desktop (≥768px): normal flow below the board, board-width, centred.
 - Click or press `Space` to request a suggestion. Loading state shows "Computing…" inline. Result direction + reasoning template (§5.4) renders below the button.
+- Loading paint: the `adviceLoading=true` render is followed by `requestAnimationFrame(() => setTimeout(0))` before sync expectimax — bare `setTimeout(0)` never painted on Safari (WebKit coalesces short tasks; Chromium opportunistically paints between them).
 
 **Other:**
 - Status overlay: centred modal on win or lose. WON shows Continue (dismiss; play continues per assumption #4) + Restart. LOST shows View board (dismiss to inspect the final locked state) + Restart. Dismissed-for-current-status is held in local component state lazily initialised from current status — if the page mounts already in an end-state (e.g. refresh while WON), the modal stays closed (player has seen it before).
