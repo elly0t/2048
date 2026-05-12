@@ -1,9 +1,9 @@
-import { useEffect, useRef, useSyncExternalStore, type TouchEvent } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, type TouchEvent } from 'react';
 import { GameStore } from '../store/gameStore';
 import { DIRECTION, type Board, type Direction } from '../domain/types';
 import { saveGameState, saveBestScore, loadGameState, loadBestScore } from './persistence';
 import { STORAGE_KEYS } from '../constants/storageKeys';
-import type { IdBoard, TileMotion } from './motion';
+import { inferMotions, type IdBoard, type TileMotion } from './motion';
 
 // React bridge over GameStore (TD §3.3, §6.2). Lazy singleton — module-load
 // init would fire localStorage reads before tests can stub them; getStore()
@@ -75,17 +75,61 @@ export function getStore(): GameStore {
 }
 
 export class MotionTracker {
-  idBoard: IdBoard = Array.from({ length: 4 }, () => Array<string | null>(4).fill(null));
+  idBoard: IdBoard;
   motions: TileMotion[] = [];
+  // Never resets — id reuse across session would break React reconciliation on stale ghost tiles.
+  private n = 0;
+  private nextId = (): string => `t${++this.n}`;
 
-  constructor(_initialBoard: Board) {}
-  track(_oldBoard: Board, _newBoard: Board, _direction: Direction): TileMotion[] { return []; }
-  reset(_newBoard: Board): void {}
+  constructor(initialBoard: Board) {
+    this.idBoard = this.initIdBoard(initialBoard);
+  }
+
+  private initIdBoard(board: Board): IdBoard {
+    const ids: IdBoard = Array.from({ length: 4 }, () => Array<string | null>(4).fill(null));
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 4; c++) {
+        if (typeof board[r]?.[c] === 'number') ids[r]![c] = this.nextId();
+      }
+    }
+    return ids;
+  }
+
+  track(oldBoard: Board, newBoard: Board, direction: Direction): TileMotion[] {
+    const result = inferMotions(oldBoard, this.idBoard, newBoard, direction, this.nextId);
+    this.idBoard = result.idBoard;
+    this.motions = result.motions;
+    return result.motions;
+  }
+
+  reset(newBoard: Board): void {
+    this.idBoard = this.initIdBoard(newBoard);
+    this.motions = [];
+  }
 }
 
 export function useGame() {
   const s = getStore();
   useSyncExternalStore(s.subscribe.bind(s), s.getSnapshot);
+  const trackerRef = useRef<MotionTracker | null>(null);
+  if (!trackerRef.current) trackerRef.current = new MotionTracker(s.board);
+  const tracker = trackerRef.current;
+  const [motions, setMotions] = useState<TileMotion[]>([]);
+
+  const move = (direction: Direction) => {
+    const oldBoard = s.board;
+    s.applyMove(direction);
+    if (s.lastDirection) {
+      setMotions(tracker.track(oldBoard, s.board, s.lastDirection));
+    }
+  };
+
+  const reset = () => {
+    s.reset();
+    tracker.reset(s.board);
+    setMotions([]);
+  };
+
   return {
     board: s.board,
     score: s.score,
@@ -95,8 +139,9 @@ export function useGame() {
     largestTile: s.largestTile,
     advice: s.advice,
     adviceLoading: s.adviceLoading,
-    move: s.applyMove.bind(s),
-    reset: s.reset.bind(s),
+    motions,
+    move,
+    reset,
     requestAdvice: s.requestAdvice.bind(s),
   };
 }
