@@ -37,15 +37,27 @@ export function StatusOverlay() {
       className={styles.dialog}
       onCancel={handleDismiss}
       aria-labelledby="status-overlay-title"
+      data-testid="status-overlay"
     >
-      <h2 id="status-overlay-title" className={styles.title}>
+      <h2 id="status-overlay-title" className={styles.title} data-testid="status-title">
         {isWon ? COPY.status.won : COPY.status.lost}
       </h2>
       <div className={styles.actions}>
-        <button type="button" onClick={handleDismiss} className={styles.continueButton}>
+        <button
+          type="button"
+          onClick={handleDismiss}
+          className={styles.continueButton}
+          data-testid="status-continue"
+        >
           {dismissLabel}
         </button>
-        <button type="button" onClick={handleRestart} className={styles.restartButton} autoFocus>
+        <button
+          type="button"
+          onClick={handleRestart}
+          className={styles.restartButton}
+          autoFocus
+          data-testid="status-restart"
+        >
           {COPY.status.restartButton}
         </button>
       </div>

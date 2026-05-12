@@ -44,7 +44,7 @@ export function Board() {
         );
 
   return (
-    <div className={styles.board} role="grid" aria-label="2048 game board">
+    <div className={styles.board} role="grid" aria-label="2048 game board" data-testid="board">
       <div className={styles.grid} aria-hidden="true">
         {Array.from({ length: 16 }, (_, i) => (
           <Cell key={i} />

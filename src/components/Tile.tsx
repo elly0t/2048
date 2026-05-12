@@ -35,6 +35,10 @@ export function Tile({ motion, onGhostDone }: TileProps) {
     <div
       className={styles.tile}
       style={style}
+      data-testid="tile"
+      data-row={motion.row}
+      data-col={motion.col}
+      data-value={motion.value}
       data-ghost={motion.ghost || undefined}
       data-spawned={motion.spawned || undefined}
       data-merged={motion.merged || undefined}

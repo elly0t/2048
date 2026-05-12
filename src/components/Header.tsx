@@ -16,18 +16,23 @@ export function Header() {
         <div className={styles.scores}>
           <div className={styles.scoreBlock}>
             <span className={styles.label}>{COPY.header.scoreLabel}</span>
-            <span className={styles.value} aria-live="polite">
+            <span className={styles.value} aria-live="polite" data-testid="score">
               {score}
             </span>
           </div>
           <div className={styles.scoreBlock}>
             <span className={styles.label}>{COPY.header.bestLabel}</span>
-            <span className={styles.value} aria-live="polite">
+            <span className={styles.value} aria-live="polite" data-testid="best-score">
               {bestScore}
             </span>
           </div>
         </div>
-        <button type="button" className={styles.restart} onClick={() => reset()}>
+        <button
+          type="button"
+          className={styles.restart}
+          onClick={() => reset()}
+          data-testid="restart"
+        >
           <span aria-hidden="true" className={styles.restartIcon}>
             ↺
           </span>

@@ -14,6 +14,7 @@ export function AIPanel() {
           if (!adviceLoading) void requestAdvice();
         }}
         aria-disabled={adviceLoading}
+        data-testid="ask-ai"
       >
         {adviceLoading ? (
           <span className={styles.askLabel}>{COPY.ai.computing}</span>
@@ -25,9 +26,11 @@ export function AIPanel() {
         )}
       </button>
       {advice && !adviceLoading && (
-        <p className={styles.advice} aria-live="polite">
-          <strong className={styles.adviceDirection}>{advice.direction ?? '—'}</strong> —{' '}
-          {advice.reasoning}
+        <p className={styles.advice} aria-live="polite" data-testid="advice">
+          <strong className={styles.adviceDirection} data-testid="advice-direction">
+            {advice.direction ?? '—'}
+          </strong>{' '}
+          — {advice.reasoning}
         </p>
       )}
     </div>
