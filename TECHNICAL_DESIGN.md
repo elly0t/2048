@@ -21,14 +21,12 @@ The spec leaves several values unspecified. All assumptions are externalised to 
 
 ## 2. Tech Stack
 
-ESM (ECMAScript Modules) is the native JS module system browsers support directly — `import/export` syntax. Vite serves ESM files to the browser in dev without bundling, making startup near-instant. Webpack bundles everything first; changes trigger a full or partial rebundle.
-
 | Tool                  | Why                                                                                                                                                                                                                                 |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **React**             | Component model fits tile-based grid UI naturally                                                                                                                                                                                   |
 | **TypeScript**        | Static types — catches indexing and merge bugs early                                                                                                                                                                                |
 | **Vite**              | Native ESM dev server — instant startup, no webpack bundling overhead                                                                                                                                                               |
-| **Vitest**            | Shares Vite's config, aliases, and transforms — no duplicate pipeline. Jest on a Vite project needs `babel-jest`, `ts-jest`, and manual `moduleNameMapper` to replicate what Vitest gets for free. `npm test` works out of the box. |
+| **Vitest**            | Shares Vite's config, aliases, and transforms — no duplicate pipeline. `npm test` works out of the box.                                                                                                                             |
 | **Plain class store** | Framework-agnostic, injectable, testable without React                                                                                                                                                                              |
 
 ---
@@ -75,7 +73,7 @@ Domain types live in `domain/types.ts`. Const-backed types (`Direction`) live al
 
 Three-row shell: full-bleed top bar / centred board / bottom AI CTA. Responsive via a single 768px breakpoint — same DOM, the swap is button label/size and CTA positioning, not a layout reflow.
 
-**Breakpoint system:** standard sm/md/lg/xl tiers (640/768/1024/1280 px, defined as CSS variables in `tokens.css`). Only `md` (768) is structurally active for this layout — the chrome is light (title, scores, restart, board, AI CTA), so the only meaningful boundary is mobile↔desktop. Other tiers are documented for future extension (e.g. larger tiles at `lg`, side AI panel at `xl`) without restructuring DOM.
+**Breakpoint system:** standard sm/md/lg/xl tokens (640/768/1024/1280 px) in `tokens.css`; only `md` (768) is structurally active here — the layout has one mobile↔desktop boundary.
 
 ```
 Mobile (<768px)                       Desktop (≥768px)
@@ -115,8 +113,8 @@ Mobile (<768px)                       Desktop (≥768px)
 - Loading paint: the `adviceLoading=true` render is followed by `requestAnimationFrame(() => setTimeout(0))` before sync expectimax — bare `setTimeout(0)` never painted on Safari (WebKit coalesces short tasks; Chromium opportunistically paints between them).
 
 **Other:**
-- Status overlay: centred modal on win or lose. WON shows Continue (dismiss; play continues per assumption #4) + Restart. LOST shows View board (dismiss to inspect the final locked state) + Restart. Dismissed-for-current-status is held in local component state lazily initialised from current status — if the page mounts already in an end-state (e.g. refresh while WON), the modal stays closed (player has seen it before).
-- Persistent end-state cue: a subtle colour tint on the Header title (`<h1>`) via `data-status="won|lost"` — gold for WON, muted grey for LOST. No separate banner / no decorative chrome. The modal is the dramatic announcement; the title tint is ambient post-dismissal awareness. Frozen-board state on LOST is its own signal (no valid moves apply).
+- Status overlay: centred modal on win or lose. WON shows Continue (dismiss; play continues per assumption #4) + Restart. LOST shows View board (dismiss to inspect the final locked state) + Restart. Dismissed state is held locally; refresh-while-WON keeps the modal closed.
+- Persistent end-state cue: a subtle colour tint on the Header title (`<h1>`) via `data-status="won|lost"` — gold for WON, muted grey for LOST. No separate banner / no decorative chrome.
 - Input: arrow keys (moves) and `Space` (advice) captured at window level. On touch devices, finger swipes on the `<main>` content area produce moves — horizontal/vertical axis chosen by the greater absolute delta, with a 30px threshold to filter accidental drift. Swipe and keyboard converge on the same `applyMove(direction)` action; no source distinction at the store level. No on-screen direction buttons.
 - Components consume state via the `useGame` hook (§10, `src/hooks/useGame.ts`) using `useSyncExternalStore`; they never reach into `GameStore` directly.
 - Accessibility floor: semantic `<button>` for actions, `aria-live="polite"` on score and advice text, `aria-label` on the mobile icon-only restart button, `role="dialog"` + `aria-modal="true"` on the status overlay, palette tuned for ≥4.5:1 contrast on tile text.
@@ -186,19 +184,11 @@ The board is fixed size. Every move is constant time regardless of representatio
 
 Bitboard + LUT precomputation yields ~5–10× speedup. At the depth-3 target (~110ms baseline in pure JS), 10× brings latency to ~11ms; both are well under any UX threshold. The speedup only earns its complexity when the baseline crosses into perceptible territory: at depth 5 (~400ms+ in pure JS), 10× to ~40ms is a real UX difference worth pursuing.
 
-If search depth is raised or board size grows, switching to Bitboard + LUT is a natural phase 2: replacing the board representation in `board.ts`, `moves.ts`, and `expectimax.ts`. The store and components interface through `MoveResult` and `GameStore`, so they're unaffected. The algorithm doesn't change; only the data layout does.
+If depth or board size grows, Bitboard + LUT is a natural phase 2 — confined to the domain layer; `MoveResult` and `GameStore` insulate the rest.
 
 ### 4.3 Move Pipeline
 
-All four directions are transforms around a single `moveLeft`:
-
-```
-moveRight → reflect horizontally  → moveLeft → reflect back
-moveUp    → transpose             → moveLeft → transpose back
-moveDown  → transpose + reflect   → moveLeft → reflect + transpose back
-```
-
-Merge logic exists in exactly one place: `mergeRow`. When a merge bug is found or behaviour changes, there is one function to fix and one set of tests to update. No risk of fixing `mergeLeft` and forgetting `mergeRight`. Direction handling is pure geometry (reflect, transpose), completely separate from merge logic; neither knows about the other.
+Merge logic exists in exactly one place: `mergeRow`. When a merge bug is found or behaviour changes, there is one function to fix and one set of tests to update. No risk of fixing `mergeLeft` and forgetting `mergeRight`. Direction handling is pure geometry (reflect, transpose — see §4 opener), completely separate from merge logic; neither knows about the other.
 
 Within `moveLeft`, each row passes through `compressRow → mergeRow → compressRow`:
 
@@ -500,34 +490,19 @@ Test injection — the core reason for a class store — works identically eithe
 
 ### 6.3 Store Shape
 
-`GameStatus` and `Direction` are constant enums imported from `domain/types.ts`:
-
-```ts
-export const STATUS = { IDLE: 'idle', PLAYING: 'playing', WON: 'won', LOST: 'lost' } as const;
-export const DIRECTION = { LEFT: 'left', RIGHT: 'right', UP: 'up', DOWN: 'down' } as const;
-
-export type GameStatus = (typeof STATUS)[keyof typeof STATUS]; // 'idle' | 'playing' | 'won' | 'lost'
-export type Direction = (typeof DIRECTION)[keyof typeof DIRECTION]; // 'left' | 'right' | 'up' | 'down'
-```
+`GameStatus` and `Direction` const enums are defined in §3.2.
 
 ```ts
 class GameStore {
-  board; // Board
-  status; // STATUS value
-  score; // number — cumulative; += scoreDelta on each move (never reset until game reset)
-  bestScore; // number — persists across resets
-  advice; // AIAdvice | null
-  adviceLoading; // boolean
+  board;          // Board
+  status;         // GameStatus
+  score;          // cumulative; += scoreDelta on each move
+  bestScore;      // persists across resets
+  advice;         // AIAdvice | null
+  adviceLoading;  // boolean
 
-  get isActive() {
-    // PLAYING and WON are interactive; WON included for continue-after-win (assumption #4).
-    return this.status === STATUS.PLAYING || this.status === STATUS.WON;
-  }
-  get largestTile() {
-    // null when the board has no tiles — avoids -Infinity from Math.max() on empty.
-    const tiles = this.board.flat().filter((c): c is number => c !== null);
-    return tiles.length === 0 ? null : Math.max(...tiles);
-  }
+  get isActive();    // PLAYING or WON (WON interactive per assumption #4)
+  get largestTile(); // max tile value; null on empty board
 
   applyMove(direction);
   requestAdvice();
@@ -631,19 +606,10 @@ Build order:
 
 ### 7.2 Critical Test Cases
 
-From spec, every input/output pair below is committed as a test case verbatim.
+Spec input/output pairs are committed verbatim. Three exemplars below; full per-function enumeration in `TEST_PLAN.md`.
 
 ```ts
-// Spec requirement 1: init board
-it('initBoard places tiles within configured range, all value 2', () => {
-  const board = initBoard();
-  const tiles = board.flat().filter((c) => c !== null);
-  expect(tiles.length).toBeGreaterThanOrEqual(CONFIG.INIT_TILE_COUNT.min);
-  expect(tiles.length).toBeLessThanOrEqual(CONFIG.INIT_TILE_COUNT.max);
-  expect(tiles.every((t) => t === 2)).toBe(true);
-});
-
-// Spec requirement 2: Move Left
+// Spec example: Move Left
 it('moves left — spec example', () => {
   const before = [
     [null, 8, 2, 2],
@@ -660,119 +626,12 @@ it('moves left — spec example', () => {
   expect(applyMove(before, 'left').board).toEqual(after);
 });
 
-// Spec requirement 3: Move Right
-it('moves right — spec example', () => {
-  const before = [
-    [null, 8, 2, 2],
-    [4, 2, null, 2],
-    [null, null, null, null],
-    [null, null, null, 2],
-  ];
-  const after = [
-    [null, null, 8, 4],
-    [null, null, 4, 4],
-    [null, null, null, null],
-    [null, null, null, 2],
-  ];
-  expect(applyMove(before, 'right').board).toEqual(after);
-});
-
-// Spec requirement 4: Move Up
-it('moves up — spec example', () => {
-  const before = [
-    [null, 8, 2, 2],
-    [4, 2, null, 2],
-    [null, null, null, null],
-    [null, null, null, 2],
-  ];
-  const after = [
-    [4, 8, 2, 4],
-    [null, 2, null, 2],
-    [null, null, null, null],
-    [null, null, null, null],
-  ];
-  expect(applyMove(before, 'up').board).toEqual(after);
-});
-
-// Spec requirement 5: spawn after valid move
-it('spawns one tile after valid move', () => {
-  const before = [
-    [null, 8, 2, 2],
-    [4, 2, null, 2],
-    [null, null, null, null],
-    [null, null, null, 2],
-  ];
-  const store = new GameStore();
-  store.board = before;
-  const tilesBefore = countTiles(store.board);
-  const mergesInMove = 2; // [2,2] in row 0, [2,2] in column 3
-  store.applyMove('up');
-  // each merge reduces tile count by 1, then one spawn adds 1
-  expect(countTiles(store.board)).toBe(tilesBefore - mergesInMove + 1);
-});
-
-// Spec requirement 5 (second): lose condition
-it('detects lose — no moves available', () => {
-  const loseBoard = [
-    [2, 4, 2, 4],
-    [4, 2, 4, 2],
-    [2, 4, 2, 4],
-    [4, 2, 4, 2],
-  ];
-  expect(checkLose(loseBoard)).toBe(true);
-});
-
-// Spec requirement 5 (second): win condition
-it('detects win — 2048 tile present', () => {
-  const winBoard = [
-    [4, null, null, 2],
-    [2048, null, null, null],
-    [4, 2, null, null],
-    [4, null, null, null],
-  ];
-  expect(checkWin(winBoard)).toBe(true);
-});
-
-// Spec requirement 6: AI suggestion
-it('AI returns a valid direction and reasoning for a known board', () => {
-  const board = [
-    [2, 2, null, null],
-    [null, null, null, null],
-    [null, null, null, null],
-    [null, null, null, null],
-  ];
-  const advice = getSuggestion(board);
-  expect(['left', 'right', 'up', 'down']).toContain(advice.direction);
-  expect(advice.reasoning).toMatch(/^Move /);
-});
-```
-
-Merge edge cases:
-
-```ts
-// Two independent merges in one row — commonly misunderstood.
-// mergeRow is pure-merge: leaves gaps where pairs collapsed; the
-// second compressRow in moveLeft fills them.
+// Merge edge case: pure-merge leaves gaps; second compressRow fills them
 it('[2,2,2,2] → [4,null,4,null]', () => {
-  expect(mergeRow([2, 2, 2, 2])).toEqual({
-    row: [4, null, 4, null],
-    scoreDelta: 8,
-  });
+  expect(mergeRow([2, 2, 2, 2])).toEqual({ row: [4, null, 4, null], scoreDelta: 8 });
 });
 
-// Null between tiles — compress brings them adjacent first
-it('[2,null,2,null] → [4,null,null,null]', () => {
-  expect(mergeRow(compressRow([2, null, 2, null]))).toEqual({
-    row: [4, null, null, null],
-    scoreDelta: 4,
-  });
-});
-```
-
-Sequencing, common bugs:
-
-```ts
-// No spawn on no-change move
+// Sequencing: no spawn on no-change move
 it('does not spawn when move changes nothing', () => {
   const board = [
     [2, 4, 2, 4],
@@ -784,17 +643,9 @@ it('does not spawn when move changes nothing', () => {
   expect(result.changed).toBe(false);
   expect(result.board).toEqual(board);
 });
-
-// No spawn after win
-it('does not spawn after reaching 2048', () => {
-  const store = new GameStore();
-  store.board = nearWinBoard;
-  const tileCount = countTiles(store.board);
-  store.applyMove('left');
-  expect(store.status).toBe('won');
-  expect(countTiles(store.board)).toBe(tileCount);
-});
 ```
+
+Move Right / Up / Down, lose/win detection, spawn placement, no-spawn-after-win, and the full sequencing matrix are in `TEST_PLAN.md`.
 
 ### 7.3 Pre-Push Hooks
 
