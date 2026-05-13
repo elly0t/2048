@@ -733,12 +733,15 @@ Inspect config:
 │   │   ├── expectimax.test.ts
 │   │   ├── getSuggestion.ts      # direction loop + reasoning + remote adapter
 │   │   ├── getSuggestion.test.ts
+│   │   ├── strings.ts            # TEMPLATES, GENERIC_TEMPLATE, NO_MOVES_AVAILABLE, LOG_PREFIX
 │   │   └── types.ts              # AIAdvice, SearchStats
 │   │
 │   ├── hooks/
 │   │   ├── persistence.ts        # loadGameState, loadBestScore, saveGameState, saveBestScore (split for isolated unit tests)
 │   │   ├── persistence.test.ts
-│   │   ├── useGame.ts            # useSyncExternalStore bridge + localStorage + arrow keys (motion inference: deferred polish — §3.3)
+│   │   ├── motion.ts             # inferMotions — tile motion stream per §3.4 (slide, merge, spawn, ghost)
+│   │   ├── motion.test.ts
+│   │   ├── useGame.ts            # useSyncExternalStore bridge + localStorage + arrow keys + motion inference (§3.3, §3.4)
 │   │   └── useGame.test.ts       # hook-level tests if any (no React render tests)
 │   │
 │   ├── components/
