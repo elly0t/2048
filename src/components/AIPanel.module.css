@@ -54,6 +54,13 @@
   font-size: 13px;
 }
 
+/* Touch devices have no Space key — hide the keyboard hint on coarse-pointer hardware. */
+@media (hover: none) and (pointer: coarse) {
+  .shortcutHint {
+    display: none;
+  }
+}
+
 .advice {
   margin: 0 0 10px;
   font-size: 14px;
