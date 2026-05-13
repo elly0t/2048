@@ -81,7 +81,7 @@ export class GameStore {
   requestAdvice = async (): Promise<void> => {
     if (this.adviceLoading) return;
     this.adviceLoading = true;
-    this.advice = null;
+    // Keep last advice as-is so the UI can render it dimmed across the loading gap.
     this.notify();
     // rAF + setTimeout(0) — bare setTimeout never painted the loading state on Safari (WebKit coalesces short tasks).
     await new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));

@@ -7,6 +7,19 @@ export function AIPanel() {
 
   return (
     <div className={styles.panel}>
+      {advice && (
+        <p
+          className={styles.advice}
+          aria-live="polite"
+          data-testid="advice"
+          data-loading={adviceLoading}
+        >
+          <strong className={styles.adviceDirection} data-testid="advice-direction">
+            {advice.direction ?? '—'}
+          </strong>{' '}
+          — {advice.reasoning}
+        </p>
+      )}
       <button
         type="button"
         className={styles.askButton}
@@ -25,14 +38,6 @@ export function AIPanel() {
           </>
         )}
       </button>
-      {advice && !adviceLoading && (
-        <p className={styles.advice} aria-live="polite" data-testid="advice">
-          <strong className={styles.adviceDirection} data-testid="advice-direction">
-            {advice.direction ?? '—'}
-          </strong>{' '}
-          — {advice.reasoning}
-        </p>
-      )}
     </div>
   );
 }

@@ -438,14 +438,15 @@ describe('GameStore.requestAdvice', () => {
     vi.unstubAllGlobals();
   });
 
-  it('case 1: synchronously sets adviceLoading=true, advice=null', () => {
+  it('case 1: synchronously sets adviceLoading=true, last advice preserved', () => {
     const store = new GameStore({ rng: () => 0 });
     store.board = deepCopy(standardBoard);
     store.status = STATUS.PLAYING;
     store.advice = dummyAdvice;
     void store.requestAdvice();
     expect(store.adviceLoading).toBe(true);
-    expect(store.advice).toBeNull();
+    // Last advice stays put so the UI can render it dimmed across the loading gap.
+    expect(store.advice).toBe(dummyAdvice);
   });
 
   it('case 2: on result: advice set, adviceLoading cleared', async () => {
