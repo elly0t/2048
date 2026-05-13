@@ -674,6 +674,16 @@ Move Right / Up / Down, lose/win detection, spawn placement, no-spawn-after-win,
 
 `husky` runs `npm run check` (typecheck + lint + format + `npm test`) before every `git push`. Bypass: `git push --no-verify`. E2E is deliberately excluded from the hook — see §12.3.
 
+### 7.4 CI Pipeline
+
+GitHub Actions ([`.github/workflows/ci.yml`](./.github/workflows/ci.yml)) is the authoritative gate for `main`. Three sequential jobs:
+
+1. **test** — `lint`, `typecheck`, `format:check`, `npm test` (vitest), `npm run build`. ~45s.
+2. **e2e** — Playwright suite (Chromium + WebKit) with `--with-deps` for the runner's system libraries. Depends on `test` so a broken unit test stops the pipeline before paying ~2 min for browser install + run. Verified end-to-end via a deliberate-failure smoke PR ([#1](https://github.com/elly0t/2048/pull/1), closed without merge) — confirms E2E catches a regression. On failure, uploads `playwright-report/` as a 7-day artifact for trace + screenshot debugging.
+3. **deploy** — production deploy to Vercel via CLI (`vercel pull → build → deploy --prebuilt`). Depends on both prior jobs and gated to `push` events on `refs/heads/main` only — PRs run tests but never deploy.
+
+Concurrency cancellation (`cancel-in-progress: true`, grouped by workflow + ref) discards in-progress runs when a new push lands on the same branch.
+
 ---
 
 ## 8. Persistence

@@ -25,7 +25,7 @@ A 2048 Game with AI Assistant
 
 - **Preview** — `npx vercel` — uploads the local working tree and returns a preview URL.
 - **Production** — `npx vercel --prod` — promotes the latest build to the production alias.
-- **Auto-deploy** — push to `main` triggers GitHub Actions, which runs the full test suite (lint, typecheck, unit, build, Playwright E2E) and only then deploys to production via the Vercel CLI. See [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
+- **Auto-deploy** — push to `main` triggers GitHub Actions, which runs the full test suite (lint, typecheck, unit, build, Playwright E2E) and only then deploys to production via the Vercel CLI. See [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) — design rationale in [`TECHNICAL_DESIGN.md`](./TECHNICAL_DESIGN.md) §7.4.
 
 ## Tested on
 
