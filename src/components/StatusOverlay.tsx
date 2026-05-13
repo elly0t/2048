@@ -55,7 +55,6 @@ export function StatusOverlay() {
           type="button"
           onClick={handleRestart}
           className={styles.restartButton}
-          autoFocus
           data-testid="status-restart"
         >
           {COPY.status.restartButton}
