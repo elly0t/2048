@@ -54,11 +54,13 @@ html:has(dialog[open]) .title[data-status] {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   background-color: hsl(252 38% 84%);
   color: var(--color-text-default);
   border-radius: var(--tile-radius);
   padding: 6px 14px;
   min-width: 64px;
+  min-height: 52px;
 }
 
 .label {
@@ -93,8 +95,10 @@ html:has(dialog[open]) .title[data-status] {
   font-weight: 600;
   cursor: pointer;
   transition: background-color var(--duration-ui-hover) ease-out;
-  min-width: 44px;
-  min-height: 44px;
+  min-height: 52px;
+  /* Mobile: square button (icon-only) sized to the Score/Best row height.
+     Desktop overrides aspect-ratio so the "New Game" text drives width. */
+  aspect-ratio: 1;
 }
 
 .restart:hover {
@@ -144,6 +148,7 @@ html:has(dialog[open]) .title[data-status] {
 
   .restart {
     padding: 8px 12px;
+    aspect-ratio: auto;
   }
 
   .restartIcon {
