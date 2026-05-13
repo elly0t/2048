@@ -4,9 +4,9 @@
 :root {
   /* Surface colours — subtle lavender tint so the page reads as designed
      rather than default-white, and chrome echoes the tile palette family. */
-  --color-bg: hsl(255 22% 96%);
-  --color-cell-empty: hsl(255 18% 90%);
-  --color-text-default: hsl(255 35% 14%);
+  --color-bg: hsl(252 32% 93%);
+  --color-cell-empty: hsl(252 26% 87%);
+  --color-text-default: hsl(252 40% 16%);
 
   /* Tile geometry */
   --tile-radius: 6px;
