@@ -303,7 +303,7 @@ When implemented, `inferMotions(oldBoard, oldIds, newBoard, direction)` is expec
 
 Playwright covers DOM/wiring seams unit tests can't reach. Browser matrix, fixtures, entry points: see TD §12.
 
-1. All 4 directions (parameterised: Left, Right, Up, Down). Seeded board, arrow key, assert exact post-collapse cells, exact `scoreDelta`, spawn at the seeded RNG position.
+1. All 4 directions (parameterised: Left, Right, Up, Down). Seeded board, arrow key, assert exact post-collapse cells, exact `scoreDelta`, and that one new tile has spawned.
 2. Ask AI integration. Click → `aria-busy` true → after resolve, `window.__lastAdvice` contains `{direction, scores, depth}` with `direction ∈ {left,right,up,down}`; reasoning text contains the direction name; `window.__adviceHistory.length` increments. Second click on the same board: same direction, history increments again.
 3. Restart / new game. Play to non-zero score; Restart; exactly 2 tiles of value 2, `score === 0`, `bestScore` preserved.
 4. WIN at spawn boundary. Seed `[..., 1024, 1024, ...]` row; ArrowLeft; WON overlay shown before the post-move spawn would have landed (status === WON in same tick as the merge).
