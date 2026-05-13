@@ -1,5 +1,7 @@
 # 2048
 
+[![CI](https://github.com/elly0t/2048/actions/workflows/ci.yml/badge.svg)](https://github.com/elly0t/2048/actions/workflows/ci.yml)
+
 A 2048 Game with AI Assistant
 
 ## Docs
@@ -18,6 +20,12 @@ A 2048 Game with AI Assistant
 ## Configuration
 
 `EXPECTIMAX_DEPTH` in [`src/config.ts`](./src/config.ts) (default `3`) — drop to `2` on low-tier hardware for snappier advice. Win rates are ~equal (~80% both); d3 mostly wins in the 4096-reach tail. See [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md).
+
+## Deploy
+
+- **Preview** — `npx vercel` — uploads the local working tree and returns a preview URL.
+- **Production** — `npx vercel --prod` — promotes the latest build to the production alias.
+- **Auto-deploy** — push to `main` triggers GitHub Actions, which runs the full test suite (lint, typecheck, unit, build, Playwright E2E) and only then deploys to production via the Vercel CLI. See [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
 
 ## Tested on
 
