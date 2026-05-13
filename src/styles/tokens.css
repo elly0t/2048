@@ -12,9 +12,10 @@
   --tile-radius: 6px;
   /* Symmetric (no Y offset) — biased shadow extends visibly past board edge when tile scale-animates. */
   --tile-shadow: 0 0 3px hsl(210 40% 30% / 0.12);
-  /* Tile size scales between 64px (~320px viewport) and 92px (≥460px viewport)
-     so the 4×4 board never overflows on small phones. Capped at 92 above 460. */
-  --tile-size: clamp(64px, 20vw, 92px);
+  /* Tile size scales between 60px (~320px viewport) and 92px (≥512px viewport)
+     so the 4×4 board fits inside .main's 16px horizontal padding on every phone.
+     Capped at 92 above ~512px viewport. */
+  --tile-size: clamp(60px, 19vw, 92px);
 
   /* Board layout — gap + outer padding scale proportionally with tile size */
   --cell-gap: clamp(8px, 3vw, 12px);
