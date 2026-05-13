@@ -31,7 +31,7 @@ export function Header() {
           type="button"
           className={styles.restart}
           onClick={() => reset()}
-          data-testid="restart"
+          data-testid="restartt"
         >
           <span aria-hidden="true" className={styles.restartIcon}>
             ↺
