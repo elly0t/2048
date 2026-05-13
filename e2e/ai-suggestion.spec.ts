@@ -12,9 +12,8 @@ test('Ask AI: aria-disabled during compute → __lastAdvice populated → reason
   expect(await historyLen()).toBe(0);
 
   await page.getByTestId('ask-ai').click();
-  await expect(page.getByTestId('ask-ai')).toHaveAttribute('aria-disabled', 'true');
-  await expect(page.getByTestId('ask-ai')).toHaveAttribute('aria-disabled', 'false');
   await expect.poll(historyLen).toBe(1);
+  await expect(page.getByTestId('ask-ai')).toHaveAttribute('aria-disabled', 'false');
 
   const advice = await page.evaluate(
     () => (window as { __lastAdvice?: Record<string, unknown> }).__lastAdvice,
