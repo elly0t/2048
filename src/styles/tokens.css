@@ -12,17 +12,17 @@
   --tile-radius: 6px;
   /* Symmetric (no Y offset) — biased shadow extends visibly past board edge when tile scale-animates. */
   --tile-shadow: 0 0 3px hsl(210 40% 30% / 0.12);
-  /* Tile size scales between 64px (~320px viewport) and 80px (≥400px viewport)
-     so the 4×4 board never overflows on small phones. Capped at 80 above 400. */
-  --tile-size: clamp(64px, 20vw, 80px);
+  /* Tile size scales between 64px (~320px viewport) and 92px (≥460px viewport)
+     so the 4×4 board never overflows on small phones. Capped at 92 above 460. */
+  --tile-size: clamp(64px, 20vw, 92px);
 
   /* Board layout — gap + outer padding scale proportionally with tile size */
   --cell-gap: clamp(8px, 3vw, 12px);
   --board-padding: clamp(8px, 3vw, 12px);
 
-  /* Chrome column width — matches board width (4 × --tile-size + gaps) so Header
-     content, board, and AI button all sit in the same 380px column. */
-  --content-max: 380px;
+  /* Chrome column width — matches board width (4 × 92 + 3 × 12 gaps + 2 × 12 padding = 428)
+     so Header content, board, and AI button all sit in the same 428px column. */
+  --content-max: 428px;
 
   /* Animation timings — split into two semantic families:
      - tile-* drive the game-board motion narrative (slide, spawn, pop)

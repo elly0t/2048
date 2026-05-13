@@ -7,19 +7,23 @@ export function AIPanel() {
 
   return (
     <div className={styles.panel}>
-      {advice && (
-        <p
-          className={styles.advice}
-          aria-live="polite"
-          data-testid="advice"
-          data-loading={adviceLoading}
-        >
-          <strong className={styles.adviceDirection} data-testid="advice-direction">
-            {advice.direction ?? '—'}
-          </strong>{' '}
-          — {advice.reasoning}
-        </p>
-      )}
+      <p
+        className={styles.advice}
+        aria-live="polite"
+        data-testid="advice"
+        data-loading={adviceLoading}
+      >
+        {advice ? (
+          <>
+            <strong className={styles.adviceDirection} data-testid="advice-direction">
+              {advice.direction ?? '—'}
+            </strong>{' '}
+            — {advice.reasoning}
+          </>
+        ) : (
+          <>&nbsp;</>
+        )}
+      </p>
       <button
         type="button"
         className={styles.askButton}
