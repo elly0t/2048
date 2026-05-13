@@ -345,3 +345,9 @@ Common failure modes for this kind of game and where they are caught:
 | Win silently cleared on continue         | E2E §UI #5                                                  |
 | Only checks overall state                | E2E §UI assertions are deep — specific cells + exact deltas |
 | Initial board untested (spec item 1)     | E2E §UI #13                                                 |
+
+---
+
+## Manual / device benchmarks
+
+Not part of the automated suite. Recorded in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md): the Node self-play harness (random / greedy / d2 / d3) and the browser-side d3 latency check on the deployed build under Chrome's "Low-tier mobile" CPU profile.

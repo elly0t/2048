@@ -107,6 +107,24 @@ d2 latency is invisible to a user. d3 mean (~74ms) is invisible; p95 (~187ms) is
 
 ---
 
+## Browser latency under CPU throttle
+
+Above is the Node M4 Pro baseline. Real users run d3 in a browser, on potentially weaker hardware. To stress-test that, the deployed build was hit through Chrome DevTools' **"Low-tier mobile" CPU profile** (auto-calibrated to 15.6× slowdown on M4 Pro), 5 samples per board-occupancy bucket, captured via `window.__adviceHistory`:
+
+| Board state    | Occupied | Empties | nodes (median) | ms (median) | ms (max) |
+| -------------- | -------- | ------- | -------------- | ----------- | -------- |
+| Sparse / early | 4–6      | 10–12   | 822k           | 8274        | 10236    |
+| Mid            | ~8–10    | ~6–8    | 232k           | 2820        | 2940     |
+| Full / late    | 13+      | ≤3      | 73k            | 1102        | 1311     |
+
+ms/node sits at ~10–14 µs across all three buckets — the variance is in node count, not per-node cost, so the work is genuinely compute-bound (not GC pauses or paint stalls). The 11× node spread between late and early matches expectimax's cost model: chance-node fan-out is proportional to `empties × |tile values|`, and the early-game board has 10–12 empties to fork on every chance ply.
+
+d3's mean-Node ~74ms scales to ~1s on a fuller board and ~8s on a sparse one under this profile. The sparse-board number is unacceptable UX even with the visible loading state, so d3 is shipped as the default with an escape hatch rather than as the always-on choice: `EXPECTIMAX_DEPTH` in `src/config.ts` accepts 2 for low-tier hardware. Per the d2-vs-d3 sections above, the win-rate cost of dropping to 2 is negligible (~80% both); the visible difference is mostly the 4096-reach rate in the tail.
+
+Sample 1 of each bucket may include V8 JIT warmup; the clustered spreads suggest cold-start is not a dominant factor here.
+
+---
+
 ## Outlier verification
 
 d3 n=100 main run max ms/move: 780ms. Seed 12 — the seed that previously produced a 171-second move in an earlier n=20 run — was rerun in isolation: total 149s, max single move 520ms. The 171-second outlier did not reproduce. The tail clusters smoothly (519, 495, 434, 380, 372) with no 280× cliff.

@@ -344,6 +344,10 @@ Wiring is small. The recursion already takes `depth` as a parameter, so it can b
 
 The fixed-depth-3 benchmark (`bench/BENCHMARK_REPORT.md`) confirms the keying logic: depth 3 dominates depth 2 on 4096 reach rate (27% vs 14%) and mean score (+17%), but mean ms/move at depth 3 is ~74ms vs depth 2's ~1.5ms — exactly the sparse-board cost adaptive depth would avoid. Empirical baseline before tuning.
 
+### Real-device validation
+
+The Node bench is the developer's machine, not the user's. Reviewers and end users may run this on weaker hardware, so d3 was stress-tested against the deployed build under Chrome's "Low-tier mobile" CPU profile (15.6× on M4 Pro). Sparse boards land ~8s median, full boards ~1s — same shape as the Node bench, scaled up. The sparse-board number is unacceptable UX, which is why `EXPECTIMAX_DEPTH` (default 3) is a documented config knob: dropping to 2 trades ~13pp on 4096 reach for ~38× faster advice at p50 (~58× at p95). Full table and methodology in `bench/BENCHMARK_REPORT.md` § "Browser latency under CPU throttle".
+
 ### 5.3 Heuristic Function
 
 When Expectimax hits maximum depth it estimates board quality via a scoring formula: the **leaf node heuristic**. Without it all leaf nodes score equally and the algorithm cannot compare them.
