@@ -18,3 +18,16 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text-default);
 }
+
+/* Lock page scroll only when the viewport is tall enough to fit the layout
+   (Header + board + AIPanel ≈ 600px). Below that — landscape phones, tiny
+   browsers — let the page scroll so nothing gets trapped off-screen. iOS
+   rubber-band bounce remains intentionally enabled. `100dvh` is the dynamic
+   viewport unit, which collapses correctly when Safari's URL bar appears. */
+@media (min-height: 700px) {
+  html,
+  body {
+    height: 100dvh;
+    overflow: hidden;
+  }
+}
