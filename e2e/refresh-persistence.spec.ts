@@ -7,15 +7,13 @@ test('refresh restores board + score + bestScore', async ({ page }) => {
   await page.keyboard.press('ArrowLeft');
 
   const captureTiles = () =>
-    page
-      .locator('[data-testid="tile"]:not([data-ghost])')
-      .evaluateAll((els) =>
-        els.map((el) => ({
-          row: el.getAttribute('data-row'),
-          col: el.getAttribute('data-col'),
-          value: el.getAttribute('data-value'),
-        })),
-      );
+    page.locator('[data-testid="tile"]:not([data-ghost])').evaluateAll((els) =>
+      els.map((el) => ({
+        row: el.getAttribute('data-row'),
+        col: el.getAttribute('data-col'),
+        value: el.getAttribute('data-value'),
+      })),
+    );
   const toMap = (xs: { row: string | null; col: string | null; value: string | null }[]) =>
     Object.fromEntries(xs.map((t) => [`${t.row},${t.col}`, t.value]));
 
