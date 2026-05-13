@@ -8,6 +8,9 @@
   min-width: 280px;
   max-width: 400px;
   box-shadow: 0 8px 32px hsl(210 40% 20% / 0.3);
+  /* Dialog itself receives focus on open (via tabIndex=-1 + .focus() call) so
+     neither button is pre-selected; no focus ring on the dialog box itself. */
+  outline: none;
   /* Fade-in via @starting-style + allow-discrete — native <dialog> animation pattern. */
   opacity: 1;
   transition:

@@ -18,8 +18,16 @@ export function StatusOverlay() {
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    if (shouldShow) dialog.showModal();
-    else if (dialog.open) dialog.close();
+    if (shouldShow) {
+      // Wait for the end-of-game tile spawn (~delay 240 + duration 250 ≈ 500ms) to settle before opening.
+      const timer = setTimeout(() => {
+        dialog.showModal();
+        dialog.focus(); // override showModal()'s default auto-focus on first button
+      }, 500);
+      return () => clearTimeout(timer);
+    } else if (dialog.open) {
+      dialog.close();
+    }
   }, [shouldShow]);
 
   const handleDismiss = () => setDismissedFor(status);
@@ -38,6 +46,7 @@ export function StatusOverlay() {
       onCancel={handleDismiss}
       aria-labelledby="status-overlay-title"
       data-testid="status-overlay"
+      tabIndex={-1}
     >
       <h2 id="status-overlay-title" className={styles.title} data-testid="status-title">
         {isWon ? COPY.status.won : COPY.status.lost}
