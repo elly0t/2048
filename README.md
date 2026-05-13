@@ -9,6 +9,12 @@ A 2048 Game with AI Assistant
 - [`AI_FLOW.md`](./AI_FLOW.md) — domain & AI module flow.
 - [`bench/`](./bench/) — self-play benchmark harness + [`BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md).
 
+## Testing
+
+- **Unit + integration** — `npm install && npm test` (Vitest, ~10s). Suite enumerated in [`TEST_PLAN.md`](./TEST_PLAN.md).
+- **Pre-push hook** — husky runs `npm run check` (typecheck + lint + format + unit suite) before every `git push`. Bypass with `git push --no-verify` if needed.
+- **E2E (opt-in)** — `npm run e2e:install && npm run e2e` (Playwright, Chromium + WebKit). Browser binaries (~270 MB) install to the user cache on first run, not the repo. Scenarios in [`TEST_PLAN.md`](./TEST_PLAN.md) §UI Layer; design rationale in [`TECHNICAL_DESIGN.md`](./TECHNICAL_DESIGN.md) §12.
+
 ## Design notes
 
 - **AI loading state.** Expectimax depth 3 returns advice in ~74ms mean / 187ms p95 — full benchmark in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md) (77% reach 2048 at n=100; random / greedy baselines never reach 2048). Even so, the AI panel shows a brief `Computing…` state. Playtesting read silent computation as "system frozen"; explicit feedback reads as "system thinking." A 100ms delay you can see beats a 100ms delay you can't.
