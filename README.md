@@ -13,7 +13,7 @@ A 2048 Game with AI Assistant
 
 - **Unit + integration** — `npm install && npm test` (Vitest, ~10s). Suite enumerated in [`TEST_PLAN.md`](./TEST_PLAN.md).
 - **Pre-push hook** — husky runs `npm run check` (typecheck + lint + format + unit suite) before every `git push`. Bypass with `git push --no-verify` if needed.
-- **E2E (opt-in)** — `npm run e2e:install && npm run e2e` (Playwright, Chromium + WebKit). Browser binaries (~270 MB) install to the user cache on first run, not the repo. Scenarios in [`TEST_PLAN.md`](./TEST_PLAN.md) §UI Layer; design rationale in [`TECHNICAL_DESIGN.md`](./TECHNICAL_DESIGN.md) §12.
+- **E2E (opt-in)** — `npm run e2e` (Playwright, Chromium + WebKit). First run downloads ~270 MB of browser binaries to the user cache (1–2 min); subsequent runs skip the check (~1 s). Scenarios in [`TEST_PLAN.md`](./TEST_PLAN.md) §UI Layer; design rationale in [`TECHNICAL_DESIGN.md`](./TECHNICAL_DESIGN.md) §12.
 
 ## Design notes
 

@@ -834,11 +834,10 @@ Tests run against `vite preview` after `vite build`. The dev server is faster to
 
 ### 12.3 Husky Scope & Entry Points
 
-E2E is deliberately not in pre-push, otherwise it'd be too heavy weight. `npm test` stays Vitest-only to be faster with no browser install needed, reliable on a fresh clone. E2E runs via two opt-in scripts:
+E2E is deliberately not in pre-push, otherwise it'd be too heavy weight. `npm test` stays Vitest-only to be faster with no browser install needed, reliable on a fresh clone. E2E runs via a single opt-in script:
 
 ```
-npm run e2e:install   # one-time browser download (~270 MB, Chromium + WebKit)
-npm run e2e           # vite build && vite preview && playwright test
+npm run e2e           # playwright install (idempotent) && vite build && vite preview && playwright test
 ```
 
 README documents the cold-machine path.
