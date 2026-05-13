@@ -11,9 +11,7 @@ test('cold load: ≥2 tiles, all value 2, score=0, no overlay', async ({ page })
   expect(count).toBeGreaterThanOrEqual(2);
   expect(count).toBeLessThanOrEqual(8);
 
-  const values = await tiles.evaluateAll((els) =>
-    els.map((el) => el.getAttribute('data-value')),
-  );
+  const values = await tiles.evaluateAll((els) => els.map((el) => el.getAttribute('data-value')));
   expect(values.every((v) => v === '2')).toBe(true);
 
   await expect(page.getByTestId('score')).toHaveText('0');

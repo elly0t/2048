@@ -333,15 +333,15 @@ Tested once as shared property tests, not repeated per function:
 
 Common failure modes for this kind of game and where they are caught:
 
-| Failure mode                             | Where addressed in this plan                                  |
-| ---------------------------------------- | ------------------------------------------------------------- |
-| Win/lose timing wrong (post-spawn check) | GameStore.applyMove cases 1, 2, 5, 9; E2E §UI #4              |
-| Spawn on no-op move                      | applyMove case 1; GameStore.applyMove case 1; E2E §UI #10     |
-| AI module not tested                     | expectimax (10 cases), getSuggestion (12 cases); E2E §UI #2   |
-| spawnTile errors on full board           | spawnTile case 3; E2E §UI #6                                  |
-| Score always 0                           | GameStore.applyMove case 7; E2E §UI #1, #12                   |
-| Lose-by-spawn missed                     | checkLose case 9; GameStore.applyMove case 5                  |
-| Win-and-lose simultaneity                | GameStore.applyMove case 9                                    |
-| Win silently cleared on continue         | E2E §UI #5                                                    |
-| Only checks overall state                | E2E §UI assertions are deep — specific cells + exact deltas   |
-| Initial board untested (spec item 1)     | E2E §UI #13                                                   |
+| Failure mode                             | Where addressed in this plan                                |
+| ---------------------------------------- | ----------------------------------------------------------- |
+| Win/lose timing wrong (post-spawn check) | GameStore.applyMove cases 1, 2, 5, 9; E2E §UI #4            |
+| Spawn on no-op move                      | applyMove case 1; GameStore.applyMove case 1; E2E §UI #10   |
+| AI module not tested                     | expectimax (10 cases), getSuggestion (12 cases); E2E §UI #2 |
+| spawnTile errors on full board           | spawnTile case 3; E2E §UI #6                                |
+| Score always 0                           | GameStore.applyMove case 7; E2E §UI #1, #12                 |
+| Lose-by-spawn missed                     | checkLose case 9; GameStore.applyMove case 5                |
+| Win-and-lose simultaneity                | GameStore.applyMove case 9                                  |
+| Win silently cleared on continue         | E2E §UI #5                                                  |
+| Only checks overall state                | E2E §UI assertions are deep — specific cells + exact deltas |
+| Initial board untested (spec item 1)     | E2E §UI #13                                                 |
