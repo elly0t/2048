@@ -12,14 +12,16 @@
   --tile-radius: 6px;
   /* Symmetric (no Y offset) — biased shadow extends visibly past board edge when tile scale-animates. */
   --tile-shadow: 0 0 3px hsl(210 40% 30% / 0.12);
-  /* Tile size scales between 60px (~320px viewport) and 92px (≥512px viewport)
-     so the 4×4 board fits inside .main's 16px horizontal padding on every phone.
-     Capped at 92 above ~512px viewport. */
-  --tile-size: clamp(60px, 19vw, 92px);
+  /* Tile size scales with the smaller of viewport width / height so the board
+     fits both axes — landscape phones (~320–414px tall) need the vh dimension
+     to avoid the board crashing through the page. Floor 48 keeps tiles readable
+     on the smallest viewports; ceiling 92 caps growth on big screens. */
+  --tile-size: clamp(48px, min(19vw, 17vh), 92px);
 
-  /* Board layout — gap + outer padding scale proportionally with tile size */
-  --cell-gap: clamp(8px, 3vw, 12px);
-  --board-padding: clamp(8px, 3vw, 12px);
+  /* Board layout — gap + outer padding scale proportionally; tighter lower bound
+     so the 320px portrait viewport doesn't have a 3px horizontal overflow. */
+  --cell-gap: clamp(6px, 3vw, 12px);
+  --board-padding: clamp(6px, 3vw, 12px);
 
   /* Chrome column width — matches board width (4 × 92 + 3 × 12 gaps + 2 × 12 padding = 428)
      so Header content, board, and AI button all sit in the same 428px column. */
