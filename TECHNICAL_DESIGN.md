@@ -18,13 +18,13 @@ If you only have 15 minutes: §4.3 move pipeline · §5.2 depth rationale · §5
 
 The spec leaves several values unspecified. All assumptions are externalised to `config.ts` — logged to console on start, and configurable by editing the file directly.
 
-| #   | Assumption                                  | Reason                                                                                                                |
-| --- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| 1   | Initial board places 2–8 tiles of value `2` | Spec says "random number of 2s" — range matches density of the spec example                                           |
-| 2   | Spawn probability: 90% for `2`, 10% for `4` | Spec says "a 2 or 4" — standard 2048 convention                                                                       |
-| 3   | Score = sum of all merged tile values       | Standard 2048 scoring convention — same as the original game                                                          |
-| 4   | Win state allows player to continue         | Spec detects win but does not say game ends — continue or restart offered                                             |
-| 5   | Expectimax depth = 3                        | See §5.2 for rationale & phase 2 adaptive depth that was spotted during implementation.                               |
+| #   | Assumption                                  | Reason                                                                                                                                           |
+| --- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Initial board places 2–8 tiles of value `2` | Spec says "random number of 2s" — range matches density of the spec example                                                                      |
+| 2   | Spawn probability: 90% for `2`, 10% for `4` | Spec says "a 2 or 4" — standard 2048 convention                                                                                                  |
+| 3   | Score = sum of all merged tile values       | Standard 2048 scoring convention — same as the original game                                                                                     |
+| 4   | Win state allows player to continue         | Spec detects win but does not say game ends — continue or restart offered                                                                        |
+| 5   | Expectimax depth = 3                        | See §5.2 for rationale & phase 2 adaptive depth that was spotted during implementation.                                                          |
 | 6   | AI uses local Expectimax search             | Local search keeps tests deterministic and needs no setup. A remote-provider seam exists via `CONFIG.AI_MODE` but is not implemented — see §5.5. |
 
 ---

@@ -70,4 +70,3 @@ export function chanceValue(board: Board, depth: number, stats?: SearchStats): n
   });
   return total / empties.length;
 }
-

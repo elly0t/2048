@@ -40,8 +40,8 @@ Architecture, AI strategy, and tradeoffs: [`TECHNICAL_DESIGN.md`](./TECHNICAL_DE
 
 ## Design notes
 
-- Expectimax depth 3 returns advice in ~74ms mean / 187ms p95 — full benchmark in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md) (77% reach 2048 at n=100; random / greedy baselines never reach 2048). 
-- The AI panel still shows a brief `Computing…` state (150ms floor via `MIN_ADVICE_LOADING_MS`): playtesting read silent computation as "system frozen," explicit feedback reads as "system thinking." A delay you can see beats a delay you can't.
+- Expectimax depth 3 returns advice in ~74ms mean / 187ms p95 — full benchmark in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md) (77% reach 2048 at n=100; random / greedy baselines never reach 2048).
+- The AI panel still shows a brief `Computing…` state: playtesting read silent computation as "system frozen," explicit feedback reads as "system thinking." A 100ms delay you can see beats a 100ms delay you can't.
 
 ## Deploy
 
