@@ -77,6 +77,8 @@ html:has(dialog[open]) .title[data-status] {
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
   color: var(--color-text-default);
+  min-width: 6ch;
+  text-align: center;
 }
 
 .restart {
@@ -130,7 +132,7 @@ html:has(dialog[open]) .title[data-status] {
 }
 
 /* tier: md — desktop: icon → text label, slight title scale-up. Padding stays tight
-   so Header content fits the 380px content column (matches board + AI button width). */
+   so Header content fits the --content-max column (matches board + AI button width). */
 @media (min-width: 768px) {
   .headerInner {
     /* Drop horizontal padding so 2048 / scores / New Game align flush to the
