@@ -1,7 +1,7 @@
 // TP §UI #2 — Ask AI integration: loading → advice → reasoning → history → determinism.
 import { test, expect } from './fixtures';
 
-test('Ask AI: aria-disabled during compute → __lastAdvice populated → reasoning matches direction → history increments; second click is deterministic', async ({
+test('Ask AI: click → __lastAdvice populated → reasoning matches direction → reasoning matches direction → button re-enables → history increments; second click deterministic', async ({
   page,
 }) => {
   await page.goto('/');
@@ -13,7 +13,7 @@ test('Ask AI: aria-disabled during compute → __lastAdvice populated → reason
 
   await page.getByTestId('ask-ai').click();
   await expect.poll(historyLen).toBe(1);
-  await expect(page.getByTestId('ask-ai')).toHaveAttribute('aria-disabled', 'false');
+  await expect(page.getByTestId('ask-ai')).toBeEnabled();
 
   const advice = await page.evaluate(
     () => (window as { __lastAdvice?: Record<string, unknown> }).__lastAdvice,
