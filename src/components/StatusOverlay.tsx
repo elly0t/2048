@@ -1,25 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useGame } from '../hooks/useGame';
 import { COPY } from '../i18n/copy';
-import { STATUS, type GameStatus } from '../store/types';
+import { STATUS } from '../store/types';
 import styles from './StatusOverlay.module.css';
 
 export function StatusOverlay() {
-  const { status, reset } = useGame();
-  // Lazy init: if we mount into an end-state, assume already acknowledged — don't re-prompt on refresh.
-  const [dismissedFor, setDismissedFor] = useState<GameStatus | null>(() =>
-    status === STATUS.WON || status === STATUS.LOST ? status : null,
-  );
+  const { status, modalOpen, setAcknowledgedStatus, reset } = useGame();
   const dialogRef = useRef<HTMLDialogElement>(null);
-
-  const isEndState = status === STATUS.WON || status === STATUS.LOST;
-  const shouldShow = isEndState && status !== dismissedFor;
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    if (shouldShow) {
-      // Wait for the end-of-game tile spawn (~delay 240 + duration 250 ≈ 500ms) to settle before opening.
+    if (modalOpen) {
+      // Wait for the end game tile spawn (~delay 240 + duration 250 ≈ 500ms) to settle before opening.
       const timer = setTimeout(() => {
         dialog.showModal();
         dialog.focus(); // override showModal()'s default auto-focus on first button
@@ -28,13 +21,7 @@ export function StatusOverlay() {
     } else if (dialog.open) {
       dialog.close();
     }
-  }, [shouldShow]);
-
-  const handleDismiss = () => setDismissedFor(status);
-  const handleRestart = () => {
-    setDismissedFor(null);
-    reset();
-  };
+  }, [modalOpen]);
 
   const isWon = status === STATUS.WON;
   const dismissLabel = isWon ? COPY.status.continueButton : COPY.status.viewBoardButton;
@@ -43,7 +30,7 @@ export function StatusOverlay() {
     <dialog
       ref={dialogRef}
       className={styles.dialog}
-      onCancel={handleDismiss}
+      onCancel={setAcknowledgedStatus}
       aria-labelledby="status-overlay-title"
       data-testid="status-overlay"
       tabIndex={-1}
@@ -59,7 +46,7 @@ export function StatusOverlay() {
       <div className={styles.actions}>
         <button
           type="button"
-          onClick={handleDismiss}
+          onClick={setAcknowledgedStatus}
           className={styles.continueButton}
           data-testid="status-continue"
         >
@@ -67,7 +54,7 @@ export function StatusOverlay() {
         </button>
         <button
           type="button"
-          onClick={handleRestart}
+          onClick={reset}
           className={styles.restartButton}
           data-testid="status-restart"
         >

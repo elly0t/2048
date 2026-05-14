@@ -28,6 +28,7 @@ export class GameStore {
   advice: AIAdvice | null = null;
   adviceLoading = false;
   lastDirection: Direction | null = null;
+  acknowledgedStatus: GameStatus | null = null;
 
   private rng: () => number;
   private listeners = new Set<() => void>();
@@ -43,6 +44,12 @@ export class GameStore {
     return this.status === STATUS.PLAYING || this.status === STATUS.WON;
   }
 
+  // True while a WON/LOST overlay is awaiting acknowledgement; gates input.
+  get modalOpen(): boolean {
+    const isEnd = this.status === STATUS.WON || this.status === STATUS.LOST;
+    return isEnd && this.status !== this.acknowledgedStatus;
+  }
+
   // null when the board has no tiles — avoids -Infinity / 0 sentinel ambiguity.
   get largestTile(): number | null {
     const tiles = this.board.flat().filter((cell): cell is number => cell !== null);
@@ -50,6 +57,7 @@ export class GameStore {
   }
 
   applyMove = (direction: Direction): void => {
+    if (this.modalOpen) return;
     if (this.status === STATUS.LOST) return;
 
     const { board: newBoard, changed, scoreDelta } = domainApplyMove(this.board, direction);
@@ -105,6 +113,13 @@ export class GameStore {
     this.advice = null;
     this.adviceLoading = false;
     this.lastDirection = null;
+    this.acknowledgedStatus = null;
+    this.notify();
+  };
+
+  setAcknowledgedStatus = (): void => {
+    if (this.acknowledgedStatus === this.status) return;
+    this.acknowledgedStatus = this.status;
     this.notify();
   };
 

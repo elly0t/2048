@@ -192,7 +192,7 @@ describe('GameStore.applyMove', () => {
     expect(store.status).toBe(STATUS.WON);
   });
 
-  it('case 10: move while WON continues normally', () => {
+  it('case 10: move while WON continues normally (post-acknowledgement)', () => {
     const store = new GameStore({ rng: () => 0 });
     store.board = [
       [2048, null, null, null],
@@ -201,6 +201,7 @@ describe('GameStore.applyMove', () => {
       [null, 2, 2, null],
     ];
     store.status = STATUS.WON;
+    store.setAcknowledgedStatus(); // mimic user dismissing the WON overlay
     const scoreBefore = store.score;
     store.applyMove('left'); // row 3 merges 2+2=4
     expect(store.score).toBe(scoreBefore + 4);

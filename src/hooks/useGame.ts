@@ -3,6 +3,7 @@ import { GameStore } from '../store/gameStore';
 import { DIRECTION, type Board, type Direction } from '../domain/types';
 import { saveGameState, saveBestScore, loadGameState, loadBestScore } from './persistence';
 import { STORAGE_KEYS } from '../constants/storageKeys';
+import { STATUS } from '../store/types';
 import { inferMotions, type IdBoard, type TileMotion } from './motion';
 
 // React bridge over GameStore (TD §3.3, §6.2). Lazy singleton — module-load
@@ -54,6 +55,10 @@ export function initStore(store: GameStore): void {
     store.reset();
   }
   store.bestScore = loadBestScore(localStorage.getItem(STORAGE_KEYS.BEST_SCORE));
+  // Lazy-init: refresh into WON/LOST should not re-prompt overlay.
+  if (store.status === STATUS.WON || store.status === STATUS.LOST) {
+    store.acknowledgedStatus = store.status;
+  }
 }
 
 let store: GameStore | null = null;
@@ -139,10 +144,12 @@ export function useGame() {
     largestTile: s.largestTile,
     advice: s.advice,
     adviceLoading: s.adviceLoading,
+    modalOpen: s.modalOpen,
     motions,
     move: s.applyMove,
     reset: s.reset,
     requestAdvice: s.requestAdvice,
+    setAcknowledgedStatus: s.setAcknowledgedStatus,
   };
 }
 
