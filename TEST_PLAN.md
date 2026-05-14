@@ -316,6 +316,7 @@ Playwright covers DOM/wiring seams unit tests can't reach. Browser matrix, fixtu
 11. Touch swipe (WebKit only). iPhone viewport; horizontal touch gesture across `<main>` exceeding the 30px `swipeToDirection` threshold; same collapse + delta as #1 Left.
 12. bestScore high-water mark. Play to X; refresh; play to Y > X; refresh; `bestScore === Y`.
 13. Cold-load initial board. Clear localStorage; navigate to `/`; ≥1 non-null cell, all non-null values === 2, `score === 0`, status === PLAYING.
+14. Input gated while overlay open. Drive to WON; press multiple arrow keys; board cells, score, and overlay all unchanged. Defends "tiles move behind modal" — native `<dialog>` inert blocks pointer/focus but not window-level keydown.
 
 ---
 
@@ -345,6 +346,7 @@ Common failure modes for this kind of game and where they are caught:
 | Win silently cleared on continue         | E2E §UI #5                                                  |
 | Only checks overall state                | E2E §UI assertions are deep — specific cells + exact deltas |
 | Initial board untested (spec item 1)     | E2E §UI #13                                                 |
+| Input leaks behind end-state overlay     | E2E §UI #14                                                 |
 
 ---
 
