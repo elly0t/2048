@@ -18,11 +18,14 @@ test('Ask AI: aria-disabled during compute → __lastAdvice populated → reason
   const advice = await page.evaluate(
     () => (window as { __lastAdvice?: Record<string, unknown> }).__lastAdvice,
   );
-  expect(advice).toBeDefined();
+  expect(advice).not.toBeNull();
+  expect(advice).not.toBeUndefined();
   expect(['left', 'right', 'up', 'down']).toContain(advice?.direction);
-  expect(advice?.debug).toBeDefined();
-  expect((advice?.debug as Record<string, unknown>).scores).toBeDefined();
-  expect(typeof (advice?.debug as Record<string, unknown>).depthSearched).toBe('number');
+  const debug = advice?.debug as Record<string, unknown>;
+  expect(typeof debug.depthSearched).toBe('number');
+  // Design B: getSuggestion's direction loop populates all four scores.
+  const scores = debug.scores as Record<string, unknown>;
+  expect(Object.keys(scores).sort()).toEqual(['down', 'left', 'right', 'up']);
 
   await expect(page.getByTestId('advice-direction')).toHaveText(String(advice?.direction));
 
@@ -32,5 +35,7 @@ test('Ask AI: aria-disabled during compute → __lastAdvice populated → reason
   const advice2 = await page.evaluate(
     () => (window as { __lastAdvice?: Record<string, unknown> }).__lastAdvice,
   );
+  expect(advice2).not.toBeNull();
+  expect(advice2).not.toBeUndefined();
   expect(advice2?.direction).toBe(advice?.direction);
 });

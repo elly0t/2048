@@ -1,6 +1,5 @@
-// TP §UI — landscape phone (≤500px height) must keep the board fully visible
-// and the Ask AI CTA inline below it, with no occlusion. Locks in the responsive
-// fix introduced for orientation: landscape + max-height: 500px.
+// TP §UI #15 — landscape phone (≤500px height): board fully visible and Ask AI
+// CTA inline below, no occlusion. Defends orientation:landscape + max-height:500px rule.
 import { test, expect } from './fixtures';
 
 test.use({ viewport: { width: 844, height: 390 }, hasTouch: true });
@@ -21,6 +20,6 @@ test('landscape phone: board and Ask AI both visible, CTA does not overlap board
   expect(boardBox).not.toBeNull();
   expect(ctaBox).not.toBeNull();
 
-  // CTA must sit fully below the board — never overlap, never above.
+  // CTA top edge ≥ board bottom edge — no overlap.
   expect(ctaBox!.y).toBeGreaterThanOrEqual(boardBox!.y + boardBox!.height);
 });
