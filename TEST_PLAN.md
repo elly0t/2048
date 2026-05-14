@@ -363,6 +363,7 @@ Playwright covers DOM/wiring seams unit tests can't reach. Browser matrix, fixtu
 17. Status colour on LOST dialog. Drive to LOST; the dialog title `[data-status="lost"]` has computed `color` matching `--color-status-lost` (oxblood). Header LOST tint is intentionally a muted blue-grey, distinct from the dialog's louder accent.
 18. Dialog spawn-settle delay. From the move that triggers WON/LOST, dialog `[open]` should not be true within the first ~480ms (gives the tile spawn animation time to land); becomes true around the 500ms mark. Regression guard for the `setTimeout(..., 500)` in `StatusOverlay.tsx`.
 19. Constrained-column boundary at 480px. Set viewport to 479×900 → AIPanel renders fixed-bottom CTA (`position: fixed`); set viewport to 481×900 → AIPanel renders in-flow under the board (`position: static`, board-width). Defends the `@media (min-width: 480px)` boundary.
+20. Restart from inside the WON / LOST dialog (both end states, separate specs). Seed an end-state-triggering board; press the move; dialog opens; click in-dialog `status-restart`; assert overlay hides, status returns to PLAYING (board has 2–8 fresh value-2 tiles, `score === 0`), `bestScore` preserved. Defends the three coupled seams: store `reset()`, StatusOverlay reacting to `modalOpen=false`, and `acknowledgedStatus` clearing.
 
 ---
 
