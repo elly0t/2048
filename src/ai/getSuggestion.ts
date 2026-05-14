@@ -134,7 +134,8 @@ async function remoteSuggestion(board: Board): Promise<AIAdvice> {
       body: JSON.stringify({ board }),
     });
     return (await response.json()) as AIAdvice;
-  } catch {
+  } catch (err) {
+    console.warn(LOG_PREFIX, 'remote suggest failed; falling back to local', err);
     return localSuggestion(board);
   }
 }

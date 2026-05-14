@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { expectimax, WEIGHTS } from './expectimax';
 import { monotonicity, smoothness, cornerBonus, emptyCells } from './heuristics';
+import { CONFIG } from '../config';
 import type { Board } from '../domain/types';
 
 const emptyBoard: Board = [
@@ -65,17 +66,31 @@ describe('expectimax — completes within budget (cases 3, 7)', () => {
 });
 
 describe('expectimax — chance node weighting (case 4)', () => {
-  it('produces a finite value on a board with one empty cell (smoke)', () => {
-    // Real 0.9/0.1 weighting verification belongs in a hand-checked equality
-    // test once impl lands; this is a smoke check that the chance branch
-    // executes without NaN/Infinity. Tighten later.
+  it('weights spawn outcomes per CONFIG.SPAWN_WEIGHTS against hand-computed H', () => {
+    // Single-empty-cell board where only Right is a legal move. After Right,
+    // the empty slot moves to [3][0]; the chance node spawns 2 or 4 in that cell,
+    // weighted by CONFIG.SPAWN_WEIGHTS, and depth-0 evaluates each via leafValue.
+    // Pulling the weights from config rather than hardcoding 0.9/0.1 keeps the
+    // test honest if the spawn distribution is ever retuned — but still catches
+    // a reversed-wiring bug (using p[4] for the 2-spawn term and vice versa).
     const board: Board = [
       [2, 4, 8, 16],
       [32, 64, 128, 256],
       [512, 1024, 2048, 4096],
       [8192, 16384, 32768, null],
     ];
-    expect(Number.isFinite(expectimax(board, 1))).toBe(true);
+    const postRight: Board = [
+      [2, 4, 8, 16],
+      [32, 64, 128, 256],
+      [512, 1024, 2048, 4096],
+      [null, 8192, 16384, 32768],
+    ];
+    const setCell = (b: Board, value: number): Board =>
+      b.map((row, r) => row.map((cell, c) => (r === 3 && c === 0 ? value : cell))) as Board;
+    const expected =
+      CONFIG.SPAWN_WEIGHTS[2] * manualH(setCell(postRight, 2)) +
+      CONFIG.SPAWN_WEIGHTS[4] * manualH(setCell(postRight, 4));
+    expect(expectimax(board, 1)).toBeCloseTo(expected, 6);
   });
 });
 

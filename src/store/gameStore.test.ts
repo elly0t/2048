@@ -3,6 +3,7 @@ import { GameStore } from './gameStore';
 import { STATUS } from './types';
 import type { Board } from '../domain/types';
 import type { AIAdvice } from '../ai/types';
+import { CONFIG, AI_MODES, type AIMode } from '../config';
 
 // ---- fixtures ----
 
@@ -467,10 +468,25 @@ describe('GameStore.requestAdvice', () => {
     expect(['left', 'right', 'up', 'down']).toContain(store.advice?.direction);
   });
 
-  // Case 4 (remote-mode failure) is exercised via getSuggestion's mocked failure path
-  // when AI_MODE='remote'. Smoke here; tighten with vi.mock once swap path lands.
-  it('case 4: remote-mode failure path is documented (smoke)', () => {
-    expect(true).toBe(true);
+  it('case 4: AI_MODE=remote falls back to local on transport failure', async () => {
+    // CONFIG is `as const`; cast to a writable view for the test, restore in finally.
+    const cfg = CONFIG as unknown as { AI_MODE: AIMode };
+    const originalMode = cfg.AI_MODE;
+    cfg.AI_MODE = AI_MODES.REMOTE;
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+    try {
+      const store = new GameStore({ rng: () => 0 });
+      store.board = deepCopy(standardBoard);
+      store.status = STATUS.PLAYING;
+      await store.requestAdvice();
+      // Local fallback fired — advice resolves to a valid direction, loading clears.
+      expect(store.adviceLoading).toBe(false);
+      expect(store.advice).not.toBeNull();
+      expect(['left', 'right', 'up', 'down']).toContain(store.advice?.direction);
+    } finally {
+      cfg.AI_MODE = originalMode;
+      vi.unstubAllGlobals();
+    }
   });
 
   it('case 5: concurrent calls — most-recent-wins (state remains consistent)', async () => {
