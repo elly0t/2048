@@ -61,7 +61,7 @@ Architecture, AI strategy, and tradeoffs: [`TECHNICAL_DESIGN.md`](./TECHNICAL_DE
 
 ## Docs
 
-- [`TECHNICAL_DESIGN.md`](./TECHNICAL_DESIGN.md) — architecture, design decisions, AI strategy.
+- [`TECHNICAL_DESIGN.md`](./TECHNICAL_DESIGN.md) — **Recommended Starting Point**. Architecture, design decisions, AI strategy. 15-min reading path at the top.
 - [`TEST_PLAN.md`](./TEST_PLAN.md) — function-by-function test cases.
 - [`AI_FLOW.md`](./AI_FLOW.md) — domain & AI module flow.
 - [`bench/`](./bench/) — self-play benchmark harness + [`BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md).
