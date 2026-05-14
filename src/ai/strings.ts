@@ -1,7 +1,6 @@
 import type { Component } from './types';
 
-// User-facing strings for the AI module. Centralised so logic and tests share
-// one source of truth; swap this file for an i18n-aware version later.
+// User-facing strings for the AI module.
 
 export const TEMPLATES: Record<Component, string> = {
   monotonicity: 'keeps tiles ordered along rows',

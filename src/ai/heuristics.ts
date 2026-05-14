@@ -2,21 +2,18 @@ import type { Board, Row } from '../domain/types';
 import { transpose } from '../domain/moves';
 import type { ComponentScores } from './types';
 
-// Weights and formula per TD §5.3. Components return raw scores;
-// aggregation (H = α·M + β·S + γ·E + δ·C) lives at the expectimax leaf.
-// Values from nneonneo's published 2048 AI analysis.
+// Components return raw scores; aggregation H = α·M + β·S + γ·E + δ·C happens
+// at the expectimax leaf. Weights from nneonneo's published 2048 AI analysis.
 
 // Heuristics use log₂ space — gaps between tiles become merge-distances.
 // (2, 4) and (1024, 2048) are both 1 merge apart, weighted equally.
 // In raw values they differ by 500×, big tiles would dominate.
 
 function rowMonotonicity(row: Row): number {
-  // Score the row under two hypotheses (each ≤ 0; closer to 0 is better):
-  //   bigOnLeft  — row should descend going left → right (e.g. [16, 8, 4, 2])
-  //   bigOnRight — row should ascend  going left → right (e.g. [2, 4, 8, 16])
-  // Each adjacent pair pays a penalty in the hypothesis it contradicts.
-  // Pairs containing a null are skipped — empties carry no order signal.
-  // Return the better hypothesis: sorted-either-way rows escape; zigzag pays.
+  // Score under two hypotheses (each ≤ 0; closer to 0 is better): descending L→R
+  // vs ascending L→R. Each adjacent pair penalises the hypothesis it contradicts;
+  // nulls skipped (no order signal). Return the better of the two so sorted-either-
+  // way rows escape and zigzag pays.
   let bigOnLeft = 0;
   let bigOnRight = 0;
   for (let i = 0; i + 1 < row.length; i++) {

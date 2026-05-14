@@ -1,5 +1,5 @@
-/* Mobile (default — <768px): fixed-bottom CTA, full viewport width.
-   See TD §3.3 — Ask AI is the primary action; thumb-zone friendly. */
+/* Mobile (default — <480px): fixed-bottom CTA, full viewport width;
+   Ask AI is the primary action so it sits in the thumb-reach zone. */
 .panel {
   position: fixed;
   bottom: 0;

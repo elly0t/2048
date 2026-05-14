@@ -10,9 +10,7 @@ export function checkWin(board: Board, winTile: number): boolean {
 }
 
 export function checkLose(board: Board): boolean {
-  // Empty cell → slide possible
   if (board.some((row) => row.some((cell) => cell === null))) return false;
-  // Horizontal adjacent pair → merge possible
   if (
     board.some((row) =>
       row.some((cell, colIndex) => colIndex + 1 < row.length && cell === row[colIndex + 1]),
@@ -20,7 +18,6 @@ export function checkLose(board: Board): boolean {
   ) {
     return false;
   }
-  // Vertical adjacent pair → merge possible
   if (
     board.some(
       (row, rowIndex) =>

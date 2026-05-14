@@ -1,5 +1,5 @@
-/* Design tokens — TD §3.3. Tile per-rank colours come from src/styles/palette.ts
-   (runtime, applied as inline style on Tile). Static surface colours live here. */
+/* Design tokens. Tile per-rank colours live in src/styles/palette.ts (applied
+   inline); static surface tokens live here. */
 
 :root {
   /* Surface colours — subtle lavender tint so the page reads as designed
@@ -35,11 +35,8 @@
      so Header content, board, and AI button all sit in the same 428px column. */
   --content-max: 428px;
 
-  /* Animation timings — split into two semantic families:
-     - tile-* drive the game-board motion narrative (slide, spawn, pop)
-     - ui-* drive the surrounding UI shell (dialog fades, button hover feedback)
-     They're decoupled so re-tuning the game feel doesn't drag dialogs/buttons along.
-     All disabled by prefers-reduced-motion below. */
+  /* tile-* drive board motion; ui-* drive shell (dialogs, hover). Decoupled so
+     tuning game feel doesn't drag UI along. Reduced-motion zeroes both below. */
   --duration-tile-slide: 180ms;
   --duration-tile-spawn: 250ms;
   --duration-tile-pop: 200ms;

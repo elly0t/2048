@@ -63,7 +63,7 @@ The spec leaves several values unspecified. All assumptions are externalised to 
 └──────────────────────────────────────┘
 ```
 
-`GameStore` has zero React imports, so game logic runs and tests in plain Node. Domain functions stay pure for the same reason — easy to test in isolation. That separation is what makes the MVVM split worth it here, not the label.
+`GameStore` has zero React imports, so game logic runs and tests in plain Node, and domain functions stay pure for the same reason. That's what makes the MVVM split worth it here, not the label.
 
 ### 3.2 Domain Language
 
@@ -208,7 +208,7 @@ If depth or board size grows, Bitboard + LUT is a natural phase 2 — confined t
 
 ### 4.3 Move Pipeline
 
-Merge logic exists in exactly one place: `mergeRow`. When a merge bug is found or behaviour changes, there is one function to fix and one set of tests to update. No risk of fixing `mergeLeft` and forgetting `mergeRight`. Direction handling is pure geometry (reflect, transpose — see §4 opener), completely separate from merge logic; neither knows about the other.
+Merge logic exists in exactly one place: `mergeRow`. One function to fix, one set of tests to update; no risk of patching `mergeLeft` and forgetting `mergeRight`. Direction handling is pure geometry (reflect, transpose — see §4 opener), kept separate from merge logic.
 
 Within `moveLeft`, each row passes through `compressRow → mergeRow → compressRow`:
 
@@ -261,7 +261,7 @@ For Move Right, Up, Down, the same rules apply but in the corresponding directio
 }
 ```
 
-`changed` is detected by snapshot comparison: after the row pipeline runs, each output row is compared cell-by-cell to its input; if any row differs, the move counts as changed. The alternative is to have each pipeline function (`compressRow`, `mergeRow`) report whether it changed something alongside its output — cleaner attribution but more API surface. Snapshot is simpler and sufficient at the 4×4 scale.
+`changed` is detected by snapshot comparison: after the row pipeline runs, each output row is compared cell-by-cell to its input; if any row differs, the move counts as changed. The alternative is to have each pipeline function (`compressRow`, `mergeRow`) report whether it changed something alongside its output — cleaner attribution but more API surface, which isn't worth it at 4×4.
 
 ### 4.4 Move Sequencing
 
@@ -295,7 +295,7 @@ P(tile = 2) = 0.9,  P(tile = 4) = 0.1
 Chance node = 0.9 × value(board with 2) + 0.1 × value(board with 4)
 ```
 
-How the search produces a score: from the current board, the search recurses into every reachable future — every player move (max layer) and every spawn outcome (chance layer, weighted 0.9 for a 2 and 0.1 for a 4) — until the depth limit, where each end-state board is scored by the heuristic (§5.3). Those scores aggregate back up: chance layers averaging their children, max layers picking the best. The value at the top is the expected outcome under optimal play — every reachable continuation already factored in.
+How the search produces a score: from the current board, the search recurses into every reachable future — every player move (max layer) and every spawn outcome (chance layer, weighted 0.9 for a 2 and 0.1 for a 4) — until the depth limit, where each end-state board is scored by the heuristic (§5.3). Those scores aggregate back up: chance layers averaging their children, max layers picking the best. The value at the top is the expected outcome under optimal play.
 
 ### 5.2 Search Depth: Why Depth 3
 
@@ -411,7 +411,7 @@ Headline numbers (depth 3, n=100): 77% reach 2048, 27% reach 4096, mean 74ms / p
 
 ### 5.5 Swap path: nneonneo via Docker (not implemented)
 
-The local Expectimax search is sufficient for this submission. If stronger play were needed, nneonneo/2048-ai (Expectimax with bitboard + precomputed LUT, ~10M positions/sec, 100% reach 2048 at depth 8) is the obvious target. The dispatcher pattern in §5.4 — `getSuggestion` → `localSuggestion` / `remoteSuggestion` keyed by `CONFIG.AI_MODE` — makes the swap cheap: a thin Flask `POST /suggest` wrapping nneonneo's C++ binary in a pinned Docker container, plus a 2D-array ↔ 64-bit-bitboard translation at the boundary. `remoteSuggestion()` ships as a stub today; the container, the endpoint, and the board translation are not built. The honest framing is "the seam is there; the second provider isn't yet."
+The local Expectimax search is sufficient for this submission. If stronger play were needed, nneonneo/2048-ai (Expectimax with bitboard + precomputed LUT, ~10M positions/sec, 100% reach 2048 at depth 8) is the obvious target. The dispatcher pattern in §5.4 — `getSuggestion` → `localSuggestion` / `remoteSuggestion` keyed by `CONFIG.AI_MODE` — makes the swap cheap: a thin Flask `POST /suggest` wrapping nneonneo's C++ binary in a pinned Docker container, plus a 2D-array ↔ 64-bit-bitboard translation at the boundary. `remoteSuggestion()` ships as a stub today; the container, the endpoint, and the board translation are not built — the seam is there, the second provider isn't.
 
 ### 5.6 Suggestion Pipeline & Reasoning Template
 

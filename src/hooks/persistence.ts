@@ -39,7 +39,7 @@ export function saveBestScore(score: number): void {
   try {
     localStorage.setItem(STORAGE_KEYS.BEST_SCORE, String(score));
   } catch {
-    // localStorage may throw in private mode or on quota — drop silently.
+    // see saveGameState
   }
 }
 

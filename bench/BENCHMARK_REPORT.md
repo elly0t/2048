@@ -77,7 +77,7 @@ Stats: 80% vs 77% win rate is a coin-flip tie (Fisher's exact p ≈ 0.84); 14% v
 | Expectimax d2 | 50  | 4096               | 100%        | 100%        | 32,178     |
 | Expectimax d3 | 100 | 4096               | 100%        | 100%        | 37,561     |
 
-Random AI cannot reach 512. Greedy caps at 512 (never 1024). Expectimax reaches at least 1024 in every game at either depth tested. The search contributes the move quality — it's not heuristics riding on luck.
+Random AI cannot reach 512. Greedy caps at 512 (never 1024). Expectimax reaches at least 1024 in every game at either depth tested. The search is doing the work, not the heuristic getting lucky.
 
 ---
 
@@ -135,7 +135,7 @@ Above is the Node M4 Pro baseline. Real users run d3 in a browser, on potentiall
 
 ms/node sits at ~10–14 µs across all three buckets — the variance is in node count, not per-node cost, so the work is genuinely compute-bound (not GC pauses or paint stalls). The 11× node spread between late and early matches expectimax's cost model: chance-node fan-out is proportional to `empties × |tile values|`, and the early-game board has 10–12 empties to fork on every chance ply.
 
-d3's mean-Node ~74ms scales to ~1s on a fuller board and ~8s on a sparse one under this profile. The sparse-board number is unacceptable UX even with the visible loading state, so d3 is shipped as the default with an escape hatch rather than as the always-on choice: `EXPECTIMAX_DEPTH` in `src/config.ts` accepts 2 for low-tier hardware. Per the d2-vs-d3 sections above, the win-rate cost of dropping to 2 is negligible (~80% both); the visible difference is mostly the 4096-reach rate in the tail.
+d3's mean-Node ~74ms scales to ~1s on a fuller board and ~8s on a sparse one under this profile. The sparse-board number is unacceptable UX even with the visible loading state, so d3 is shipped as the default, with `EXPECTIMAX_DEPTH` in `src/config.ts` accepting 2 for low-tier hardware. Per the d2-vs-d3 sections above, the win-rate cost of dropping to 2 is negligible (~80% both); the visible difference is mostly the 4096-reach rate in the tail.
 
 Sample 1 of each bucket may include V8 JIT warmup; the clustered spreads suggest cold-start is not a dominant factor here.
 
