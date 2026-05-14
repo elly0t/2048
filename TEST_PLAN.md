@@ -317,6 +317,7 @@ Playwright covers DOM/wiring seams unit tests can't reach. Browser matrix, fixtu
 12. bestScore high-water mark. Play to X; refresh; play to Y > X; refresh; `bestScore === Y`.
 13. Cold-load initial board. Clear localStorage; navigate to `/`; ≥1 non-null cell, all non-null values === 2, `score === 0`, status === PLAYING.
 14. Input gated while overlay open. Drive to WON; press multiple arrow keys; board cells, score, and overlay all unchanged. Defends "tiles move behind modal" — native `<dialog>` inert blocks pointer/focus but not window-level keydown.
+15. Landscape phone layout. Set viewport to 844×390 (iPhone landscape); assert board and Ask AI button both fully visible in viewport (`toBeInViewport({ ratio: 1 })`); CTA top edge ≥ board bottom edge (no occlusion). Defends the `@media (orientation: landscape) and (max-height: 500px)` rule.
 
 ---
 
