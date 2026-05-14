@@ -15,7 +15,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:2048. Arrow keys / swipe to play; the AI panel suggests the next move on demand.
+Open http://localhost:2048. Arrow keys on keyboard / swipe on mobile to play; click the AI button for next move suggestion.
 
 ## Tech stack
 
@@ -34,11 +34,12 @@ Architecture, AI strategy, and tradeoffs: [`TECHNICAL_DESIGN.md`](./TECHNICAL_DE
 
 ## Configuration
 
-`EXPECTIMAX_DEPTH` in [`src/config.ts`](./src/config.ts) (default `3`) — drop to `2` on low-tier hardware for snappier advice. Win rates are ~equal (~80% both); d3 mostly wins in the 4096-reach tail. Numbers in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md).
+`EXPECTIMAX_DEPTH` in [`src/config.ts`](./src/config.ts) (default `3`) — drop to `2` on low-tier hardware for snappier advice. Win rates are ~equal (~80% both); d3 wins significantly more to reach 4096. Numbers in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md).
 
 ## Design notes
 
-Expectimax depth 3 returns advice in ~74ms mean / 187ms p95 — full benchmark in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md) (77% reach 2048 at n=100; random / greedy baselines never reach 2048). The AI panel still shows a brief `Computing…` state: playtesting read silent computation as "system frozen," explicit feedback reads as "system thinking." A 100ms delay you can see beats a 100ms delay you can't.
+- Expectimax depth 3 returns advice in ~74ms mean / 187ms p95 — full benchmark in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md) (77% reach 2048 at n=100; random / greedy baselines never reach 2048). 
+- The AI panel still shows a brief `Computing…` state: playtesting read silent computation as "system frozen," explicit feedback reads as "system thinking." A 100ms delay you can see beats a 100ms delay you can't.
 
 ## Deploy
 
@@ -48,12 +49,12 @@ Expectimax depth 3 returns advice in ~74ms mean / 187ms p95 — full benchmark i
 
 ## Tested on
 
-- **Functional** — Apple M4 Pro / Brave (primary), iOS Safari (mobile swipe).
-- **AI latency proxy** — Deployed build hit through Chrome DevTools' "Low-tier mobile" CPU profile (15.6× slowdown on M4 Pro): d3 ranges from ~1s on full boards to ~8s on sparse boards. Table in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md) § "Browser latency under CPU throttle".
+- **Functional** — Apple M4 Pro / Brave, Chrome, Safari, iOS Safari (mobile swipe).
+- **AI latency proxy** — Deployed build hit through Chrome DevTools' "Low-tier mobile" CPU profile (15.6× slowdown on M4 Pro, calibrated): d3 ranges from ~1s on full boards to ~8s on sparse boards. Table in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md) § "Browser latency under CPU throttle".
 
 ## Notes
 
-- Pre-push hook failing on an unrelated check? `git push --no-verify` bypasses it.
+- Pre-push hook failing but need to bypass check for deployment? `git push --no-verify` bypasses it.
 - First `npm run e2e` downloads ~270 MB of Playwright browser binaries (1–2 min); subsequent runs skip the check.
 
 ## Docs
