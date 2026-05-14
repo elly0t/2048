@@ -2,6 +2,25 @@
 
 Expectimax search flow diagrams. Companion to `TECHNICAL_DESIGN.md` §5 (design rationale) and the source files in `src/ai/`.
 
+## At a glance
+
+Alternate MAX (you pick) with CHANCE (tile spawns) until depth runs out, then score.
+
+```
+   MAX  d=3                                       ← player move: max over up/down/left/right
+   ├─ up    → CHANCE d=2                          ← spawn: avg over outcomes
+   │           ├─ spawn 2 at empty cell → MAX d=2 → …
+   │           ├─ spawn 4 at empty cell → MAX d=2 → …
+   │           └─ … every empty cell × {2 @ 90%, 4 @ 10%}
+   ├─ down  → CHANCE d=2 → …
+   ├─ left  → CHANCE d=2 → …
+   └─ right → CHANCE d=2 → …
+
+   directions that don't change the board are skipped.
+   recurses until MAX d=0 → leafValue(board)
+                          = α·monotonicity + β·smoothness + γ·log₂(empties) + δ·corner
+```
+
 Module layout:
 
 - `heuristics.ts` — board-quality components (monotonicity, smoothness, emptyCells, cornerBonus)
