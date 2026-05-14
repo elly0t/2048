@@ -8,6 +8,14 @@
   --color-cell-empty: hsl(252 26% 87%);
   --color-text-default: hsl(252 40% 16%);
 
+  /* Status accent — used by both the ambient Header WON tint and the explicit
+     Status dialog WON title, so they're guaranteed to match. Distinct hue family
+     from the cool teal→magenta tile palette so status doesn't compete with
+     gameplay colour. (Ambient LOST stays muted grey by design; only the dialog
+     gets a louder red — see StatusOverlay.module.css.) */
+  --color-status-won: hsl(40 65% 46%);
+  --color-status-lost: hsl(8 48% 36%);
+
   /* Tile geometry */
   --tile-radius: 6px;
   /* Symmetric (no Y offset) — biased shadow extends visibly past board edge when tile scale-animates. */

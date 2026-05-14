@@ -31,7 +31,7 @@
 }
 
 .title[data-status='won'] {
-  color: hsl(35 60% 25%);
+  color: var(--color-status-won);
 }
 
 .title[data-status='lost'] {

@@ -48,6 +48,17 @@
   letter-spacing: -0.01em;
 }
 
+/* Status-specific colour on the dialog title — this is the one explicit moment
+   the app says "you won/lost", so the dialog earns louder status colour than
+   the ambient Header tint. Backdrop and buttons stay neutral. */
+.title[data-status='won'] {
+  color: var(--color-status-won);
+}
+
+.title[data-status='lost'] {
+  color: var(--color-status-lost);
+}
+
 .actions {
   display: flex;
   gap: 8px;

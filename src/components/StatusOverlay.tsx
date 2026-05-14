@@ -48,7 +48,12 @@ export function StatusOverlay() {
       data-testid="status-overlay"
       tabIndex={-1}
     >
-      <h2 id="status-overlay-title" className={styles.title} data-testid="status-title">
+      <h2
+        id="status-overlay-title"
+        className={styles.title}
+        data-status={isWon ? 'won' : 'lost'}
+        data-testid="status-title"
+      >
         {isWon ? COPY.status.won : COPY.status.lost}
       </h2>
       <div className={styles.actions}>
