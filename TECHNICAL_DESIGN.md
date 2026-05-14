@@ -131,13 +131,11 @@ Mobile (<480px)                       Constrained column (≥480px)
 - Components consume state via the `useGame` hook (§10, `src/hooks/useGame.ts`) using `useSyncExternalStore`; they never reach into `GameStore` directly.
 - Accessibility floor: semantic `<button>` for actions, `aria-live="polite"` on score and advice text, `aria-label` on the mobile icon-only restart button, `role="dialog"` + `aria-modal="true"` on the status overlay, palette tuned for ≥4.5:1 contrast on tile text.
 
-**Real-device validation (iOS Safari).** §5.2 covered AI latency; this pass covered touch / viewport / layout. Four non-obvious decisions surfaced:
+**Real-device validation (iOS Safari).** §5.2 covered AI latency; this pass covered touch / viewport / layout. Three non-obvious decisions surfaced (CSS-only fixes — scroll lock, landscape override — speak for themselves; commit log carries the rationale):
 
-- **Conditional scroll lock at `min-height: 700px`.** Page `overflow: hidden` only when the viewport is tall enough for the ~600px layout (Header + board + AIPanel) plus ~100px headroom; preserves rubber-band scroll on short/landscape viewports so nothing gets trapped off-screen.
-- **Dialog opens 500ms after end-state** so the end-of-game spawn lands first. Coupling rationale is on the `setTimeout` in `StatusOverlay.tsx` — retuning either spawn token needs that constant to follow.
-- **Dialog focus override.** `<dialog>.showModal()` auto-focuses the first focusable descendant; here both buttons are equal-weight and Restart is destructive, so `dialog.focus()` (with `tabIndex={-1}` on the dialog) lands focus on the dialog itself instead. Users tap or Tab into a button explicitly.
+- **Dialog opens 500ms after end-state** so the end-of-game spawn lands first (≈ `--delay-tile-spawn 240 + --duration-tile-spawn 250`, §3.4). The `setTimeout` constant in `StatusOverlay.tsx` is coupled to those motion tokens — retune one, retune the other.
+- **Dialog focus override.** `<dialog>.showModal()` auto-focuses the first focusable descendant; here both buttons are equal-weight and Restart is destructive, so `dialog.focus()` (with `tabIndex={-1}`) lands focus on the dialog itself instead. Users tap or Tab into a button explicitly.
 - **Advice rendering contract.** Store no longer clears `advice` to null at `requestAdvice` start — `adviceLoading` carries the freshness signal alone. Presentation handles the stale-dim, which is why the advice paragraph reads "above the button, always rendered" rather than "below, hidden during compute."
-- **Landscape orientation override.** `@media (orientation: landscape) and (max-height: 500px)` shrinks the tile / gap / padding clamps, un-fixes the AIPanel, and trims `.main` padding so the portrait-style stack fits in landscape phones without scrolling.
 
 ### 3.4 Tile Motion
 
@@ -409,17 +407,7 @@ export async function getSuggestion(board) {
 }
 ```
 
-Local benchmark (full write-up in `bench/BENCHMARK_REPORT.md`):
-
-```
-Implementation:   Own Expectimax, depth 3
-2048 reach rate:  77% (n=100, Wilson 95% CI [67.8, 84.2])
-Reach 4096:       27% (CI [19.3, 36.4])
-Mean score:       37,561
-Avg move time:    74ms (p95 187ms, max 780ms)
-```
-
-Random and greedy baselines were also run (each n=100). Both reach 0% on 2048; greedy caps at 512, random caps at 256. Calibration confirmed: the search contributes real move quality, not heuristics riding on luck.
+Headline numbers (depth 3, n=100): 77% reach 2048, 27% reach 4096, mean 74ms / p95 187ms per move. Random and greedy baselines each reach 0% on 2048 (greedy caps at 512, random at 256) — calibration confirms the search contributes real move quality, not heuristics riding on luck. Full tables, CIs, and methodology in `bench/BENCHMARK_REPORT.md`.
 
 ### 5.5 Swap path: nneonneo via Docker (not implemented)
 
@@ -674,7 +662,7 @@ Move Right / Up / Down, lose/win detection, spawn placement, no-spawn-after-win,
 
 ### 7.3 Pre-Push Hooks
 
-`husky` runs `npm run check` (typecheck + lint + format + `npm test`) before every `git push`. Bypass: `git push --no-verify`. E2E is deliberately excluded from the hook — see §12.3.
+`husky` runs `npm run check` (typecheck + lint + format + `npm test`) before every `git push`. Bypass: `git push --no-verify`. E2E is deliberately excluded from the hook — see §12.
 
 ### 7.4 CI Pipeline
 
@@ -832,41 +820,10 @@ The full advice object:
 
 `debug.scores` allows `null` per direction — a `null` entry marks a no-op (the move didn't change the board), so it's still listed in the payload but excluded from selection. On a lose state (no direction changes the board) `direction` is `null` and `reasoning` is `'No moves available.'`.
 
-The debug payload makes the search inspectable: score per direction, reasoning mapped to component deltas, latency, node count, depth. The console gives a live trace; `window.__adviceHistory` keeps the full session for post-hoc inspection. The player-facing UI stays untouched. `window.__lastAdvice` is also the E2E observability hook for TP §UI #2 (see §12.4).
+The debug payload makes the search inspectable: score per direction, reasoning mapped to component deltas, latency, node count, depth. The console gives a live trace; `window.__adviceHistory` keeps the full session for post-hoc inspection. The player-facing UI stays untouched. `window.__lastAdvice` is also the E2E observability hook for TP §UI #2 (see §12).
 
 ---
 
 ## 12. E2E Layer
 
-Playwright drives a real browser against the production bundle (`vite preview`). It covers seams unit tests cannot reach: keyboard and touch event wiring, localStorage round-trips on page reload, async loading state during expectimax compute (the rAF + 150ms floor from §3.3), and the modal `<dialog>` lifecycle. Scenario enumeration lives in TP §UI Layer.
-
-### 12.1 Browser Matrix
-
-Chromium and WebKit. Chromium is primary. WebKit regression-tests the Safari rAF fix from §3.3 (commit `e8af6c3`) — without WebKit in CI, that fix can silently regress. WebKit also powers TP §UI #11 (touch swipe) via Playwright's iPhone device descriptors. Firefox is omitted: Gecko-specific regressions aren't part of the deployed surface and the install + CI cost isn't earned.
-
-### 12.2 Server Mode
-
-Tests run against `vite preview` after `vite build`. The dev server is faster to start but tests with the production bundle is the most accurate. Build adds ~5s of startup.
-
-### 12.3 Husky Scope & Entry Points
-
-E2E is deliberately not in pre-push, otherwise it'd be too heavy weight. `npm test` stays Vitest-only to be faster with no browser install needed, reliable on a fresh clone. E2E runs via a single opt-in script:
-
-```
-npm run e2e           # playwright install (idempotent) && vite build && vite preview && playwright test
-```
-
-README documents the cold-machine path.
-
-### 12.4 Fixtures (`e2e/fixtures.ts`)
-
-Four shared contracts the suite depends on:
-
-- RNG seed — `page.addInitScript` overrides `Math.random` with a per-test seed before any app code runs. Strictly required where a spawn position is part of the assertion (TP §UI #1); used elsewhere for general reproducibility. Without it, those tests are flake bombs.
-- localStorage reset — `beforeEach` clears `2048_game_state` and `2048_best_score`. Prevents bleed between persistence scenarios (TP §UI #3, #8, #9, #12).
-- Touch gesture helper — `touchGesture(page, from, to)` dispatches `touchstart`/`touchend` with WebKit-safe coordinates above the 30px `swipeToDirection` threshold. Used by TP §UI #11.
-- AI observability — TP §UI #2 reads `window.__lastAdvice` and `window.__adviceHistory` (the contract from §11). E2E asserts on the same payload visible in DevTools.
-
-### 12.5 Vitest Boundary
-
-Vitest and Playwright share the `.spec.ts` extension. `vite.config.ts` adds `test.exclude: ['e2e/**', 'node_modules/**', 'dist/**']` so Vitest skips Playwright files. `playwright.config.ts` scopes `testDir: 'e2e'`. The two runners do not overlap; `npm test` and `npm run e2e` are independent commands.
+Playwright drives a real browser against the production bundle (`vite preview`); scenarios enumerated in TP §UI Layer. Browser matrix: **Chromium** (primary) + **WebKit** — the latter regression-tests the Safari rAF fix from §3.3 (commit `e8af6c3`) and powers the touch-swipe spec. Firefox omitted; the deployed surface doesn't depend on Gecko-only behaviour. E2E is deliberately not in pre-push (`npm test` stays Vitest-only for fresh-clone speed); the opt-in entry is `npm run e2e`. Shared contracts in `e2e/fixtures.ts`: seeded RNG, localStorage reset, touch gesture helper, and the `window.__lastAdvice` / `window.__adviceHistory` observability hook from §11.

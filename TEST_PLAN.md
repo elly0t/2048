@@ -2,7 +2,31 @@
 
 Function-by-function test case enumeration. Companion to `TECHNICAL_DESIGN.md` (design rationale) and `*.test.ts` (implementations).
 
-This is a living checklist. Cases discovered during build are added in the same commit as the test that catches them.
+## TL;DR
+
+- **218 unit + integration tests** (Vitest) cover the domain (board, moves, spawn, win-lose checks), the AI (heuristics, expectimax, suggestion + reasoning), and the store (`applyMove` 6-stage pipeline, `requestAdvice`, `modalOpen` + acknowledgement, motion inference).
+- **~19 E2E specs** (Playwright, Chromium + WebKit) cover wiring seams unit tests can't reach: keyboard + touch input, localStorage round-trips, `<dialog>` lifecycle, AI observability hook, landscape phone layout, status colour tokens, and the 480px breakpoint boundary.
+- **Pre-push hook** runs typecheck + lint + format + unit (E2E opt-in via `npm run e2e`).
+- **High-signal artefacts:** the [common failure modes table](#cross-reference-common-failure-modes) below names the bugs this kind of game produces and points to the case that catches each.
+- **Manual / device validation** lives in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md) (CPU-throttle latency) and the iOS Safari pass referenced in TD §3.3.
+
+## Cross-reference: common failure modes
+
+Common failure modes for this kind of game and where they are caught:
+
+| Failure mode                             | Where addressed in this plan                                |
+| ---------------------------------------- | ----------------------------------------------------------- |
+| Win/lose timing wrong (post-spawn check) | GameStore.applyMove cases 1, 2, 5, 9; E2E §UI #4            |
+| Spawn on no-op move                      | applyMove case 1; GameStore.applyMove case 1; E2E §UI #10   |
+| AI module not tested                     | expectimax (10 cases), getSuggestion (12 cases); E2E §UI #2 |
+| spawnTile errors on full board           | spawnTile case 3; E2E §UI #6                                |
+| Score always 0                           | GameStore.applyMove case 7; E2E §UI #1, #12                 |
+| Lose-by-spawn missed                     | checkLose case 9; GameStore.applyMove case 5                |
+| Win-and-lose simultaneity                | GameStore.applyMove case 9                                  |
+| Win silently cleared on continue         | E2E §UI #5                                                  |
+| Only checks overall state                | E2E §UI assertions are deep — specific cells + exact deltas |
+| Initial board untested (spec item 1)     | E2E §UI #13                                                 |
+| Input leaks behind end-state overlay     | E2E §UI #14                                                 |
 
 ## Conventions
 
@@ -349,26 +373,6 @@ Tested once as shared property tests, not repeated per function:
 - Purity: every domain function returns a new object/array; never mutates input. Snapshot-and-compare runs each function with a frozen input.
 - `null` is the only empty marker (TD §3.2). Predicates use `=== null`, never `Boolean()` or `== null`.
 - Determinism of AI: no `Math.random` inside expectimax or getSuggestion. Same board produces same advice.
-
----
-
-## Cross-reference: common failure modes
-
-Common failure modes for this kind of game and where they are caught:
-
-| Failure mode                             | Where addressed in this plan                                |
-| ---------------------------------------- | ----------------------------------------------------------- |
-| Win/lose timing wrong (post-spawn check) | GameStore.applyMove cases 1, 2, 5, 9; E2E §UI #4            |
-| Spawn on no-op move                      | applyMove case 1; GameStore.applyMove case 1; E2E §UI #10   |
-| AI module not tested                     | expectimax (10 cases), getSuggestion (12 cases); E2E §UI #2 |
-| spawnTile errors on full board           | spawnTile case 3; E2E §UI #6                                |
-| Score always 0                           | GameStore.applyMove case 7; E2E §UI #1, #12                 |
-| Lose-by-spawn missed                     | checkLose case 9; GameStore.applyMove case 5                |
-| Win-and-lose simultaneity                | GameStore.applyMove case 9                                  |
-| Win silently cleared on continue         | E2E §UI #5                                                  |
-| Only checks overall state                | E2E §UI assertions are deep — specific cells + exact deltas |
-| Initial board untested (spec item 1)     | E2E §UI #13                                                 |
-| Input leaks behind end-state overlay     | E2E §UI #14                                                 |
 
 ---
 
