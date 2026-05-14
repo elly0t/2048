@@ -2,17 +2,15 @@
 // Status must STAY won after dismissing the overlay; assumption #4 continue-after-win.
 import { test, expect, seedBoard } from './fixtures';
 
-const N = null;
-
 test('WIN Continue: dismiss overlay → status stays WON (h1 data-status) → Ask AI still returns advice', async ({
   page,
 }) => {
   await seedBoard(page, {
     board: [
-      [1024, 1024, N, N],
-      [2, N, N, N],
-      [N, N, N, N],
-      [N, N, N, N],
+      [1024, 1024, null, null],
+      [2, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
     ],
     score: 0,
   });

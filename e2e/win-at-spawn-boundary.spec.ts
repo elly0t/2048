@@ -2,17 +2,15 @@
 // WIN status must flip on the merging move, not the next one.
 import { test, expect, seedBoard } from './fixtures';
 
-const N = null;
-
 test('WIN at spawn boundary: merge to 2048 → status flips WON same tick → overlay shown', async ({
   page,
 }) => {
   await seedBoard(page, {
     board: [
-      [1024, 1024, N, N],
-      [N, N, N, N],
-      [N, N, N, N],
-      [N, N, N, N],
+      [1024, 1024, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
     ],
     score: 0,
   });

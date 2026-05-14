@@ -2,8 +2,6 @@
 import { devices } from '@playwright/test';
 import { test, expect, seedBoard, touchGesture } from './fixtures';
 
-const N = null;
-
 test.use({ ...devices['iPhone 13'] });
 
 test('touch swipe left: same collapse as ArrowLeft #1 (WebKit only)', async ({
@@ -13,10 +11,10 @@ test('touch swipe left: same collapse as ArrowLeft #1 (WebKit only)', async ({
 
   await seedBoard(page, {
     board: [
-      [N, 2, N, 2],
-      [N, N, N, N],
-      [N, N, N, N],
-      [N, N, N, N],
+      [null, 2, null, 2],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
     ],
     score: 0,
   });

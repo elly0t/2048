@@ -1,15 +1,13 @@
 // TP §UI #12 — bestScore updates on a new high and persists across refresh.
 import { test, expect, seedBoard } from './fixtures';
 
-const N = null;
-
 test('bestScore: updates on new high and survives refresh', async ({ page }) => {
   await seedBoard(page, {
     board: [
-      [2, 2, N, N],
-      [N, N, N, N],
-      [N, N, N, N],
-      [N, N, N, N],
+      [2, 2, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
     ],
     score: 0,
     bestScore: 0,

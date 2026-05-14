@@ -1,16 +1,14 @@
 // TP §UI #8 — Refresh restores board, score, bestScore from localStorage.
 import { test, expect, seedBoard } from './fixtures';
 
-const N = null;
-
 test('refresh restores board + score + bestScore', async ({ page }) => {
   // Deterministic seed — guarantees ArrowLeft merges (no cold-load randomness).
   await seedBoard(page, {
     board: [
-      [2, 2, N, N],
-      [N, N, N, N],
-      [N, N, N, N],
-      [N, N, N, N],
+      [2, 2, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
     ],
     score: 0,
     bestScore: 0,

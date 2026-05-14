@@ -2,15 +2,13 @@
 // `StatusOverlay.tsx` L11-12: dismissedFor is seeded to current status on mount.
 import { test, expect, seedBoard } from './fixtures';
 
-const N = null;
-
 test('Refresh into WON: overlay does not re-prompt; status persists as WON', async ({ page }) => {
   await seedBoard(page, {
     board: [
-      [1024, 1024, N, N],
-      [N, N, N, N],
-      [N, N, N, N],
-      [N, N, N, N],
+      [1024, 1024, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
     ],
     score: 0,
   });

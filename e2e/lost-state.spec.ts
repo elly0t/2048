@@ -1,8 +1,6 @@
 // TP §UI #6 — forces LOST via one move; defends "spawnTile errors when board full".
 import { test, expect, seedBoard } from './fixtures';
 
-const N = null;
-
 test('LOST state: forced lock via ArrowRight on 15-tile board → overlay + both buttons + no errors', async ({
   page,
 }) => {
@@ -18,7 +16,7 @@ test('LOST state: forced lock via ArrowRight on 15-tile board → overlay + both
       [16, 4, 8, 2],
       [2, 16, 4, 8],
       [8, 2, 16, 4],
-      [8, 2, 16, N],
+      [8, 2, 16, null],
     ],
     score: 0,
   });

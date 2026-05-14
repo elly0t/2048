@@ -1,8 +1,6 @@
 // TP §UI #7 — LOST overlay's View Board dismisses; status stays LOST; arrow keys are no-op.
 import { test, expect, seedBoard } from './fixtures';
 
-const N = null;
-
 test('LOST View Board: dismiss overlay → h1 data-status stays "lost" → arrow keys no-op', async ({
   page,
 }) => {
@@ -11,7 +9,7 @@ test('LOST View Board: dismiss overlay → h1 data-status stays "lost" → arrow
       [16, 4, 8, 2],
       [2, 16, 4, 8],
       [8, 2, 16, 4],
-      [8, 2, 16, N],
+      [8, 2, 16, null],
     ],
     score: 0,
   });

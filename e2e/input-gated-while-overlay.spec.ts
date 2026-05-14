@@ -3,15 +3,13 @@
 // pointer/focus but not window-level keydown.
 import { test, expect, seedBoard } from './fixtures';
 
-const N = null;
-
 test('WON overlay open: arrow keys do not move tiles behind it', async ({ page }) => {
   await seedBoard(page, {
     board: [
-      [1024, 1024, N, N],
-      [2, N, N, N],
-      [N, N, N, N],
-      [N, N, N, N],
+      [1024, 1024, null, null],
+      [2, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
     ],
     score: 0,
   });

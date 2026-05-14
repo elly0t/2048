@@ -8,17 +8,15 @@ type Case = {
   mergedCell: { row: number; col: number; value: number };
 };
 
-const N = null;
-
 const cases: Case[] = [
   {
     direction: 'left',
     key: 'ArrowLeft',
     initialBoard: [
-      [N, 2, N, 2],
-      [N, N, N, N],
-      [N, N, N, N],
-      [N, N, N, N],
+      [null, 2, null, 2],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
     ],
     mergedCell: { row: 0, col: 0, value: 4 },
   },
@@ -26,10 +24,10 @@ const cases: Case[] = [
     direction: 'right',
     key: 'ArrowRight',
     initialBoard: [
-      [2, N, 2, N],
-      [N, N, N, N],
-      [N, N, N, N],
-      [N, N, N, N],
+      [2, null, 2, null],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
     ],
     mergedCell: { row: 0, col: 3, value: 4 },
   },
@@ -37,10 +35,10 @@ const cases: Case[] = [
     direction: 'up',
     key: 'ArrowUp',
     initialBoard: [
-      [N, N, N, N],
-      [2, N, N, N],
-      [N, N, N, N],
-      [2, N, N, N],
+      [null, null, null, null],
+      [2, null, null, null],
+      [null, null, null, null],
+      [2, null, null, null],
     ],
     mergedCell: { row: 0, col: 0, value: 4 },
   },
@@ -48,10 +46,10 @@ const cases: Case[] = [
     direction: 'down',
     key: 'ArrowDown',
     initialBoard: [
-      [2, N, N, N],
-      [N, N, N, N],
-      [2, N, N, N],
-      [N, N, N, N],
+      [2, null, null, null],
+      [null, null, null, null],
+      [2, null, null, null],
+      [null, null, null, null],
     ],
     mergedCell: { row: 3, col: 0, value: 4 },
   },
