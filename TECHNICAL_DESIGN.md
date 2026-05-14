@@ -7,7 +7,7 @@ This document explains the design decisions behind the implementation. Architect
 - **Plain-class ViewModel over MobX** — `GameStore` is a vanilla class behind `useSyncExternalStore`; zero React imports, tests run in plain Node (§6.2).
 - **2D array over bitboard** — readability over a 10× speedup we don't yet need; bitboard remains a clean phase-2 swap (§4.2).
 - **Expectimax (not minimax) at depth 3** — spawns are random, not adversarial; phase 2 adaptive depth keyed off `|empties|` (§5.1, §5.2).
-- **Pluggable AI provider** — `CONFIG.AI_MODE` flips local↔remote with no callsite changes; the remote path (nneonneo via Docker) is designed and the dispatcher is wired — the container itself is phase 2 (§5.4–§5.5).
+- **Pluggable AI provider seam** — `CONFIG.AI_MODE` flips local↔remote at a single dispatcher (`getSuggestion`); the remote path (nneonneo via Docker) is sketched as the swap target but not built. Local Expectimax is the shipped provider (§5.4–§5.5).
 - **Motion inferred from before/after boards** — `TileMotion[]` stream with stable ids drives slide/spawn/pop animations; React reconciles the same DOM node across moves (§3.4).
 
 If you only have 15 minutes: §4.3 move pipeline · §5.2 depth rationale · §5.6 suggestion pipeline + benchmark · §6.2 MobX trade-off.
@@ -25,7 +25,7 @@ The spec leaves several values unspecified. All assumptions are externalised to 
 | 3   | Score = sum of all merged tile values       | Standard 2048 scoring convention — same as the original game                                                          |
 | 4   | Win state allows player to continue         | Spec detects win but does not say game ends — continue or restart offered                                             |
 | 5   | Expectimax depth = 3                        | See §5.2 for rationale & phase 2 adaptive depth that was spotted during implementation.                               |
-| 6   | AI uses local Expectimax search             | Local search keeps tests deterministic and needs no setup. Remote provider available via `CONFIG.AI_MODE` — see §5.5. |
+| 6   | AI uses local Expectimax search             | Local search keeps tests deterministic and needs no setup. A remote-provider seam exists via `CONFIG.AI_MODE` but is not implemented — see §5.5. |
 
 ---
 
@@ -118,15 +118,15 @@ Mobile (<480px)                       Constrained column (≥480px)
 
 **AI CTA (bottom, both viewports):**
 
-- Mobile (<768px): fixed to the bottom of the viewport, full-width. Thumb-zone friendly.
-- Desktop (≥768px): normal flow below the board, board-width, centred.
-- Click or press `Space` to request a suggestion. Loading state shows "Computing…" inline. Result direction + reasoning template (§5.4) renders **above** the button (chat/Siri pattern: the answer sits above the input). The advice paragraph is always rendered — a `&nbsp;` placeholder reserves the line before the first request, and a repeat tap dims the previous line to 40% opacity via `[data-loading="true"]` while the new advice is in flight instead of clearing it to empty.
+- Mobile (<480px): fixed to the bottom of the viewport, full-width. Thumb-zone friendly.
+- Constrained column (≥480px): normal flow below the board, board-width, centred.
+- Click or press `Space` to request a suggestion. Loading state shows "Computing…" inline. Result reasoning template (§5.6) renders **above** the button (chat/Siri pattern: the answer sits above the input). The direction label is rendered separately, bolded, by the panel; the reasoning string itself is the rationale clause only. The advice paragraph is always rendered — a `&nbsp;` placeholder reserves the line before the first request, and a repeat tap dims the previous line to 40% opacity via `[data-loading="true"]` while the new advice is in flight instead of clearing it to empty.
 - Loading paint: the `adviceLoading=true` render is followed by `requestAnimationFrame(() => setTimeout(0))` before sync expectimax — bare `setTimeout(0)` never painted on Safari (WebKit coalesces short tasks; Chromium opportunistically paints between them).
 
 **Other:**
 
 - Status overlay: centred modal on win or lose. WON shows Continue (dismiss; play continues per assumption #4) + Restart. LOST shows View board (dismiss to inspect the final locked state) + Restart. Dismissed state is held locally; refresh-while-WON keeps the modal closed.
-- Persistent end-state cue: a subtle colour tint on the Header title (`<h1>`) via `data-status="won|lost"` — gold for WON, muted grey for LOST. No separate banner / no decorative chrome.
+- Persistent end-state cue: a subtle colour tint on the Header title (`<h1>`) via `data-status="won|lost"` — gold (`--color-status-won`) for WON, muted blue-grey for LOST (the loud red `--color-status-lost` is reserved for the dialog title only, see §3.3 status accents). No separate banner / no decorative chrome.
 - Input: arrow keys (moves) and `Space` (advice) captured at window level. On touch devices, finger swipes on the `<main>` content area produce moves — horizontal/vertical axis chosen by the greater absolute delta, with a 30px threshold to filter accidental drift. Swipe and keyboard converge on the same `applyMove(direction)` action; no source distinction at the store level. No on-screen direction buttons.
 - Components consume state via the `useGame` hook (§10, `src/hooks/useGame.ts`) using `useSyncExternalStore`; they never reach into `GameStore` directly.
 - Accessibility floor: semantic `<button>` for actions, `aria-live="polite"` on score and advice text, `aria-label` on the mobile icon-only restart button, `role="dialog"` + `aria-modal="true"` on the status overlay, palette tuned for ≥4.5:1 contrast on tile text.
@@ -134,9 +134,10 @@ Mobile (<480px)                       Constrained column (≥480px)
 **Real-device validation (iOS Safari).** §5.2 covered AI latency; this pass covered touch / viewport / layout. Four non-obvious decisions surfaced:
 
 - **Conditional scroll lock at `min-height: 700px`.** Page `overflow: hidden` only when the viewport is tall enough for the ~600px layout (Header + board + AIPanel) plus ~100px headroom; preserves rubber-band scroll on short/landscape viewports so nothing gets trapped off-screen.
-- **Dialog opens 500ms after end-state.** Lets the end-of-game tile spawn finish first (`--delay-tile-spawn 240 + --duration-tile-spawn 250 ≈ 490ms`, §3.4). The `500` in `StatusOverlay.tsx` is coupled to those two tokens — if either is retuned, this needs to follow.
+- **Dialog opens 500ms after end-state** so the end-of-game spawn lands first. Coupling rationale is on the `setTimeout` in `StatusOverlay.tsx` — retuning either spawn token needs that constant to follow.
 - **Dialog focus override.** `<dialog>.showModal()` auto-focuses the first focusable descendant; here both buttons are equal-weight and Restart is destructive, so `dialog.focus()` (with `tabIndex={-1}` on the dialog) lands focus on the dialog itself instead. Users tap or Tab into a button explicitly.
 - **Advice rendering contract.** Store no longer clears `advice` to null at `requestAdvice` start — `adviceLoading` carries the freshness signal alone. Presentation handles the stale-dim, which is why the advice paragraph reads "above the button, always rendered" rather than "below, hidden during compute."
+- **Landscape orientation override.** `@media (orientation: landscape) and (max-height: 500px)` shrinks the tile / gap / padding clamps, un-fixes the AIPanel, and trims `.main` padding so the portrait-style stack fits in landscape phones without scrolling.
 
 ### 3.4 Tile Motion
 
@@ -283,7 +284,7 @@ Each stage has a dedicated test. Stage 2 guards against spawning on a no-change 
 
 ## 5. AI Strategy: Local Expectimax
 
-Expectimax at depth 3, four-term heuristic with weights derived from nneonneo's benchmark, ~74ms/move (p95 187ms), 77% reach 2048 (n=100). Phase 2 adaptive depth keyed off `|empties|` — same instinct as nneonneo, different signal. Local search is default; remote nneonneo via Docker behind the same `getSuggestion` contract (§5.5).
+Expectimax at depth 3, four-term heuristic with weights derived from nneonneo's benchmark, ~74ms/move (p95 187ms), 77% reach 2048 (n=100). Phase 2 adaptive depth keyed off `|empties|` — same instinct as nneonneo, different signal. Local search is the shipped provider; a remote-provider seam (nneonneo via Docker) is sketched at §5.5 but not implemented.
 
 ### 5.1 Why Expectimax, Not Minimax
 
@@ -420,13 +421,9 @@ Avg move time:    74ms (p95 187ms, max 780ms)
 
 Random and greedy baselines were also run (each n=100). Both reach 0% on 2048; greedy caps at 512, random caps at 256. Calibration confirmed: the search contributes real move quality, not heuristics riding on luck.
 
-### 5.5 Remote Provider: nneonneo via Docker
+### 5.5 Swap path: nneonneo via Docker (not implemented)
 
-nneonneo/2048-ai (1.2k stars) was the primary alternative: Expectimax with a bitboard representation (64-bit int = 16 cells × 4 bits, tile exponent) plus a precomputed LUT for row transforms, searching ~10M positions/second. At depth 8 it reaches the 2048 tile in 100% of games and 16384 in 94% (nneonneo's own 100-game benchmark).
-
-Docker keeps the swap reproducible: pinned C++ toolchain, Python version, and library versions in one container, started with `docker-compose up` regardless of host OS — no Xcode setup, no platform-specific compilation. Behind the wrapper: nneonneo's compiled C++ binary, a thin Flask `POST /suggest`, and board-format translation (2D array ↔ 64-bit bitboard).
-
-Flipping `CONFIG.AI_MODE` to `'remote'` and starting the container leaves the game engine untouched — the rest of the app doesn't know which provider answered.
+The local Expectimax search is sufficient for this submission. If stronger play were needed, nneonneo/2048-ai (Expectimax with bitboard + precomputed LUT, ~10M positions/sec, 100% reach 2048 at depth 8) is the obvious target. The dispatcher pattern in §5.4 — `getSuggestion` → `localSuggestion` / `remoteSuggestion` keyed by `CONFIG.AI_MODE` — makes the swap cheap: a thin Flask `POST /suggest` wrapping nneonneo's C++ binary in a pinned Docker container, plus a 2D-array ↔ 64-bit-bitboard translation at the boundary. `remoteSuggestion()` ships as a stub today; the container, the endpoint, and the board translation are not built. The honest framing is "the seam is there; the second provider isn't yet."
 
 ### 5.6 Suggestion Pipeline & Reasoning Template
 
@@ -766,11 +763,11 @@ Inspect config:
 │   ├── components/
 │   │   ├── Header.tsx            # Title, Score, Best, Restart
 │   │   ├── Header.module.css
-│   │   ├── Board.tsx             # 16 Cells (slots) + N Tiles (animation-ready overlay; animations deferred — §3.3)
+│   │   ├── Board.tsx             # 16 Cells (slots) + N Tiles (animated overlay — §3.4)
 │   │   ├── Board.module.css
 │   │   ├── Cell.tsx              # Static empty slot
 │   │   ├── Cell.module.css
-│   │   ├── Tile.tsx              # Absolute-positioned, React.memo (CSS-transform animation deferred — §3.3)
+│   │   ├── Tile.tsx              # Absolute-positioned, React.memo (CSS-transform slide/spawn/pop — §3.4)
 │   │   ├── Tile.module.css
 │   │   ├── AIPanel.tsx           # Suggest button + advice display + loading state
 │   │   ├── AIPanel.module.css
