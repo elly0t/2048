@@ -10,7 +10,7 @@ Substantial docs live alongside the code: [`TECHNICAL_DESIGN.md`](./TECHNICAL_DE
 
 ## Run locally
 
-Requires Node >=20 (CI runs on Node 22).
+Requires Node >=22.
 
 ```bash
 npm install
