@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/elly0t/2048/actions/workflows/ci.yml/badge.svg)](https://github.com/elly0t/2048/actions/workflows/ci.yml)
 
-A playable 2048 with an in-browser AI assistant. React + TypeScript + Vite, tested with Vitest and Playwright. The Expectimax search (depth 3) runs on the client: sub-100ms typical advice, and the board state never leaves the device.
+A playable 2048 with an in-browser AI assistant. React + TypeScript + Vite, tested with Vitest and Playwright. The Expectimax search (depth 3) runs on the client to provide sub-100ms typical advice.
 
 Substantial docs live alongside the code: [`TECHNICAL_DESIGN.md`](./TECHNICAL_DESIGN.md) (architecture), [`TEST_PLAN.md`](./TEST_PLAN.md) (test coverage spec), [`AI_FLOW.md`](./AI_FLOW.md) (AI module flow), [`bench/`](./bench/) (self-play benchmark harness + report). Full index at the bottom.
 
@@ -36,12 +36,18 @@ Architecture, AI strategy, and tradeoffs: [`TECHNICAL_DESIGN.md`](./TECHNICAL_DE
 
 ## Configuration
 
-`EXPECTIMAX_DEPTH` in [`src/config.ts`](./src/config.ts) (default `3`) — drop to `2` on low-tier hardware for snappier advice. Win rates are ~equal (~80% both); d3 wins significantly more to reach 4096. Numbers in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md).
+In [`src/config.ts`](./src/config.ts):
+
+- `EXPECTIMAX_DEPTH` (default `3`) — drop to `2` on low-tier hardware for snappier advice. Win rates are ~equal (~80% both); d3 wins significantly more to reach 4096. Numbers in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md).
+
+- `INIT_TILE_COUNT` (default `min: 2, max 8`) — adjust to spawn more or less 2 tiles when game starts.
+
+- More in the config file.
 
 ## Design notes
 
 - Expectimax depth 3 returns advice in ~74ms mean / 187ms p95 — full benchmark in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md) (77% reach 2048 at n=100; random / greedy baselines never reach 2048).
-- The AI panel still shows a brief `Computing…` state: playtesting read silent computation as "system frozen," explicit feedback reads as "system thinking." A 100ms delay you can see beats a 100ms delay you can't.
+- The AI panel shows a brief `Computing…` state when searching, to show the system is thinking instead of being frozen.
 
 ## Deploy
 
@@ -56,7 +62,7 @@ Architecture, AI strategy, and tradeoffs: [`TECHNICAL_DESIGN.md`](./TECHNICAL_DE
 
 ## Notes
 
-- Pre-push hook failing but need to bypass check for deployment? `git push --no-verify` bypasses it.
+- Pre-push hook failing but need to get past check for deployment? `git push --no-verify` bypasses it.
 - First `npm run e2e` downloads ~270 MB of Playwright browser binaries (1–2 min); subsequent runs skip the check.
 
 ## Docs
