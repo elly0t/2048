@@ -131,9 +131,8 @@ html:has(dialog[open]) .title[data-status] {
   border: 0;
 }
 
-/* tier: md — desktop: icon → text label, slight title scale-up. Padding stays tight
-   so Header content fits the --content-max column (matches board + AI button width). */
-@media (min-width: 768px) {
+/* ≥480px — icon → text label, title scale-up, flush horizontal padding. */
+@media (min-width: 480px) {
   .headerInner {
     /* Drop horizontal padding so 2048 / scores / New Game align flush to the
        --content-max edges, same as Board and AIPanel below. */

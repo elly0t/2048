@@ -81,12 +81,10 @@ Domain types live in `domain/types.ts`. Const-backed types (`Direction`) live al
 
 ### 3.3 UI Layout
 
-Three-row shell: full-bleed top bar / centred board / bottom AI CTA. Responsive via a single 768px breakpoint — same DOM, the swap is button label/size and CTA positioning, not a layout reflow.
-
-**Breakpoint system:** standard sm/md/lg/xl tokens (640/768/1024/1280 px) in `tokens.css`; only `md` (768) is structurally active here — the layout has one mobile↔desktop boundary.
+Three-row shell: full-bleed top bar / centred board / bottom AI CTA. Responsive via a single 480px breakpoint — same DOM, the swap is button label/size and CTA positioning, not a layout reflow. The 480 threshold (rather than the conventional 768) keeps phablet / portrait-tablet viewports in the constrained-column layout instead of the fixed-bottom-CTA mobile pattern.
 
 ```
-Mobile (<768px)                       Desktop (≥768px)
+Mobile (<480px)                       Constrained column (≥480px)
 ┌──────────────────────────┐          ┌──────────────────────────────────────┐
 │ 2048   SCORE BEST   ↺    │          │ 2048      SCORE BEST     [New Game]  │
 ├──────────────────────────┤          ├──────────────────────────────────────┤

@@ -14,10 +14,8 @@
   align-items: center;
 }
 
-/* tier: md — desktop: in-flow AIPanel below the board, more vertical breathing.
-   Horizontal padding zero so the 380px column edges align with the board and Header
-   chrome (max-width via --content-max). */
-@media (min-width: 768px) {
+/* ≥480px — constrained max-width column, vertical breathing, flush edges. */
+@media (min-width: 480px) {
   .main {
     max-width: var(--content-max);
     padding: 32px 0 16px;

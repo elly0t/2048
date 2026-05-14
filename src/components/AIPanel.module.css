@@ -80,12 +80,12 @@
   font-weight: 700;
 }
 
-/* tier: md — desktop (≥768px): in-flow, centred under the board, board-width */
-@media (min-width: 768px) {
+/* ≥480px — in-flow, centred under the board, board-width. */
+@media (min-width: 480px) {
   .panel {
     position: static;
     max-width: var(--content-max);
-    margin: 24px auto 0;
+    margin: 8px auto 0;
     padding: 0;
     background: transparent;
     box-shadow: none;

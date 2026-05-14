@@ -50,16 +50,6 @@
   /* Monotonic ease-out for tile slide and scale — no past-target overshoot. Merge bounce comes from the pop keyframe shape, not from easing. */
   --ease-tile-slide: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-tile-scale: cubic-bezier(0.16, 1, 0.3, 1);
-
-  /* Responsive breakpoints — standard sm/md/lg/xl tier system. Only --breakpoint-md
-     (mobile↔desktop) is structurally active for this layout; sm/lg/xl are documented
-     and JS-readable for future extension. Note: CSS custom properties can't be
-     interpolated inside @media queries directly, so values are repeated in component
-     CSS with a tier-name comment for traceability. */
-  --breakpoint-sm: 640px;
-  --breakpoint-md: 768px;
-  --breakpoint-lg: 1024px;
-  --breakpoint-xl: 1280px;
 }
 
 @media (prefers-reduced-motion: reduce) {
