@@ -10,14 +10,14 @@ Substantial docs live alongside the code: [`TECHNICAL_DESIGN.md`](./TECHNICAL_DE
 
 ## Run locally
 
-Requires Node >=20.
+Requires Node >=20 (CI runs on Node 22).
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:2048. Arrow keys on keyboard / swipe on mobile to play; click the AI button for next move suggestion.
+Open <http://localhost:2048> (yes, that port — `vite.config.ts:server.port = 2048`, because of course). Arrow keys on keyboard / swipe on mobile to play; click the AI button for next move suggestion.
 
 ## Tech stack
 
@@ -41,7 +41,7 @@ Architecture, AI strategy, and tradeoffs: [`TECHNICAL_DESIGN.md`](./TECHNICAL_DE
 ## Design notes
 
 - Expectimax depth 3 returns advice in ~74ms mean / 187ms p95 — full benchmark in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md) (77% reach 2048 at n=100; random / greedy baselines never reach 2048). 
-- The AI panel still shows a brief `Computing…` state: playtesting read silent computation as "system frozen," explicit feedback reads as "system thinking." A 100ms delay you can see beats a 100ms delay you can't.
+- The AI panel still shows a brief `Computing…` state (150ms floor via `MIN_ADVICE_LOADING_MS`): playtesting read silent computation as "system frozen," explicit feedback reads as "system thinking." A delay you can see beats a delay you can't.
 
 ## Deploy
 

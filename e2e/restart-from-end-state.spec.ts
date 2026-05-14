@@ -1,4 +1,4 @@
-// TP §UI #20 — in-dialog Restart from WON/LOST resets the game and closes the overlay.
+// TP §UI #16 — in-dialog Restart from WON/LOST resets the game and closes the overlay.
 import { test, expect, seedBoard } from './fixtures';
 
 test('WON dialog: status-restart resets board + score, hides overlay, preserves bestScore', async ({

@@ -7,7 +7,7 @@ This document explains the design decisions behind the implementation. Architect
 - **Plain-class ViewModel over MobX** — `GameStore` is a vanilla class behind `useSyncExternalStore`; zero React imports, tests run in plain Node (§6.2).
 - **2D array over bitboard** — readability over a 10× speedup we don't yet need; bitboard remains a clean phase-2 swap (§4.2).
 - **Expectimax (not minimax) at depth 3** — spawns are random, not adversarial; phase 2 adaptive depth keyed off `|empties|` (§5.1, §5.2).
-- **Pluggable AI provider seam** — `CONFIG.AI_MODE` flips local↔remote at a single dispatcher (`getSuggestion`); the remote path (nneonneo via Docker) is sketched as the swap target but not built. Local Expectimax is the shipped provider (§5.4–§5.5).
+- **Pluggable AI provider seam** — `CONFIG.AI_MODE` flips local↔remote at a single dispatcher (`getSuggestion`). The remote path (nneonneo via Docker) is sketched as the swap target but not built; the seam ships unbuilt because designing it now forces the local path to commit to a stable provider interface, so swapping to a remote backend later is a config change, not a refactor (§5.4–§5.5).
 - **Motion inferred from before/after boards** — `TileMotion[]` stream with stable ids drives slide/spawn/pop animations; React reconciles the same DOM node across moves (§3.4).
 
 If you only have 15 minutes: §4.3 move pipeline · §5.2 depth rationale · §5.6 suggestion pipeline + benchmark · §6.2 MobX trade-off.

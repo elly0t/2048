@@ -5,7 +5,7 @@ Function-by-function test case enumeration. Companion to `TECHNICAL_DESIGN.md` (
 ## TL;DR
 
 - **218 unit + integration tests** (Vitest) cover the domain (board, moves, spawn, win-lose checks), the AI (heuristics, expectimax, suggestion + reasoning), and the store (`applyMove` 6-stage pipeline, `requestAdvice`, `modalOpen` + acknowledgement, motion inference).
-- **~19 E2E specs** (Playwright, Chromium + WebKit) cover wiring seams unit tests can't reach: keyboard + touch input, localStorage round-trips, `<dialog>` lifecycle, AI observability hook, landscape phone layout, status colour tokens, and the 480px breakpoint boundary.
+- **16 E2E specs** (Playwright, Chromium + WebKit) cover wiring seams unit tests can't reach: keyboard + touch input, localStorage round-trips, `<dialog>` lifecycle, AI observability hook, landscape phone layout, and in-dialog Restart.
 - **Pre-push hook** runs typecheck + lint + format + unit (E2E opt-in via `npm run e2e`).
 - **High-signal artefacts:** the [common failure modes table](#cross-reference-common-failure-modes) below names the bugs this kind of game produces and points to the case that catches each.
 - **Manual / device validation** lives in [`bench/BENCHMARK_REPORT.md`](./bench/BENCHMARK_REPORT.md) (CPU-throttle latency) and the iOS Safari pass referenced in TD §3.3.
@@ -359,11 +359,7 @@ Playwright covers DOM/wiring seams unit tests can't reach. Browser matrix, fixtu
 13. Cold-load initial board. Clear localStorage; navigate to `/`; ≥1 non-null cell, all non-null values === 2, `score === 0`, status === PLAYING.
 14. Input gated while overlay open. Drive to WON; press multiple arrow keys; board cells, score, and overlay all unchanged. Defends "tiles move behind modal" — native `<dialog>` inert blocks pointer/focus but not window-level keydown.
 15. Landscape phone layout. Set viewport to 844×390 (iPhone landscape); assert board and Ask AI button both fully visible in viewport (`toBeInViewport({ ratio: 1 })`); CTA top edge ≥ board bottom edge (no occlusion). Defends the `@media (orientation: landscape) and (max-height: 500px)` rule.
-16. Status colour on WON dialog. Drive to WON; dialog opens (~500ms after the spawn-settle delay); the title `[data-status="won"]` has computed `color` matching `--color-status-won` (gold). Manual visual check: header title also picks up the gold tint via the same token.
-17. Status colour on LOST dialog. Drive to LOST; the dialog title `[data-status="lost"]` has computed `color` matching `--color-status-lost` (oxblood). Header LOST tint is intentionally a muted blue-grey, distinct from the dialog's louder accent.
-18. Dialog spawn-settle delay. From the move that triggers WON/LOST, dialog `[open]` should not be true within the first ~480ms (gives the tile spawn animation time to land); becomes true around the 500ms mark. Regression guard for the `setTimeout(..., 500)` in `StatusOverlay.tsx`.
-19. Constrained-column boundary at 480px. Set viewport to 479×900 → AIPanel renders fixed-bottom CTA (`position: fixed`); set viewport to 481×900 → AIPanel renders in-flow under the board (`position: static`, board-width). Defends the `@media (min-width: 480px)` boundary.
-20. Restart from inside the WON / LOST dialog (both end states, separate specs). Seed an end-state-triggering board; press the move; dialog opens; click in-dialog `status-restart`; assert overlay hides, status returns to PLAYING (board has 2–8 fresh value-2 tiles, `score === 0`), `bestScore` preserved. Defends the three coupled seams: store `reset()`, StatusOverlay reacting to `modalOpen=false`, and `acknowledgedStatus` clearing.
+16. Restart from inside the WON / LOST dialog (both end states, separate specs). Seed an end-state-triggering board; press the move; dialog opens; click in-dialog `status-restart`; assert overlay hides, status returns to PLAYING (board has 2–8 fresh value-2 tiles, `score === 0`), `bestScore` preserved. Defends the three coupled seams: store `reset()`, StatusOverlay reacting to `modalOpen=false`, and `acknowledgedStatus` clearing.
 
 ---
 
