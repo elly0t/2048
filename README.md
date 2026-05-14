@@ -6,6 +6,8 @@ A playable 2048 with an in-browser AI assistant. React + TypeScript + Vite, test
 
 Substantial docs live alongside the code: [`TECHNICAL_DESIGN.md`](./TECHNICAL_DESIGN.md) (architecture), [`TEST_PLAN.md`](./TEST_PLAN.md) (test coverage spec), [`AI_FLOW.md`](./AI_FLOW.md) (AI module flow), [`bench/`](./bench/) (self-play benchmark harness + report). Full index at the bottom.
 
+**Live:** <https://2048-delta-five.vercel.app>
+
 ## Run locally
 
 Requires Node >=20.
