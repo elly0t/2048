@@ -91,3 +91,18 @@
     box-shadow: none;
   }
 }
+
+/* Landscape phones: un-fix the CTA so it sits inline below the board, and
+   tighten button + panel padding so the portrait stack fits ≤500px viewport. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .panel {
+    position: static;
+    box-shadow: none;
+    padding: 8px 16px env(safe-area-inset-bottom, 8px);
+  }
+  .askButton {
+    /* min-height: 40px; */
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+}

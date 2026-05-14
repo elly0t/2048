@@ -73,3 +73,15 @@
     --duration-ui-hover: 0ms;
   }
 }
+
+/* Landscape phones (≤500px tall): use the actual available height for the
+   board (≈ viewport height minus compact header + AI panel chrome ≈ 250px),
+   so tiles grow into the room instead of staying conservatively small.
+   Width clamp (13vw) prevents over-growth on wide landscape (e.g., 900×400). */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root {
+    --tile-size: clamp(40px, min(12vw, 12vh), 64px);
+    --cell-gap: 4px;
+    --board-padding: 4px;
+  }
+}

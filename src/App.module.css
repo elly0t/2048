@@ -23,3 +23,11 @@
     padding: 32px 0 16px;
   }
 }
+
+/* Landscape phones: AIPanel un-fixes (see its CSS) and flows inline; tighten
+   vertical padding so the portrait stack fits without scrolling. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .main {
+    padding: 8px;
+  }
+}

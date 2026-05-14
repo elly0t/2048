@@ -51,3 +51,14 @@
     scale: 1.15;
   }
 }
+
+/* Landscape phones: tile-size shrinks (see tokens.css landscape override) so the
+   base `clamp(20px, 6vw, 28px)` font becomes too big — 4-digit values (1024, 2048,
+   4096…) overflow. Tie font to tile-size directly here: 0.32 × tile gives ~70%
+   text width for 4 chars; 12px floor keeps tiny tiles legible. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .tile {
+    font-size: max(12px, calc(var(--tile-size) * 0.32));
+  }
+}
+

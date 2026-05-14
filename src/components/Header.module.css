@@ -169,3 +169,33 @@ html:has(dialog[open]) .title[data-status] {
     white-space: nowrap;
   }
 }
+
+/* Landscape phones: compact the header — smaller margins, padding, title and
+   chip sizes — so the portrait stack still fits in ≤500px viewport height. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .header {
+    margin-bottom: 8px;
+  }
+  .headerInner {
+    padding: 6px 12px;
+    gap: 8px;
+  }
+  .title {
+    font-size: 22px;
+  }
+  .scoreBlock {
+    min-height: 36px;
+    min-width: 50px;
+    padding: 4px 10px;
+  }
+  .label {
+    font-size: 9px;
+  }
+  .value {
+    font-size: 16px;
+  }
+  .restart {
+    min-height: 36px;
+    padding: 6px;
+  }
+}
