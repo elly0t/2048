@@ -373,6 +373,7 @@ Tested once as shared property tests, not repeated per function:
 - Purity: every domain function returns a new object/array; never mutates input. Snapshot-and-compare runs each function with a frozen input.
 - `null` is the only empty marker (TD §3.2). Predicates use `=== null`, never `Boolean()` or `== null`.
 - Determinism of AI: no `Math.random` inside expectimax or getSuggestion. Same board produces same advice.
+- Full-board assertions: all move/merge unit tests compare the entire 4×4 board before/after via `toEqual` rather than asserting affected rows only.
 
 ---
 
