@@ -177,22 +177,22 @@ Per TD §5.1, §5.2. `expectimax` is value-returning: returns a `number`. Direct
 
 ### getSuggestion(board)
 
-Per TD §5.4, §11.
+Per TD §5.6, §11.
 
-1. Standard board: direction in `{left, right, up, down}` and reasoning matches one of the templates. TD §7.2 spec test.
-2. Reasoning string starts with `"Move "`. TD §7.2 spec test.
+1. Standard board: direction in `{left, right, up, down}` and reasoning matches one of the rationale templates. TD §7.2 spec test.
+2. Reasoning is the rationale clause only (no `"Move {Direction} — "` prefix; the direction label is rendered separately, bolded, by the UI).
 3. Lose board: defined behaviour. Document the contract (return null, throw, or fallback).
 4. Win board: still returns advice (continue-after-win, assumption #4).
 5. Single-direction-only-valid: chooses that direction; three no-op directions get scored but are not selected. (Moved from expectimax — direction selection lives here.)
-6. All-tied directions: deterministic tie-breaking. Required for reproducible advice (TD §5.4). (Moved from expectimax.)
-7. Reasoning template selected by dominant heuristic delta per TD §5.4 step 3.
-8. Generic template `"Move {direction} — best overall position"` when all deltas under 5% of total score (TD §5.4).
+6. All-tied directions: deterministic tie-breaking. Required for reproducible advice (TD §5.6). (Moved from expectimax.)
+7. Reasoning template selected by dominant heuristic delta per TD §5.6 step 3.
+8. Generic template `"best overall position"` when all deltas under 5% of total score (TD §5.6).
 9. Dominant delta computed against second-best direction, not third or worst.
 10. `debug` populated with `{ scores, computedInMs, nodesEvaluated, depthSearched }` per TD §11.
 11. All four direction scores present in `debug.scores`, including no-op directions.
 12. Determinism: same board returns identical advice across calls, including identical `debug.scores`.
 13. Side effects: `console.log('[AI]', advice)`, `window.__lastAdvice`, `window.__adviceHistory.push(advice)` per TD §11. Mocked in tests.
-14. `AI_MODE='remote'` routes to fetch; `'local'` routes to expectimax. TD §5.4 code path.
+14. `AI_MODE='remote'` routes to fetch; `'local'` routes to expectimax. TD §5.5 code path. Remote failure (non-2xx or parse error) falls back to local suggestion so the UI never sees a rejected promise.
 
 ---
 
@@ -249,15 +249,25 @@ Per TD §6.5.
 
 Per TD §6.5.
 
-1. Synchronously sets `adviceLoading = true`, `advice = null`.
+1. Synchronously sets `adviceLoading = true`; **last advice is preserved** (the UI dims it via `[data-loading="true"]` so a repeat tap doesn't flicker the line empty — TD §3.3 advice rendering contract).
 2. On result: `advice = { direction, reasoning, debug }`; loading cleared.
 3. Local mode: calls expectimax synchronously or as a Promise.
-4. Remote mode: fetch failure clears loading and either sets advice to null or surfaces an error.
+4. Remote mode seam: routing through `AI_MODE='remote'` reaches `remoteSuggestion`, which falls back to `localSuggestion` on any transport / parse error (TD §5.5 — remote provider not implemented). The store contract is the same either way: loading clears, advice is set.
 5. Concurrent calls: end-state remains consistent — `adviceLoading=false` and a non-null `advice` after both resolve.
 6. Determinism: same board returns identical advice across calls; `__adviceHistory` grows.
 7. Does not mutate `this.board`.
 8. In-flight guard: when called while `adviceLoading=true`, returns immediately without firing a duplicate `notify()` or a duplicate `getSuggestion` call.
 9. Loading paint (manual, cross-browser): on Safari and Chromium, trigger Ask AI on a non-trivial board — "Computing…" must appear and stay ≥150ms before the result replaces it. Regression guard for the rAF + setTimeout yield (TD §3.3).
+
+### GameStore.modalOpen / acknowledgedStatus / setAcknowledgedStatus
+
+Per TD §6.3, §6.4. Drives the WON/LOST overlay show/hide without coupling presentation to status.
+
+1. `modalOpen` is `true` when `status ∈ {WON, LOST}` and `status !== acknowledgedStatus`; `false` otherwise.
+2. `setAcknowledgedStatus()` writes the current status into `acknowledgedStatus` (idempotent — repeated calls in the same status are no-ops, no extra `notify()`).
+3. `reset()` clears `acknowledgedStatus` so a fresh game starts un-acknowledged.
+4. Refresh-into-end-state path: hydrating with `status: WON` and no acknowledgement still surfaces the modal once (`modalOpen=true`); the StatusOverlay's lazy-init acknowledges immediately if mounting into an end-state to avoid re-prompting on refresh — see E2E §UI #9.
+5. `applyMove` no-ops while `modalOpen=true` so a queued keypress can't slip past an open dialog.
 
 ---
 
@@ -284,18 +294,25 @@ Per TD §3.3 (input) and §6.4 (status lifecycle).
 6. `isAdviceKey(key)` returns `true` for `' '` (Space) and `false` for any other key (arrows, letters, Enter, Escape).
 7. `swipeToDirection(startX, startY, endX, endY, threshold?)` maps swipe coordinate pairs to a `Direction` per TD §3.3. Threshold defaults to `30`. Returns `null` when both axes are below threshold (tap or accidental drift). Horizontal swipe wins when `|dx| > |dy|`: positive dx → `'right'`, negative → `'left'`. Vertical swipe wins when `|dy| ≥ |dx|`: positive dy → `'down'`, negative → `'up'`. Diagonal: greater absolute axis wins (standard 2048 convention).
 
-### useGame motion inference (deferred — time-permitting)
+### useGame motion inference (`inferMotions` + `MotionTracker`)
 
-Per TD §3.3 deferred-polish bullet. Tile animations and the stable-ID identity tracking that drives them ship only if time permits after the static UI is complete. The DOM is structured to receive them without restructuring (slot grid + absolute-positioned tile overlay is already in place).
+Per TD §3.4. Tile motion is a stream of `TileMotion[]` inferred from before/after boards plus the last direction; the overlay keys tiles by stable id so React reconciles same-DOM-node sliding cell to cell.
 
-When implemented, `inferMotions(oldBoard, oldIds, newBoard, direction)` is expected to satisfy:
+`inferMotions(prevBoard, prevIds, nextBoard, lastDirection)` satisfies:
 
-1. Produces one motion entry per non-null cell in `newBoard`.
+1. Produces one motion entry per non-null cell in `nextBoard`.
 2. Slide motion: `fromRow/fromCol` differ from `row/col`; `merged: false`; `spawned: false`.
-3. Merge motion: target tile has `merged: true`; the consumed source tile is not present in the output (it animates by sliding into the target, then the merged flag triggers the pop).
+3. Merge motion: target tile has `merged: true`; **plus** an additional "ghost" motion entry per consumed source tile so the source can be animated sliding into the target before unmounting (`hooks/motion.ts` emits source ghosts in the direction of travel).
 4. Spawn motion: `spawned: true`; `fromRow/fromCol` equal `row/col` (no slide, fade-in only).
 5. Output also includes the new id-board; ids of moved tiles persist; merged source ids are dropped; spawned cell gets a fresh id.
-6. Determinism: same `(oldBoard, oldIds, newBoard, direction)` yields identical motions and id-board.
+6. Determinism: same `(prevBoard, prevIds, nextBoard, lastDirection)` yields identical motions and id-board.
+7. Ghost-tile ordering matches the merge direction (so the two source tiles slide visibly toward the merge cell, not away from it).
+
+`MotionTracker` (lives in `useGame.ts`) wraps `inferMotions` to carry the id-board across renders:
+
+8. Init: starts with a fresh id-board matching the initial board's non-null cells.
+9. `track(prevBoard, nextBoard, direction)` invokes `inferMotions` with the cached id-board and updates the cache to the returned id-board.
+10. `reset(board)` clears the id-board to match `board` so a `New Game` doesn't reuse old ids.
 
 ---
 
@@ -304,7 +321,7 @@ When implemented, `inferMotions(oldBoard, oldIds, newBoard, direction)` is expec
 Playwright covers DOM/wiring seams unit tests can't reach. Browser matrix, fixtures, entry points: see TD §12.
 
 1. All 4 directions (parameterised: Left, Right, Up, Down). Seeded board, arrow key, assert exact post-collapse cells, exact `scoreDelta`, and that one new tile has spawned.
-2. Ask AI integration. Click → after resolve, `window.__lastAdvice` contains `{direction, scores, depth}` with `direction ∈ {left,right,up,down}`; reasoning text matches the direction; button returns to `aria-disabled="false"`; `window.__adviceHistory.length` increments. Second click on the same board: same direction, history increments again.
+2. Ask AI integration. Click → after resolve, `window.__lastAdvice` contains `{direction, scores, depth}` with `direction ∈ {left,right,up,down}`; reasoning text is one of the known rationale templates (no `"Move "` prefix — the direction is rendered separately, bolded, by the UI); button returns to enabled state (native `disabled=false`); `window.__adviceHistory.length` increments. Second click on the same board: same direction, history increments again.
 3. Restart / new game. Play to non-zero score; Restart; exactly 2 tiles of value 2, `score === 0`, `bestScore` preserved.
 4. WIN at spawn boundary. Seed `[..., 1024, 1024, ...]` row; ArrowLeft; WON overlay shown before the post-move spawn would have landed (status === WON in same tick as the merge).
 5. WIN Continue keeps status WON. Click Continue; overlay closes; `status === 'won'` persists; subsequent moves succeed; Ask AI still returns advice (TD assumption #4).
@@ -318,6 +335,10 @@ Playwright covers DOM/wiring seams unit tests can't reach. Browser matrix, fixtu
 13. Cold-load initial board. Clear localStorage; navigate to `/`; ≥1 non-null cell, all non-null values === 2, `score === 0`, status === PLAYING.
 14. Input gated while overlay open. Drive to WON; press multiple arrow keys; board cells, score, and overlay all unchanged. Defends "tiles move behind modal" — native `<dialog>` inert blocks pointer/focus but not window-level keydown.
 15. Landscape phone layout. Set viewport to 844×390 (iPhone landscape); assert board and Ask AI button both fully visible in viewport (`toBeInViewport({ ratio: 1 })`); CTA top edge ≥ board bottom edge (no occlusion). Defends the `@media (orientation: landscape) and (max-height: 500px)` rule.
+16. Status colour on WON dialog. Drive to WON; dialog opens (~500ms after the spawn-settle delay); the title `[data-status="won"]` has computed `color` matching `--color-status-won` (gold). Manual visual check: header title also picks up the gold tint via the same token.
+17. Status colour on LOST dialog. Drive to LOST; the dialog title `[data-status="lost"]` has computed `color` matching `--color-status-lost` (oxblood). Header LOST tint is intentionally a muted blue-grey, distinct from the dialog's louder accent.
+18. Dialog spawn-settle delay. From the move that triggers WON/LOST, dialog `[open]` should not be true within the first ~480ms (gives the tile spawn animation time to land); becomes true around the 500ms mark. Regression guard for the `setTimeout(..., 500)` in `StatusOverlay.tsx`.
+19. Constrained-column boundary at 480px. Set viewport to 479×900 → AIPanel renders fixed-bottom CTA (`position: fixed`); set viewport to 481×900 → AIPanel renders in-flow under the board (`position: static`, board-width). Defends the `@media (min-width: 480px)` boundary.
 
 ---
 
