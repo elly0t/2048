@@ -10,7 +10,23 @@
 
 ## TL;DR
 
-Expectimax reaches 2048 in ≥77% of games at depth 2 or 3. Random and greedy baselines never reach it (0/100 each). At n=50/100, **d2 and d3 win at indistinguishable rates** (80% vs 77%, Fisher's exact p ≈ 0.84) — the n=10/20 difference reported earlier was sample noise. d3 reaches 4096 about twice as often (27% vs 14%, p ≈ 0.10 — borderline at n=150) and posts a 17% higher mean score (37,561 vs 32,178). The cost is latency: d3 mean ms/move is ~35× d2, p95 is ~58× higher.
+Random and greedy never reach 2048. d2 and d3 win at the same rate; d3 reaches 4096 ~2× more often at ~58× the p95 latency.
+
+```
+   reach 2048    random/greedy  ░                              0%
+                 d2 (n=50)      ████████████████████████████   80%
+                 d3 (n=100)     ███████████████████████████░   77%    ≈ d2
+
+   reach 4096    random/greedy  ░                              0%
+                 d2             █████░░░░░░░░░░░░░░░░░░░░░░░   14%
+                 d3             █████████░░░░░░░░░░░░░░░░░░░   27%    ~2× d2
+
+   p95 ms/move   random/greedy  ▏ <0.01
+                 d2             ▏ 3
+                 d3             ██████████████████████   187          ~58× d2
+```
+
+Stats: 80% vs 77% win rate is a coin-flip tie (Fisher's exact p ≈ 0.84); 14% vs 27% on 4096 is borderline (p ≈ 0.10 at n=150). Earlier n=10/20 numbers were sample noise.
 
 | Policy        | n   | Win (≥2048) | 95% CI       | Reach 4096 | 95% CI       | Mean score | p50 ms/move | p95 ms/move | max ms/move |
 | ------------- | --- | ----------- | ------------ | ---------- | ------------ | ---------- | ----------- | ----------- | ----------- |
@@ -20,7 +36,7 @@ Expectimax reaches 2048 in ≥77% of games at depth 2 or 3. Random and greedy ba
 | Expectimax d3 | 100 | 77%         | [67.8, 84.2] | **27%**    | [19.3, 36.4] | **37,561** | 53.79       | 186.77      | 780.52      |
 | Expectimax d4 | —   | DNF         | —            | —          | —            | —          | —           | —           | —           |
 
-**Pick d3 over d2.** Same win rate, ~2× the 4096 rate, +17% mean score, p95 ~187ms. Acceptable if the UI can tolerate occasional ~200ms suggestions and rare ~800ms outliers.
+**Shipped: d3 default** — same win rate as d2, ~2× the 4096 rate; `CONFIG.EXPECTIMAX_DEPTH = 2` documented as an escape hatch for low-tier hardware (see §"Browser latency under CPU throttle").
 
 ---
 
