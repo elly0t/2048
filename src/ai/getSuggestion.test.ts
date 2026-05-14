@@ -52,9 +52,10 @@ describe('getSuggestion — basic contract (cases 1, 2)', () => {
     expect(['left', 'right', 'up', 'down']).toContain(advice.direction);
   });
 
-  it('reasoning starts with "Move "', async () => {
+  it('reasoning is one of the known templates (no leading "Move {Direction} —")', async () => {
     const advice = await getSuggestion(standardBoard);
-    expect(advice.reasoning).toMatch(/^Move /);
+    const knownBodies = [...Object.values(TEMPLATES), GENERIC_TEMPLATE];
+    expect(knownBodies).toContain(advice.reasoning);
   });
 });
 
@@ -86,11 +87,8 @@ describe('getSuggestion — direction selection (cases 5, 6)', () => {
 describe('getSuggestion — reasoning template integration (cases 7, 8, 9)', () => {
   it('reasoning matches one of the known templates', async () => {
     const advice = await getSuggestion(standardBoard);
-    const validBodies = [...Object.values(TEMPLATES), GENERIC_TEMPLATE]
-      .map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-      .join('|');
-    const knownTemplates = new RegExp(`^Move (Left|Right|Up|Down) — (${validBodies})$`);
-    expect(advice.reasoning).toMatch(knownTemplates);
+    const knownBodies = [...Object.values(TEMPLATES), GENERIC_TEMPLATE];
+    expect(knownBodies).toContain(advice.reasoning);
   });
 
   it('reasoning is deterministic across calls', async () => {
@@ -112,29 +110,25 @@ describe('pickReasoning — dominant-component templating (cases 7, 8, 9)', () =
   it('monotonicity dominant → mono template', () => {
     // weighted delta: 1.0 × (10 − 0) = 10 > 5 (threshold)
     const best: ComponentScores = { ...baseline, monotonicity: 10 };
-    expect(pickReasoning('left', best, baseline, 100)).toBe(
-      `Move Left — ${TEMPLATES.monotonicity}`,
-    );
+    expect(pickReasoning(best, baseline, 100)).toBe(TEMPLATES.monotonicity);
   });
 
   it('smoothness dominant → smooth template', () => {
     // weighted delta: 0.1 × (100 − 0) = 10 > 5
     const best: ComponentScores = { ...baseline, smoothness: 100 };
-    expect(pickReasoning('right', best, baseline, 100)).toBe(
-      `Move Right — ${TEMPLATES.smoothness}`,
-    );
+    expect(pickReasoning(best, baseline, 100)).toBe(TEMPLATES.smoothness);
   });
 
   it('empty cells dominant → empty template', () => {
     // weighted delta: 2.7 × (10 − 0) = 27 > 5
     const best: ComponentScores = { ...baseline, emptyCells: 10 };
-    expect(pickReasoning('up', best, baseline, 100)).toBe(`Move Up — ${TEMPLATES.emptyCells}`);
+    expect(pickReasoning(best, baseline, 100)).toBe(TEMPLATES.emptyCells);
   });
 
   it('cornerBonus dominant → corner template', () => {
     // weighted delta: 1.0 × (10 − 0) = 10 > 5
     const best: ComponentScores = { ...baseline, cornerBonus: 10 };
-    expect(pickReasoning('down', best, baseline, 100)).toBe(`Move Down — ${TEMPLATES.cornerBonus}`);
+    expect(pickReasoning(best, baseline, 100)).toBe(TEMPLATES.cornerBonus);
   });
 
   it('all weighted deltas below 5% threshold → generic template', () => {
@@ -145,11 +139,11 @@ describe('pickReasoning — dominant-component templating (cases 7, 8, 9)', () =
       emptyCells: 1,
       cornerBonus: 1,
     };
-    expect(pickReasoning('left', best, baseline, 100)).toBe(`Move Left — ${GENERIC_TEMPLATE}`);
+    expect(pickReasoning(best, baseline, 100)).toBe(GENERIC_TEMPLATE);
   });
 
   it('null secondBest (only one valid direction) → generic template', () => {
-    expect(pickReasoning('up', baseline, null, 100)).toBe(`Move Up — ${GENERIC_TEMPLATE}`);
+    expect(pickReasoning(baseline, null, 100)).toBe(GENERIC_TEMPLATE);
   });
 
   // Case 9: implicit. pickReasoning takes only 2 component snapshots; selectTopTwo

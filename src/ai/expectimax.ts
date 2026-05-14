@@ -50,6 +50,15 @@ function maxValue(board: Board, depth: number, stats?: SearchStats): number {
 // Chance node. E[v] = (1 / |empties|) · Σ P(outcome) · maxValue(spawn).
 // Full board: no spawn, recurse to maxValue at the same depth.
 // Exported for tests + bench/play.ts (production parity) — don't inline.
+// Test-only wrapper around `maxValue`. Production calls `chanceValue` via `getSuggestion`.
+export function expectimax(
+  board: Board,
+  depth: number = CONFIG.EXPECTIMAX_DEPTH,
+  stats?: SearchStats,
+): number {
+  return maxValue(board, depth, stats);
+}
+
 export function chanceValue(board: Board, depth: number, stats?: SearchStats): number {
   const empties = emptyCellPositions(board);
   if (empties.length === 0) return maxValue(board, depth, stats);
@@ -63,11 +72,3 @@ export function chanceValue(board: Board, depth: number, stats?: SearchStats): n
   return total / empties.length;
 }
 
-// TODO(phase 2): adaptive depth via computeDepth(board) — see TD §5.2.
-export function expectimax(
-  board: Board,
-  depth: number = CONFIG.EXPECTIMAX_DEPTH,
-  stats?: SearchStats,
-): number {
-  return maxValue(board, depth, stats);
-}

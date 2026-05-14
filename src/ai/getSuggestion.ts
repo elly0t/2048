@@ -14,22 +14,14 @@ const COMPONENTS: readonly Component[] = [
   'cornerBonus',
 ];
 
-function capitalize(direction: Direction): string {
-  return direction.charAt(0).toUpperCase() + direction.slice(1);
-}
-
-// Largest weighted component delta picks the template; below threshold → generic (TD §5.4).
+// Largest weighted component delta picks the template; below threshold → generic (TD §5.6).
+// Returns only the rationale clause — the direction label is rendered separately in the UI.
 export function pickReasoning(
-  bestDirection: Direction,
   bestComponents: ComponentScores,
   secondBestComponents: ComponentScores | null,
   bestScore: number,
 ): string {
-  const directionLabel = capitalize(bestDirection);
-
-  if (secondBestComponents === null) {
-    return `Move ${directionLabel} — ${GENERIC_TEMPLATE}`;
-  }
+  if (secondBestComponents === null) return GENERIC_TEMPLATE;
 
   let dominant: Component | null = null;
   let dominantAbs = 0;
@@ -43,10 +35,10 @@ export function pickReasoning(
   });
 
   if (dominant === null || dominantAbs < CONFIG.GENERIC_TEMPLATE_THRESHOLD * Math.abs(bestScore)) {
-    return `Move ${directionLabel} — ${GENERIC_TEMPLATE}`;
+    return GENERIC_TEMPLATE;
   }
 
-  return `Move ${directionLabel} — ${TEMPLATES[dominant]}`;
+  return TEMPLATES[dominant];
 }
 
 // Top-2 in one pass; strict `>` makes ALL_DIRECTIONS order the tie-breaker.
@@ -75,7 +67,7 @@ export function selectTopTwo(scores: Record<Direction, number | null>): {
 }
 
 // Logs advice; mirrors to window for live debugging when in a browser (TD §11).
-function emitSideEffects(advice: AIAdvice): void {
+function logAdvice(advice: AIAdvice): void {
   console.log(LOG_PREFIX, advice);
   const win = (globalThis as { window?: { __lastAdvice?: AIAdvice; __adviceHistory?: AIAdvice[] } })
     .window;
@@ -118,7 +110,7 @@ function localSuggestion(board: Board): AIAdvice {
     const secondBestComponents =
       secondBestDirection !== null ? components[secondBestDirection]! : null;
     const bestScore = scores[bestDirection]!;
-    reasoning = pickReasoning(bestDirection, bestComponents, secondBestComponents, bestScore);
+    reasoning = pickReasoning(bestComponents, secondBestComponents, bestScore);
   }
 
   return {
@@ -133,19 +125,24 @@ function localSuggestion(board: Board): AIAdvice {
   };
 }
 
-// Remote mode: delegate to the nneonneo Docker server (TD §5.4).
+// Remote mode: delegate to the nneonneo Docker server (TD §5.4). Not currently
+// implemented end-to-end; falls back to local on any transport / parse error.
 async function remoteSuggestion(board: Board): Promise<AIAdvice> {
-  const response = await fetch('/api/suggest', {
-    method: 'POST',
-    body: JSON.stringify({ board }),
-  });
-  return response.json() as Promise<AIAdvice>;
+  try {
+    const response = await fetch('/api/suggest', {
+      method: 'POST',
+      body: JSON.stringify({ board }),
+    });
+    return (await response.json()) as AIAdvice;
+  } catch {
+    return localSuggestion(board);
+  }
 }
 
-// Dispatcher: routes by AI_MODE; emitSideEffects runs on both paths.
+// Dispatcher: routes by AI_MODE; logAdvice runs on both paths.
 export async function getSuggestion(board: Board): Promise<AIAdvice> {
   const advice =
     CONFIG.AI_MODE === AI_MODES.REMOTE ? await remoteSuggestion(board) : localSuggestion(board);
-  emitSideEffects(advice);
+  logAdvice(advice);
   return advice;
 }

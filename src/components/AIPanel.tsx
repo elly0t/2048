@@ -27,10 +27,8 @@ export function AIPanel() {
       <button
         type="button"
         className={styles.askButton}
-        onClick={() => {
-          if (!adviceLoading) void requestAdvice();
-        }}
-        aria-disabled={adviceLoading}
+        onClick={() => void requestAdvice()}
+        disabled={adviceLoading}
         data-testid="ask-ai"
       >
         {adviceLoading ? (
