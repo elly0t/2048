@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/elly0t/2048/actions/workflows/ci.yml/badge.svg)](https://github.com/elly0t/2048/actions/workflows/ci.yml)
 
-A playable 2048 with an in-browser AI assistant. React + TypeScript + Vite, tested with Vitest and Playwright. The Expectimax search (depth 3) runs on the client — sub-100ms typical advice, zero backend, and the player's board state never leaves the device.
+A playable 2048 with an in-browser AI assistant. React + TypeScript + Vite, tested with Vitest and Playwright. The Expectimax search (depth 3) runs on the client: sub-100ms typical advice, and the board state never leaves the device.
 
 Substantial docs live alongside the code: [`TECHNICAL_DESIGN.md`](./TECHNICAL_DESIGN.md) (architecture), [`TEST_PLAN.md`](./TEST_PLAN.md) (test coverage spec), [`AI_FLOW.md`](./AI_FLOW.md) (AI module flow), [`bench/`](./bench/) (self-play benchmark harness + report). Full index at the bottom.
 
