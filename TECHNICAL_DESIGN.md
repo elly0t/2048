@@ -49,7 +49,7 @@ The spec leaves several values unspecified. All assumptions are externalised to 
 ┌──────────────────────────────────────┐
 │            View Layer                │
 │   React components — render only     │
-│   React.memo on stable components    │
+│   Subscribe via useGame hook         │
 ├──────────────────────────────────────┤
 │          ViewModel Layer             │
 │   GameStore — plain class            │
@@ -65,19 +65,25 @@ The spec leaves several values unspecified. All assumptions are externalised to 
 
 `GameStore` has zero React imports, so game logic runs and tests in plain Node, and domain functions stay pure for the same reason. That's what makes the MVVM split worth it here, not the label.
 
+No manual memo. `React.memo`, `useMemo`, and `useCallback` are a coupled contract — they only pay off when every prop into a subtree is already stable, and partial adoption is overhead.
+
+Reactivity is one `version`-bumped snapshot via `useSyncExternalStore`: every consumer re-renders on every commit, sub-frame at 4×4, exactly the right shape for this scale.
+
+Granular selectors and per-component memo would add complexity for unmeasurable wins. At a much larger board or richer `Tile`, we can split snapshot updates + apply memorisation; or let React Compiler hoist the equivalent automatically. Neither is needed here yet.
+
 ### 3.2 Domain Language
 
 Each domain concept gets its own type so signatures read as domain (`Board`, `Direction`, `MoveResult`) instead of primitives like `(number | null)[][]`.
 
 Domain types live in `domain/types.ts`. Const-backed types (`Direction`) live alongside their runtime const object (`DIRECTION`). Module-specific types live with their module — `AIAdvice` in `src/ai/types.ts`, `GameStatus`/`STATUS` (when added) in `src/store/types.ts`.
 
-| Concept      | Where             | Shape                                                            |
-| ------------ | ----------------- | ---------------------------------------------------------------- |
-| `Board`      | `domain/types.ts` | `Row[]` (alias chain: `Cell = number \| null`, `Row = Cell[]`)   |
-| `Direction`  | `domain/types.ts` | `'left' \| 'right' \| 'up' \| 'down'`                            |
-| `MoveResult` | `domain/types.ts` | `{ board, changed, scoreDelta }`                                 |
-| `GameStatus` | `store/types.ts`  | `'idle' \| 'playing' \| 'won' \| 'lost'` _(pending §6 build)_    |
-| `AIAdvice`   | `ai/types.ts`     | `{ direction, reasoning, debug }` _(pending §5.4 getSuggestion)_ |
+| Concept      | Where             | Shape                                                          |
+| ------------ | ----------------- | -------------------------------------------------------------- |
+| `Board`      | `domain/types.ts` | `Row[]` (alias chain: `Cell = number \| null`, `Row = Cell[]`) |
+| `Direction`  | `domain/types.ts` | `'left' \| 'right' \| 'up' \| 'down'`                          |
+| `MoveResult` | `domain/types.ts` | `{ board, changed, scoreDelta }`                               |
+| `GameStatus` | `store/types.ts`  | `'idle' \| 'playing' \| 'won' \| 'lost'`                       |
+| `AIAdvice`   | `ai/types.ts`     | `{ direction, reasoning, debug }`                              |
 
 ### 3.3 UI Layout
 
@@ -156,7 +162,7 @@ Slide (180ms) and merge-pop (200ms) run concurrent; spawn (250ms) is delayed 240
 
 ## 4. Core Domain Logic
 
-2D array board, canonical `moveLeft` with the other three directions implemented as reflect/transpose around it. Per-row pipeline is `compressRow → mergeRow → compressRow`. Six-stage sequencing in the store guards against spawn-after-no-change and spawn-after-win.
+2D array board, canonical `moveLeft` with the other three directions implemented as reflect/transpose around it. Per-row pipeline is `compressRow → mergeRow → compressRow`. Store-side sequencing (§4.4) guards against spawn-after-no-change and spawn-on-WON-transition.
 
 Move processing is layered. `GameStore` handles state transitions and sequencing (§4.4); `moves.ts` handles the row-level transform (§4.3); `compressRow` and `mergeRow` are the per-row primitives. Reading top-down:
 
@@ -169,7 +175,7 @@ applyMove(board, direction)                          ← dispatcher (4-way switc
    ├── moveLeft                                      ← canonical operation
    ├── moveRight  = reflect → moveLeft → reflect
    ├── moveUp     = transpose → moveLeft → transpose
-   └── moveDown   = transpose∘reflect → moveLeft → reflect∘transpose
+   └── moveDown   = reflect∘transpose → moveLeft → transpose∘reflect
                        │
                        ▼ for each row
                   compressRow → mergeRow → compressRow
@@ -268,15 +274,15 @@ For Move Right, Up, Down, the same rules apply but in the corresponding directio
 The order of operations in `GameStore.applyMove()` matters; incorrect sequencing is a common source of win/lose bugs.
 
 ```
-1. newBoard = applyMove(board, direction)
-2. boardsEqual(board, newBoard)  → if true: return unchanged (no spawn)
-3. checkWin(newBoard)            → if true: status = 'won', return (no spawn)
-4. boardWithTile = spawnTile(newBoard)
-5. checkLose(boardWithTile)      → if true: status = 'lost'
-6. update state
+1. { board: newBoard, changed, scoreDelta } = applyMove(board, direction)
+2. !changed                                 → return (no spawn) — equality computed inline per-row in moveLeft
+3. status !== WON && checkWin(newBoard)     → first transition only: status = WON, return (no spawn)
+4. nextBoard = spawnTile(newBoard)
+5. checkLose(nextBoard)                     → if true: status = LOST
+6. commit { board: nextBoard, lastDirection } + notify
 ```
 
-Each stage has a dedicated test. Stage 2 guards against spawning on a no-change move. Stage 3 guards against spawning after a win. Stage 5 runs `checkLose` on `boardWithTile` (post-spawn), not `newBoard`, because a spawn that fills the last empty cell with no available merges can itself trigger the lose state. The before/after boards from stage 6 feed motion inference — §3.4.
+Each stage has a dedicated test. Stage 2 guards against spawning on a no-change move; equality is `MoveResult.changed`, computed per-row inside `moveLeft` (no separate `boardsEqual` call in the production path — that helper is test-only). Stage 3 only fires on the **first transition** to WON (`status !== WON` guard); once acknowledged, subsequent moves fall through to normal spawn flow so play continues. Stage 5 runs `checkLose` on `nextBoard` (post-spawn), not `newBoard`, because a spawn that fills the last empty cell with no available merges can itself trigger the lose state. The before/after boards from stage 6 feed motion inference — §3.4.
 
 ---
 
@@ -402,7 +408,7 @@ These values come from nneonneo's published 2048 AI analysis (the same StackOver
 export async function getSuggestion(board) {
   const advice =
     CONFIG.AI_MODE === AI_MODES.REMOTE ? await remoteSuggestion(board) : localSuggestion(board);
-  emitSideEffects(advice); // console.log + window.__lastAdvice + history (TD §11)
+  logAdvice(advice); // console.log + window.__lastAdvice + history (TD §11)
   return advice;
 }
 ```
@@ -415,7 +421,7 @@ The local Expectimax search is sufficient for this submission. If stronger play 
 
 ### 5.6 Suggestion Pipeline & Reasoning Template
 
-`expectimax` is value-returning: it takes a board and a depth and returns a single number. `getSuggestion` runs the per-direction loop — calling `expectimax` once per direction, capturing all four scores (including no-ops, for debug), picking the max, and deriving the reasoning template from heuristic component deltas. Both the move and the reasoning are deterministic and fully testable.
+`expectimax` is value-returning: it takes a board and a depth and returns a single number (the `expectimax(...)` export in `src/ai/expectimax.ts` is a test-only wrapper; production calls `chanceValue` directly). `getSuggestion` runs the per-direction loop — calling `chanceValue` once per direction on the post-move board, capturing all four scores (including no-ops, for debug), picking the max, and deriving the reasoning template from heuristic component deltas. Both the move and the reasoning are deterministic and fully testable.
 
 #### How the suggestion works
 
@@ -443,26 +449,26 @@ Step 3 — weighted component deltas (Left vs Right). Each component
   corner:  1.0 × ( 11 −  11) =  0
 
 Step 4 — dominant delta → template:
-  "Move Left — frees up board space"
+  "frees up board space"
 ```
 
-**Dominant delta** = largest absolute weighted delta between the chosen direction's components and the second-best direction's. If that delta is below `CONFIG.GENERIC_TEMPLATE_THRESHOLD` (5%) of the chosen direction's score, fall back to the generic template _"Move {direction} — best overall position"_.
+**Dominant delta** = largest absolute weighted delta between the chosen direction's components and the second-best direction's. If that delta is below `CONFIG.GENERIC_TEMPLATE_THRESHOLD` (5%) of the chosen direction's score, fall back to the generic template _"best overall position"_. The direction label (`"Move Left"`, etc.) is rendered separately by `AIPanel` — see §3.3 — so reasoning strings are the rationale clause only.
 
-Template map:
+Template map (rationale clause; UI prepends the direction):
 
-| Dominant component | Reasoning template                                                      |
-| ------------------ | ----------------------------------------------------------------------- |
-| Monotonicity       | _"Move {direction} — keeps tiles ordered along rows"_                   |
-| Smoothness         | _"Move {direction} — keeps similar tiles close, more merges available"_ |
-| Empty cells        | _"Move {direction} — frees up board space"_                             |
-| Corner             | _"Move {direction} — keeps largest tile anchored in corner"_            |
+| Dominant component | Reasoning template                                   |
+| ------------------ | ---------------------------------------------------- |
+| Monotonicity       | _"keeps tiles ordered along rows"_                   |
+| Smoothness         | _"keeps similar tiles close, more merges available"_ |
+| Empty cells        | _"frees up board space"_                             |
+| Corner             | _"keeps largest tile anchored in corner"_            |
 
 Deterministic: given the same board, output is always identical. Fully testable:
 
 ```ts
 expect(await getSuggestion(knownBoard)).toMatchObject({
   direction: 'left',
-  reasoning: 'Move Left — frees up board space',
+  reasoning: 'frees up board space',
 });
 ```
 
@@ -512,12 +518,16 @@ class GameStore {
   bestScore; // persists across resets
   advice; // AIAdvice | null
   adviceLoading; // boolean
+  lastDirection; // Direction | null — last applied move, drives motion inference (§3.4)
+  acknowledgedStatus; // GameStatus | null — set when player dismisses the WON/LOST modal
 
   get isActive(); // PLAYING or WON (WON interactive per assumption #4)
   get largestTile(); // max tile value; null on empty board
+  get modalOpen(); // true when status is WON/LOST and not acknowledged
 
   applyMove(direction);
   requestAdvice();
+  setAcknowledgedStatus(status);
   reset();
 }
 ```
@@ -540,13 +550,16 @@ reset()              → status = PLAYING
 ```
 Action                  | State changes
 ------------------------|--------------------------------------------------
-applyMove(direction)    | board, score (+= scoreDelta), status (6-stage sequencing — §4.4)
-requestAdvice()         | adviceLoading = true, advice = null
+applyMove(direction)    | board, score (+= scoreDelta), status, lastDirection (sequencing — §4.4)
+requestAdvice()         | adviceLoading = true
+                        | (prior advice deliberately preserved so the UI can render it
+                        |  dimmed during recompute — see §3.3 advice rendering contract)
                         | → on result: advice = { direction, reasoning, debug }
                         |              adviceLoading = false
-reset()                 | board = initBoard(), score = 0,
-                        | status = STATUS.PLAYING, advice = null
-                        | (bestScore preserved)
+setAcknowledgedStatus(s)| acknowledgedStatus = s (closes the WON/LOST modal)
+reset()                 | board = initBoard(), score = 0, status = PLAYING,
+                        | advice = null, adviceLoading = false, lastDirection = null,
+                        | acknowledgedStatus = null (bestScore preserved)
 ```
 
 ### 6.6 VM Test Injection
@@ -580,7 +593,7 @@ it('does not mutate state on no-change move', () => {
 });
 ```
 
-These exact test cases appear in `gameStore.test.ts`.
+The behaviours above are covered in `gameStore.test.ts`. Test names differ as these are for demo — see the file for the actual `case N: …` titles.
 
 ---
 
@@ -716,74 +729,17 @@ Inspect config:
 
 ## 10. File Structure
 
-```
-/
-├── src/
-│   ├── domain/                   # Pure functions — zero framework imports
-│   │   ├── board.ts              # initBoard, boardsEqual, spawnTile, checkWin, checkLose, emptyCellPositions, cloneWithCell
-│   │   ├── board.test.ts
-│   │   ├── moves.ts              # compressRow, mergeRow, applyMove
-│   │   ├── moves.test.ts
-│   │   └── types.ts              # Board, Cell, Row, Direction, MoveResult, ALL_DIRECTIONS
-│   │
-│   ├── store/
-│   │   ├── gameStore.ts          # Plain class ViewModel
-│   │   └── gameStore.test.ts     # VM tests — zero React imports
-│   │
-│   ├── ai/
-│   │   ├── heuristics.ts         # monotonicity, smoothness, cornerBonus, emptyCells
-│   │   ├── heuristics.test.ts
-│   │   ├── expectimax.ts         # value-returning search
-│   │   ├── expectimax.test.ts
-│   │   ├── getSuggestion.ts      # direction loop + reasoning + remote adapter
-│   │   ├── getSuggestion.test.ts
-│   │   ├── strings.ts            # TEMPLATES, GENERIC_TEMPLATE, NO_MOVES_AVAILABLE, LOG_PREFIX
-│   │   └── types.ts              # AIAdvice, SearchStats
-│   │
-│   ├── hooks/
-│   │   ├── persistence.ts        # loadGameState, loadBestScore, saveGameState, saveBestScore (split for isolated unit tests)
-│   │   ├── persistence.test.ts
-│   │   ├── motion.ts             # inferMotions — tile motion stream per §3.4 (slide, merge, spawn, ghost)
-│   │   ├── motion.test.ts
-│   │   ├── useGame.ts            # useSyncExternalStore bridge + localStorage + arrow keys + motion inference (§3.3, §3.4)
-│   │   └── useGame.test.ts       # hook-level tests if any (no React render tests)
-│   │
-│   ├── components/
-│   │   ├── Header.tsx            # Title, Score, Best, Restart
-│   │   ├── Header.module.css
-│   │   ├── Board.tsx             # 16 Cells (slots) + N Tiles (animated overlay — §3.4)
-│   │   ├── Board.module.css
-│   │   ├── Cell.tsx              # Static empty slot
-│   │   ├── Cell.module.css
-│   │   ├── Tile.tsx              # Absolute-positioned, React.memo (CSS-transform slide/spawn/pop — §3.4)
-│   │   ├── Tile.module.css
-│   │   ├── AIPanel.tsx           # Suggest button + advice display + loading state
-│   │   ├── AIPanel.module.css
-│   │   ├── StatusOverlay.tsx     # Win/lose modal — Continue (WON) or View board (LOST) + Restart
-│   │   └── StatusOverlay.module.css
-│   │
-│   ├── styles/
-│   │   ├── tokens.css            # log₂(rank) HSL palette + spacing + radii + transition durations
-│   │   └── index.css             # global box-sizing + system font stack
-│   │
-│   ├── constants/
-│   │   └── storageKeys.ts
-│   │
-│   ├── i18n/
-│   │   └── copy.ts               # Centralised user-facing strings — future-extensible to per-locale files (en.ts, zh.ts, …)
-│   │
-│   ├── config.ts
-│   ├── App.tsx
-│   └── main.tsx
-│
-├── README.md
-├── TECHNICAL_DESIGN.md
-├── TEST_PLAN.md
-├── AI_FLOW.md
-├── tsconfig.json
-├── vite.config.ts
-└── package.json
-```
+Convention-driven, code is the source of truth — browse `src/` directly. The shape:
+
+- `src/domain/` — pure functions, zero framework imports (board, moves, types).
+- `src/store/` — `GameStore` plain class + tests, zero React imports.
+- `src/ai/` — Expectimax search, heuristics, suggestion dispatcher, reasoning templates, types.
+- `src/hooks/` — `useGame` (React bridge via `useSyncExternalStore`), `motion` (tile-motion inference per §3.4), `persistence` (localStorage helpers).
+- `src/components/` — React components with colocated CSS Modules (Header, Board, Cell, Tile, AIPanel, StatusOverlay).
+- `src/styles/` — design tokens in `tokens.css`, runtime tile palette in `palette.ts` (HSL ramp keyed by `log₂(rank)`), global resets in `index.css`.
+- `src/constants/`, `src/i18n/`, `src/config.ts`, `src/App.tsx`, `src/main.tsx` — supporting modules.
+
+Tests colocated as `*.test.ts` next to source. E2E specs in `e2e/`. Top-level docs: README, TECHNICAL_DESIGN, TEST_PLAN, AI_FLOW. Bench harness + report in `bench/`.
 
 ---
 
@@ -808,7 +764,7 @@ The full advice object:
 ```ts
 {
   direction: 'left',
-  reasoning: 'Move Left — frees up board space',
+  reasoning: 'frees up board space',
   debug: {
     scores: { left: 12.4, right: 10.6, up: null, down: 4.8 },
     computedInMs: 7.3,
